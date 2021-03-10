@@ -2,6 +2,10 @@ TEST?=$$(go list ./...)
 
 default: testacc
 
+fmt:
+	@echo "==> Fixing source code with gofmt..."
+	gofmt -w -s ./internal/provider
+
 # Currently required by tf-deploy compile
 fmtcheck:
 	@echo "==> Checking source code against gofmt..."
