@@ -1,5 +1,5 @@
 ---
-page_title: "scaffolding_data_source Data Source - terraform-provider-scaffolding"
+page_title: "scaffolding_data_source Data Source - terraform-provider-googleworkspace"
 subcategory: ""
 description: |-
   Sample data source in the Terraform provider scaffolding.
@@ -21,10 +21,10 @@ data "scaffolding_data_source" "example" {
 
 ### Required
 
-- **sample_attribute** (String, Required) Sample attribute.
+- **sample_attribute** (String) Sample attribute.
 
 ### Optional
 
-- **id** (String, Optional) The ID of this resource.
+- **id** (String) The ID of this resource.
 
 

@@ -1,5 +1,5 @@
 ---
-page_title: "scaffolding_resource Resource - terraform-provider-scaffolding"
+page_title: "scaffolding_resource Resource - terraform-provider-googleworkspace"
 subcategory: ""
 description: |-
   Sample resource in the Terraform provider scaffolding.
@@ -21,7 +21,7 @@ resource "scaffolding_resource" "example" {
 
 ### Optional
 
-- **id** (String, Optional) The ID of this resource.
-- **sample_attribute** (String, Optional) Sample attribute.
+- **id** (String) The ID of this resource.
+- **sample_attribute** (String) Sample attribute.
 
 

@@ -1,11 +1,11 @@
 ---
-page_title: "scaffolding Provider"
+page_title: "googleworkspace Provider"
 subcategory: ""
 description: |-
   
 ---
 
-# scaffolding Provider
+# googleworkspace Provider
 
 
 
