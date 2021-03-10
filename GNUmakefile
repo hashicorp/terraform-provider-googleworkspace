@@ -14,6 +14,10 @@ fmtcheck:
 generate:
 	go generate  ./...
 
+lint:
+	@echo "==> Checking source code against linters..."
+	@golangci-lint run ./internal/provider
+
 test: fmtcheck generate
 	go test $(TESTARGS) -timeout=30s $(TEST)
 
