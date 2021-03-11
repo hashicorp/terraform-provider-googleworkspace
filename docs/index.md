@@ -18,3 +18,8 @@ provider "scaffolding" {
 ```
 
 ## Schema
+
+### Optional
+
+- **credentials** (String)
+- **oauth_scopes** (List of String)
