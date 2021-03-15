@@ -22,16 +22,15 @@ var providerFactories = map[string]func() (*schema.Provider, error){
 }
 
 var credsEnvVars = []string{
-	"GOOGLE_CREDENTIALS",
-	"GOOGLE_CLOUD_KEYFILE_JSON",
-	"GCLOUD_KEYFILE_JSON",
-	"GOOGLE_USE_DEFAULT_CREDENTIALS",
+	"GOOGLEWORKSPACE_CREDENTIALS",
+	"GOOGLEWORKSPACE_CLOUD_KEYFILE_JSON",
+	"GOOGLEWORKSPACE_USE_DEFAULT_CREDENTIALS",
 }
 
 // testAccPreCheck ensures at least one of the credentials env variables is set.
 func getTestCredsFromEnv() string {
-	// Return empty string if GOOGLE_USE_DEFAULT_CREDENTIALS is set to true.
-	if multiEnvSearch(credsEnvVars) == "true" {
+	// Return empty string if GOOGLEWORKSPACE_USE_DEFAULT_CREDENTIALS is set to true.
+	if os.Getenv("GOOGLEWORKSPACE_USE_DEFAULT_CREDENTIALS") == "true" {
 		return ""
 	}
 	return multiEnvSearch(credsEnvVars)

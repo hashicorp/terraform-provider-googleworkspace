@@ -53,13 +53,14 @@ jobs:
         terraform:
           - '0.12.29'
           - '0.13.4'
-          - '0.14.0-beta2'
+          - '0.14.8'
+          - '0.15.0-beta1'
     steps:
 
     - name: Set up Go
       uses: actions/setup-go@v2.1.3
       with:
-        go-version: '1.15'
+        go-version: '1.16'
       id: go
 
     - name: Check out code into the Go module directory
@@ -79,6 +80,9 @@ jobs:
         # optionally use data from your repository secrets using the
         # following syntax:
         # SOME_VAR: ${{ secrets.SOME_VAR }}
+
+        GOOGLEWORKSPACE_CLOUD_KEYFILE_JSON: ${{ secrets.GOOGLEWORKSPACE_CLOUD_KEYFILE_JSON }}
+        GOOGLEWORKSPACE_CUST_ID: ${{ secrets.GOOGLEWORKSPACE_CUST_ID }}
 
       run: |
         go test -v -cover ./internal/provider/

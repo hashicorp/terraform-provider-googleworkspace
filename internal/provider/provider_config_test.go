@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"io/ioutil"
+	"os"
 	"testing"
 )
 
@@ -60,7 +61,12 @@ func TestConfigLoadAndValidate_credsFromEnv(t *testing.T) {
 		t.Fatalf(err.Error())
 	}
 
-	_, err = config.NewDirectoryService().Users.List().Do()
+	directoryService := config.NewDirectoryService()
+	if directoryService == nil {
+		t.Fatalf("Directory Service could not be created.")
+	}
+
+	_, err = directoryService.Customers.Get(os.Getenv("GOOGLEWORKSPACE_CUST_ID")).Do()
 	if err != nil {
 		t.Fatalf(err.Error())
 	}

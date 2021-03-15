@@ -13,7 +13,8 @@ import (
 )
 
 var DefaultClientScopes = []string{
-	"https://www.googleapis.com/auth/admin",
+	"https://www.googleapis.com/auth/cloud-platform",
+	"https://www.googleapis.com/auth/admin.directory.customer",
 }
 
 func init() {
@@ -40,9 +41,8 @@ func New(version string) func() *schema.Provider {
 					Type:     schema.TypeString,
 					Optional: true,
 					DefaultFunc: schema.MultiEnvDefaultFunc([]string{
-						"GOOGLE_CREDENTIALS",
-						"GOOGLE_CLOUD_KEYFILE_JSON",
-						"GCLOUD_KEYFILE_JSON",
+						"GOOGLEWORKSPACE_CREDENTIALS",
+						"GOOGLEWORKSPACE_CLOUD_KEYFILE_JSON",
 					}, nil),
 					ValidateDiagFunc: validateCredentials,
 				},
