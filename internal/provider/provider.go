@@ -47,6 +47,14 @@ func New(version string) func() *schema.Provider {
 					ValidateDiagFunc: validateCredentials,
 				},
 
+				"impersonated_user_email": {
+					Type:     schema.TypeString,
+					DefaultFunc: schema.MultiEnvDefaultFunc([]string{
+						"GOOGLEWORKSPACE_IMPERSONATED_USER_EMAIL",
+					}, nil),
+					Optional: true,
+				},
+
 				"oauth_scopes": {
 					Type:     schema.TypeList,
 					Optional: true,
@@ -71,17 +79,23 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 	return func(ctx context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
 		config := apiClient{}
 
+		// Get credentials
+		if v, ok := d.GetOk("credentials"); ok {
+			config.Credentials = v.(string)
+		}
+
+		// Get impersonated user email
+		if v, ok := d.GetOk("impersonated_user_email"); ok {
+			config.ImpersonatedUserEmail = v.(string)
+		}
+
+		// Get scopes
 		scopes := d.Get("scopes").([]interface{})
 		if len(scopes) > 0 {
 			config.ClientScopes = make([]string, len(scopes))
 		}
 		for i, scope := range scopes {
 			config.ClientScopes[i] = scope.(string)
-		}
-
-		// Get credentials
-		if v, ok := d.GetOk("credentials"); ok {
-			config.Credentials = v.(string)
 		}
 
 		config.UserAgent = p.UserAgent("terraform-provider-googleworkspace", version)

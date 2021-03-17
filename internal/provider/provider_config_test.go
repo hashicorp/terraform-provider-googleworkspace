@@ -26,6 +26,7 @@ func TestConfigLoadAndValidate_credsJSON(t *testing.T) {
 
 	config := &apiClient{
 		Credentials: string(contents),
+		ImpersonatedUserEmail: "my-fake-email@example.com",
 	}
 
 	diags := config.loadAndValidate(context.Background())
@@ -38,6 +39,7 @@ func TestConfigLoadAndValidate_credsJSON(t *testing.T) {
 func TestConfigLoadAndValidate_credsFromFile(t *testing.T) {
 	config := &apiClient{
 		Credentials: testFakeCredentialsPath,
+		ImpersonatedUserEmail: "my-fake-email@example.com",
 	}
 
 	diags := config.loadAndValidate(context.Background())
@@ -52,7 +54,8 @@ func TestConfigLoadAndValidate_credsFromEnv(t *testing.T) {
 
 	creds := getTestCredsFromEnv()
 	config := &apiClient{
-		Credentials: creds,
+		Credentials:           creds,
+		ImpersonatedUserEmail: os.Getenv("GOOGLEWORKSPACE_IMPERSONATED_USER_EMAIL"),
 	}
 
 	diags := config.loadAndValidate(context.Background())
@@ -69,6 +72,17 @@ func TestConfigLoadAndValidate_credsFromEnv(t *testing.T) {
 	_, err = directoryService.Customers.Get(os.Getenv("GOOGLEWORKSPACE_CUST_ID")).Do()
 	if err != nil {
 		t.Fatalf(err.Error())
+	}
+}
+
+func TestConfigLoadAndValidate_credsNoImpersonation(t *testing.T) {
+	config := &apiClient{
+		Credentials: testFakeCredentialsPath,
+	}
+
+	diags := config.loadAndValidate(context.Background())
+	if !diags.HasError() {
+		t.Fatalf("expected error, but got nil")
 	}
 }
 

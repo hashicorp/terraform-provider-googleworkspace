@@ -18,10 +18,10 @@ import (
 type apiClient struct {
 	client *http.Client
 
-	ClientScopes []string
-	Credentials  string
-	TokenSource  oauth2.TokenSource
-	UserAgent    string
+	ClientScopes          []string
+	Credentials           string
+	ImpersonatedUserEmail string
+	UserAgent             string
 }
 
 func (c *apiClient) loadAndValidate(ctx context.Context) diag.Diagnostics {
@@ -32,6 +32,15 @@ func (c *apiClient) loadAndValidate(ctx context.Context) diag.Diagnostics {
 	}
 
 	if c.Credentials != "" {
+		if c.ImpersonatedUserEmail == "" {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "impersonated_user_email is required when not using the default credentials",
+			})
+
+			return diags
+		}
+
 		contents, _, err := pathOrContents(c.Credentials)
 		if err != nil {
 			diags = append(diags, diag.Diagnostic{
@@ -40,7 +49,7 @@ func (c *apiClient) loadAndValidate(ctx context.Context) diag.Diagnostics {
 			})
 		}
 
-		creds, err := googleoauth.CredentialsFromJSON(ctx, []byte(contents), c.ClientScopes...)
+		jwtConfig, err := googleoauth.JWTConfigFromJSON([]byte(contents), c.ClientScopes...)
 		if err != nil {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,
@@ -51,12 +60,12 @@ func (c *apiClient) loadAndValidate(ctx context.Context) diag.Diagnostics {
 			return diags
 		}
 
-		c.TokenSource = creds.TokenSource
+		jwtConfig.Subject = c.ImpersonatedUserEmail
 
 		cleanCtx := context.WithValue(ctx, oauth2.HTTPClient, cleanhttp.DefaultClient())
 
 		// 1. OAUTH2 TRANSPORT/CLIENT - sets up proper auth headers
-		client := oauth2.NewClient(cleanCtx, creds.TokenSource)
+		client := jwtConfig.Client(cleanCtx)
 
 		c.client = client
 	}
