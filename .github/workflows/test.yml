@@ -73,8 +73,10 @@ jobs:
       id: credentials
       uses: hashicorp/vault-action@v2.0.1
       with:
-        url: https://googleworkspace-gha.vault.be531e85-db8a-457d-aea2-0feaf67bfc1e.aws.hashicorp.cloud:8200
-        token: ${{ secrets.VAULT_TOKEN }}
+        url: ${{ secrets.VAULT_ADDR }}
+        method: approle
+        roleId: ${{ secrets.ROLE_ID }}
+        secretId: ${{ secrets.SECRET_ID }}
         tlsSkipVerify: true
         secrets: |
           gcp/key/tf-acctest private_key_data
