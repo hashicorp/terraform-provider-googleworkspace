@@ -73,10 +73,11 @@ jobs:
       id: credentials
       uses: hashicorp/vault-action@v2.0.1
       with:
-        url: ${{ secrets.VAULT_ADDR }}
+        # url: ${{ secrets.VAULT_ADDR }}
+        url: http://127.0.0.1/8200
         method: approle
-        roleId: ${{ secrets.ROLE_ID }}
-        secretId: ${{ secrets.SECRET_ID }}
+        roleId: ${{ secrets.SELF_HOSTED_ROLE_ID }}
+        secretId: ${{ secrets.SELF_HOSTED_SECRET_ID }}
         tlsSkipVerify: true
         secrets: |
           gcp/key/tf-acctest private_key_data
