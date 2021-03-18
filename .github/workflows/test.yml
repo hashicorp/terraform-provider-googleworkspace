@@ -73,7 +73,7 @@ jobs:
       id: credentials
       uses: hashicorp/vault-action@v2.0.1
       with:
-        url: ${{ secrets.VAULT_ADDR }}
+        url: https://googleworkspace-gha.vault.be531e85-db8a-457d-aea2-0feaf67bfc1e.aws.hashicorp.cloud:8200
         method: approle
         roleId: ${{ secrets.ROLE_ID }}
         secretId: ${{ secrets.SECRET_ID }}
