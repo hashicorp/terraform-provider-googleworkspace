@@ -56,14 +56,14 @@ jobs:
           - '0.14.0-beta2'
     steps:
 
-    - name: Set up Go
-      uses: actions/setup-go@v2.1.3
-      with:
-        go-version: '1.15'
-      id: go
+    # - name: Set up Go
+    #   uses: actions/setup-go@v2.1.3
+    #   with:
+    #     go-version: '1.15'
+    #   id: go
 
-    - name: Check out code into the Go module directory
-      uses: actions/checkout@v2.3.3
+    # - name: Check out code into the Go module directory
+    #   uses: actions/checkout@v2.3.3
 
     - name: Get dependencies
       run: |
@@ -94,5 +94,5 @@ jobs:
 
         GOOGLEWORKSPACE_CREDENTIALS: ${{ steps.credentials.outputs.private_key_data }} | base64
 
-      run: |
-        go test -v -cover ./internal/provider/
+      # run: |
+      #   go test -v -cover ./internal/provider/
