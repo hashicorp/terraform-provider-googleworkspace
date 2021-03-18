@@ -74,7 +74,7 @@ jobs:
       uses: hashicorp/vault-action@v2.0.1
       with:
         # url: ${{ secrets.VAULT_ADDR }}
-        url: http://127.0.0.1/8200
+        url: http://127.0.0.1:8200
         method: approle
         roleId: ${{ secrets.SELF_HOSTED_ROLE_ID }}
         secretId: ${{ secrets.SELF_HOSTED_SECRET_ID }}
