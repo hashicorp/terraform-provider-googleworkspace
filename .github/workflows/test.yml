@@ -77,6 +77,7 @@ jobs:
         method: approle
         roleId: ${{ secrets.ROLE_ID }}
         secretId: ${{ secrets.SECRET_ID }}
+        tlsSkipVerify: true
         secrets: |
           gcp/key/tf-acctest private_key_data
         
