@@ -78,6 +78,7 @@ jobs:
         roleId: ${{ secrets.ROLE_ID }}
         secretId: ${{ secrets.SECRET_ID }}
         tlsSkipVerify: true
+        exportEnv: false
         namespace: admin
         secrets: |
           gcp/key/tf-acctest private_key_data
