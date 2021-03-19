@@ -69,7 +69,21 @@ jobs:
     - name: Get dependencies
       run: |
         go mod download
-        
+
+    - name: Get credentials
+      id: credentials
+      uses: hashicorp/vault-action@v2.0.1
+      with:
+        url: ${{ secrets.VAULT_ADDR }}
+        method: approle
+        roleId: ${{ secrets.ROLE_ID }}
+        secretId: ${{ secrets.SECRET_ID }}
+        tlsSkipVerify: true
+        exportEnv: false
+        namespace: admin
+        secrets: |
+          kv/data/my-secret my-value
+
     - name: TF acceptance tests
       timeout-minutes: 10
       env:
@@ -81,9 +95,11 @@ jobs:
         # following syntax:
         # SOME_VAR: ${{ secrets.SOME_VAR }}
 
-        GOOGLEWORKSPACE_CLOUD_KEYFILE_JSON: ${{ secrets.GOOGLEWORKSPACE_CLOUD_KEYFILE_JSON }}
         GOOGLEWORKSPACE_CUST_ID: ${{ secrets.GOOGLEWORKSPACE_CUST_ID }}
         GOOGLEWORKSPACE_IMPERSONATED_USER_EMAIL: ${{ secrets.GOOGLEWORKSPACE_IMPERSONATED_USER_EMAIL }}
 
       run: |
+        echo "GOOGLEWORKSPACE_CREDENTIALS=${{ steps.credentials.outputs.my-value }}" >> $GITHUB_ENV
+        echo $GOOGLEWORKSPACE_CREDENTIALS
+
         go test -v -cover ./internal/provider/
