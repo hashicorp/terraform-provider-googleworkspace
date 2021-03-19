@@ -48,7 +48,7 @@ func New(version string) func() *schema.Provider {
 				},
 
 				"impersonated_user_email": {
-					Type:     schema.TypeString,
+					Type: schema.TypeString,
 					DefaultFunc: schema.MultiEnvDefaultFunc([]string{
 						"GOOGLEWORKSPACE_IMPERSONATED_USER_EMAIL",
 					}, nil),

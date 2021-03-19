@@ -25,7 +25,7 @@ func TestConfigLoadAndValidate_credsJSON(t *testing.T) {
 	}
 
 	config := &apiClient{
-		Credentials: string(contents),
+		Credentials:           string(contents),
 		ImpersonatedUserEmail: "my-fake-email@example.com",
 	}
 
@@ -38,7 +38,7 @@ func TestConfigLoadAndValidate_credsJSON(t *testing.T) {
 
 func TestConfigLoadAndValidate_credsFromFile(t *testing.T) {
 	config := &apiClient{
-		Credentials: testFakeCredentialsPath,
+		Credentials:           testFakeCredentialsPath,
 		ImpersonatedUserEmail: "my-fake-email@example.com",
 	}
 
