@@ -71,7 +71,7 @@ jobs:
         go mod download
 
     - name: Get credentials
-      id: credentials
+      id: vault
       uses: hashicorp/vault-action@v2.0.1
       with:
         url: ${{ secrets.VAULT_ADDR }}
@@ -83,6 +83,11 @@ jobs:
         namespace: admin
         secrets: |
           gcp/key/tf-acctest private_key_data
+
+    - name: Set credentials
+      id: credentials
+      run: |
+        echo "GOOGLEWORKSPACE_CREDENTIALS=$(${{ steps.vault.outputs.private_key_data }} | base64)" >> $GITHUB_ENV
 
     - name: TF acceptance tests
       timeout-minutes: 10
@@ -99,6 +104,4 @@ jobs:
         GOOGLEWORKSPACE_IMPERSONATED_USER_EMAIL: ${{ secrets.GOOGLEWORKSPACE_IMPERSONATED_USER_EMAIL }}
 
       run: |
-        echo "GOOGLEWORKSPACE_CREDENTIALS=$(${{ steps.credentials.outputs.private_key_data }} | base64)" >> $GITHUB_ENV
-
         go test -v -cover ./internal/provider/
