@@ -82,7 +82,7 @@ jobs:
         exportEnv: false
         namespace: admin
         secrets: |
-          kv/my-secret my-value | my_value
+          kv/data/my-secret my-value | my_value
 
     - name: TF acceptance tests
       timeout-minutes: 10
