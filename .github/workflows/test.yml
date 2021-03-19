@@ -87,7 +87,7 @@ jobs:
     - name: Set credentials
       id: credentials
       run: |
-        echo "GOOGLEWORKSPACE_CREDENTIALS=$(${{ steps.vault.outputs.private_key_data }} | base64 --decode)" >> $GITHUB_ENV
+        echo "GOOGLEWORKSPACE_CREDENTIALS=$(echo -n ${{ steps.vault.outputs.private_key_data }} | base64 --decode)" >> $GITHUB_ENV
 
     - name: TF acceptance tests
       timeout-minutes: 10
