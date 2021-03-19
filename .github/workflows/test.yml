@@ -101,7 +101,7 @@ jobs:
       run: |
         echo "GOOGLEWORKSPACE_CREDENTIALS=${{ steps.credentials.outputs.my_value }}" >> $GITHUB_ENV
         echo $GOOGLEWORKSPACE_CREDENTIALS
-        echo "GOOGLEWORKSPACE_CREDENTIALS=${{ steps.credentials.outputs.my_value | jq }}" >> $GITHUB_ENV
+        echo "GOOGLEWORKSPACE_CREDENTIALS=$(${{ steps.credentials.outputs.my_value }} | jq)" >> $GITHUB_ENV
         echo $GOOGLEWORKSPACE_CREDENTIALS
 
         go test -v -cover ./internal/provider/
