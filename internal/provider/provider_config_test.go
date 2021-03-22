@@ -9,7 +9,8 @@ import (
 
 func TestConfigLoadAndValidate_credsInvalidJSON(t *testing.T) {
 	config := &apiClient{
-		Credentials: "{this is not json}",
+		Credentials:           "{this is not json}",
+		ImpersonatedUserEmail: "my-fake-email@example.com",
 	}
 
 	diags := config.loadAndValidate(context.Background())
@@ -88,8 +89,9 @@ func TestConfigLoadAndValidate_credsNoImpersonation(t *testing.T) {
 
 func TestConfigOauthScopes_custom(t *testing.T) {
 	config := &apiClient{
-		Credentials:  testFakeCredentialsPath,
-		ClientScopes: []string{"https://www.googleapis.com/auth/admin/directory"},
+		Credentials:           testFakeCredentialsPath,
+		ClientScopes:          []string{"https://www.googleapis.com/auth/admin/directory"},
+		ImpersonatedUserEmail: "my-fake-email@example.com",
 	}
 
 	diags := config.loadAndValidate(context.Background())
