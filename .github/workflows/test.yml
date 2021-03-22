@@ -84,12 +84,6 @@ jobs:
         secrets: |
           gcp/key/tf-acctest private_key_data
 
-    - name: Set credentials
-      id: credentials
-      run: |
-        creds=$(echo -n ${{ steps.vault.outputs.private_key_data }} | base64 --decode)
-        echo -e "GOOGLEWORKSPACE_CREDENTIALS=$creds" >> $GITHUB_ENV
-
     - name: TF acceptance tests
       timeout-minutes: 10
       env:
@@ -105,4 +99,5 @@ jobs:
         GOOGLEWORKSPACE_IMPERSONATED_USER_EMAIL: ${{ secrets.GOOGLEWORKSPACE_IMPERSONATED_USER_EMAIL }}
 
       run: |
+        export GOOGLEWORKSPACE_CREDENTIALS=$(echo -n ${{ steps.vault.outputs.private_key_data }} | base64 --decode)
         go test -v -cover ./internal/provider/
