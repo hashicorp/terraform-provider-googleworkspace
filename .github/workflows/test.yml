@@ -53,13 +53,14 @@ jobs:
         terraform:
           - '0.12.29'
           - '0.13.4'
-          - '0.14.0-beta2'
+          - '0.14.8'
+          - '0.15.0-beta1'
     steps:
 
     - name: Set up Go
       uses: actions/setup-go@v2.1.3
       with:
-        go-version: '1.15'
+        go-version: '1.16'
       id: go
 
     - name: Check out code into the Go module directory
@@ -68,7 +69,21 @@ jobs:
     - name: Get dependencies
       run: |
         go mod download
-        
+
+    - name: Get credentials
+      id: vault
+      uses: hashicorp/vault-action@v2.0.1
+      with:
+        url: ${{ secrets.VAULT_ADDR }}
+        method: approle
+        roleId: ${{ secrets.ROLE_ID }}
+        secretId: ${{ secrets.SECRET_ID }}
+        tlsSkipVerify: true
+        exportEnv: false
+        namespace: admin
+        secrets: |
+          gcp/key/tf-acctest private_key_data
+
     - name: TF acceptance tests
       timeout-minutes: 10
       env:
@@ -80,5 +95,9 @@ jobs:
         # following syntax:
         # SOME_VAR: ${{ secrets.SOME_VAR }}
 
+        GOOGLEWORKSPACE_CUST_ID: ${{ secrets.GOOGLEWORKSPACE_CUST_ID }}
+        GOOGLEWORKSPACE_IMPERSONATED_USER_EMAIL: ${{ secrets.GOOGLEWORKSPACE_IMPERSONATED_USER_EMAIL }}
+
       run: |
+        export GOOGLEWORKSPACE_CREDENTIALS=$(echo -n ${{ steps.vault.outputs.private_key_data }} | base64 --decode)
         go test -v -cover ./internal/provider/

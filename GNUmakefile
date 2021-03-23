@@ -1,5 +1,3 @@
-TEST?=$$(go list ./...)
-
 default: testacc
 
 fmt:
@@ -19,7 +17,7 @@ lint:
 	@golangci-lint run ./internal/provider
 
 test: fmtcheck generate
-	go test $(TESTARGS) -timeout=30s $(TEST)
+	go test $(TESTARGS) -timeout=30s $(go list ./...)
 
 # Run acceptance tests
 .PHONY: testacc
