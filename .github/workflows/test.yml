@@ -95,7 +95,7 @@ jobs:
         # following syntax:
         # SOME_VAR: ${{ secrets.SOME_VAR }}
 
-        GOOGLEWORKSPACE_CUST_ID: ${{ secrets.GOOGLEWORKSPACE_CUST_ID }}
+        GOOGLEWORKSPACE_CUSTOMER_ID: ${{ secrets.GOOGLEWORKSPACE_CUSTOMER_ID }}
         GOOGLEWORKSPACE_IMPERSONATED_USER_EMAIL: ${{ secrets.GOOGLEWORKSPACE_IMPERSONATED_USER_EMAIL }}
 
       run: |

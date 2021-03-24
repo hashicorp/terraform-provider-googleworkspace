@@ -20,6 +20,7 @@ type apiClient struct {
 
 	ClientScopes          []string
 	Credentials           string
+	Customer              string
 	ImpersonatedUserEmail string
 	UserAgent             string
 }
