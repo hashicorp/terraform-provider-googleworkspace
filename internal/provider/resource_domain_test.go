@@ -12,7 +12,7 @@ func TestAccResourceDomain(t *testing.T) {
 
 	domainName := fmt.Sprintf("tf-test-%s.com", acctest.RandString(10))
 
-	resource.UnitTest(t, resource.TestCase{
+	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: providerFactories,
 		Steps: []resource.TestStep{
