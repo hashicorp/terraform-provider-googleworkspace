@@ -16,6 +16,7 @@ var DefaultClientScopes = []string{
 	"https://www.googleapis.com/auth/cloud-platform",
 	"https://www.googleapis.com/auth/admin.directory.customer",
 	"https://www.googleapis.com/auth/admin.directory.domain",
+	"https://www.googleapis.com/auth/admin.directory.user",
 }
 
 func init() {
@@ -75,6 +76,7 @@ func New(version string) func() *schema.Provider {
 			},
 			ResourcesMap: map[string]*schema.Resource{
 				"googleworkspace_domain": resourceDomain(),
+				"googleworkspace_user": resourceUser(),
 			},
 		}
 
