@@ -87,12 +87,7 @@ func resourceDomainCreate(ctx context.Context, d *schema.ResourceData, meta inte
 
 	domain, err := directoryService.Domains.Insert(client.Customer, &domainObj).Do()
 	if err != nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  err.Error(),
-		})
-
-		return diags
+		return diag.FromErr(err)
 	}
 
 	// Use the domain name as the ID, as it should be unique
@@ -123,21 +118,11 @@ func resourceDomainRead(ctx context.Context, d *schema.ResourceData, meta interf
 
 	domain, err := directoryService.Domains.Get(client.Customer, domainName).Do()
 	if err != nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  err.Error(),
-		})
-
-		return diags
+		return diag.FromErr(err)
 	}
 
 	if err := d.Set("domain_aliases", flattenDomainAliases(domain.DomainAliases, d)); err != nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  err.Error(),
-		})
-
-		return diags
+		return diag.FromErr(err)
 	}
 
 	d.Set("verified", domain.Verified)
@@ -170,12 +155,7 @@ func resourceDomainDelete(ctx context.Context, d *schema.ResourceData, meta inte
 
 	err := directoryService.Domains.Delete(client.Customer, domainName).Do()
 	if err != nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  err.Error(),
-		})
-
-		return diags
+		return diag.FromErr(err)
 	}
 
 	log.Printf("[DEBUG] Finished deleting Domain %q: %#v", d.Id(), domainName)

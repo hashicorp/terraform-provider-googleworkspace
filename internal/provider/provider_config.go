@@ -44,21 +44,12 @@ func (c *apiClient) loadAndValidate(ctx context.Context) diag.Diagnostics {
 
 		contents, _, err := pathOrContents(c.Credentials)
 		if err != nil {
-			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Error,
-				Summary:  err.Error(),
-			})
+			return diag.FromErr(err)
 		}
 
 		jwtConfig, err := googleoauth.JWTConfigFromJSON([]byte(contents), c.ClientScopes...)
 		if err != nil {
-			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Error,
-				Summary:  err.Error(),
-				Detail:   contents,
-			})
-
-			return diags
+			return diag.FromErr(err)
 		}
 
 		jwtConfig.Subject = c.ImpersonatedUserEmail

@@ -61,6 +61,8 @@ func multiEnvSearch(ks []string) string {
 	return ""
 }
 
+// checkDiags will check to see if any of the diags have type error, and if so, they will return the first
+// error. It will print warnings until it hits an error.
 func checkDiags(diags diag.Diagnostics) error {
 	if diags.HasError() {
 		for _, d := range diags {
