@@ -76,7 +76,7 @@ func New(version string) func() *schema.Provider {
 			},
 			ResourcesMap: map[string]*schema.Resource{
 				"googleworkspace_domain": resourceDomain(),
-				"googleworkspace_user": resourceUser(),
+				"googleworkspace_user":   resourceUser(),
 			},
 		}
 
