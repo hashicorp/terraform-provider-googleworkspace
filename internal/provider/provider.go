@@ -15,6 +15,7 @@ import (
 var DefaultClientScopes = []string{
 	"https://www.googleapis.com/auth/cloud-platform",
 	"https://www.googleapis.com/auth/admin.directory.customer",
+	"https://www.googleapis.com/auth/admin.directory.domain",
 }
 
 func init() {
@@ -47,6 +48,14 @@ func New(version string) func() *schema.Provider {
 					ValidateDiagFunc: validateCredentials,
 				},
 
+				"customer_id": {
+					Type: schema.TypeString,
+					DefaultFunc: schema.MultiEnvDefaultFunc([]string{
+						"GOOGLEWORKSPACE_CUSTOMER_ID",
+					}, nil),
+					Optional: true,
+				},
+
 				"impersonated_user_email": {
 					Type: schema.TypeString,
 					DefaultFunc: schema.MultiEnvDefaultFunc([]string{
@@ -62,10 +71,10 @@ func New(version string) func() *schema.Provider {
 				},
 			},
 			DataSourcesMap: map[string]*schema.Resource{
-				"scaffolding_data_source": dataSourceScaffolding(),
+				"googleworkspace_domain": dataSourceDomain(),
 			},
 			ResourcesMap: map[string]*schema.Resource{
-				"scaffolding_resource": resourceScaffolding(),
+				"googleworkspace_domain": resourceDomain(),
 			},
 		}
 
@@ -77,11 +86,24 @@ func New(version string) func() *schema.Provider {
 
 func configure(version string, p *schema.Provider) func(context.Context, *schema.ResourceData) (interface{}, diag.Diagnostics) {
 	return func(ctx context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
+		var diags diag.Diagnostics
 		config := apiClient{}
 
 		// Get credentials
 		if v, ok := d.GetOk("credentials"); ok {
 			config.Credentials = v.(string)
+		}
+
+		// Get customer id
+		if v, ok := d.GetOk("customer_id"); ok {
+			config.Customer = v.(string)
+		} else {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "customer_id is required",
+			})
+
+			return nil, diags
 		}
 
 		// Get impersonated user email
@@ -90,7 +112,7 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 		}
 
 		// Get scopes
-		scopes := d.Get("scopes").([]interface{})
+		scopes := d.Get("oauth_scopes").([]interface{})
 		if len(scopes) > 0 {
 			config.ClientScopes = make([]string, len(scopes))
 		}
@@ -100,7 +122,7 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 
 		config.UserAgent = p.UserAgent("terraform-provider-googleworkspace", version)
 
-		diags := config.loadAndValidate(ctx)
+		diags = config.loadAndValidate(ctx)
 
 		return &config, diags
 	}

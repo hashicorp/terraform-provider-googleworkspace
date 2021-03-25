@@ -56,6 +56,7 @@ func TestConfigLoadAndValidate_credsFromEnv(t *testing.T) {
 	creds := getTestCredsFromEnv()
 	config := &apiClient{
 		Credentials:           creds,
+		Customer:              os.Getenv("GOOGLEWORKSPACE_CUSTOMER_ID"),
 		ImpersonatedUserEmail: os.Getenv("GOOGLEWORKSPACE_IMPERSONATED_USER_EMAIL"),
 	}
 
@@ -70,7 +71,7 @@ func TestConfigLoadAndValidate_credsFromEnv(t *testing.T) {
 		t.Fatalf("Directory Service could not be created.")
 	}
 
-	_, err = directoryService.Customers.Get(os.Getenv("GOOGLEWORKSPACE_CUST_ID")).Do()
+	_, err = directoryService.Customers.Get(config.Customer).Do()
 	if err != nil {
 		t.Fatalf(err.Error())
 	}

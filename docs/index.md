@@ -22,5 +22,6 @@ provider "scaffolding" {
 ### Optional
 
 - **credentials** (String)
+- **customer_id** (String)
 - **impersonated_user_email** (String)
 - **oauth_scopes** (List of String)
