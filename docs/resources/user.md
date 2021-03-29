@@ -15,6 +15,7 @@ User resource manages Google Workspace Users.
 
 ### Required
 
+- **name** (Block List, Min: 1, Max: 1) Holds the given and family names of the user, and the read-only fullName value.The maximum number of characters in the givenName and in the familyName values is 60.In addition, name values support unicode/UTF-8 characters, and can contain spaces, letters (a-z),numbers (0-9), dashes (-), forward slashes (/), and periods (.).Maximum allowed data size for this field is 1Kb. (see [below for nested schema](#nestedblock--name))
 - **password** (String, Sensitive) Stores the password for the user account. A password can contain any combination ofASCII characters. A minimum of 8 characters is required. The maximum length is 100 characters.
 - **primary_email** (String) The user's primary email address. The primaryEmail must be unique and cannot be an aliasof another user.
 
@@ -25,16 +26,13 @@ User resource manages Google Workspace Users.
 - **change_password_at_next_login** (Boolean) Indicates if the user is forced to change their password at next login. This settingdoesn't apply when the user signs in via a third-party identity provider.
 - **emails** (Block List) A list of the user's email addresses. The maximum allowed data size is 10Kb. (see [below for nested schema](#nestedblock--emails))
 - **external_ids** (Block List) A list of external IDs for the user, such as an employee or network ID. The maximum allowed data size is 2Kb. (see [below for nested schema](#nestedblock--external_ids))
-- **gender** (String) The user's gender. The maximum allowed data size for this field is 1Kb.
 - **hash_function** (String) Stores the hash format of the password property. We recommend sending the passwordproperty value as a base 16 bit hexadecimal-encoded hash value. Set the hashFunction valuesas either the SHA-1, MD5, or crypt hash format.
 - **ims** (Block List) The user's Instant Messenger (IM) accounts. A user account can have multiple imsproperties. But, only one of these ims properties can be the primary IM contact.The maximum allowed data size is 2Kb. (see [below for nested schema](#nestedblock--ims))
-- **include_in_global_address_list** (Boolean) Indicates if the user's profile is visible in the Google Workspace global address listwhen the contact sharing feature is enabled for the domain.
 - **ip_whitelisted** (Boolean) If true, the user's IP address is whitelisted.
+- **is_admin** (Boolean) Indicates a user with super admininistrator privileges.
 - **keywords** (Block List) A list of the user's keywords. The maximum allowed data size is 1Kb. (see [below for nested schema](#nestedblock--keywords))
 - **languages** (Block List) A list of the user's languages. The maximum allowed data size is 1Kb. (see [below for nested schema](#nestedblock--languages))
 - **locations** (Block List) A list of the user's locations. The maximum allowed data size is 10Kb. (see [below for nested schema](#nestedblock--locations))
-- **name** (Block List, Max: 1) Holds the given and family names of the user, and the read-only fullName value.The maximum number of characters in the givenName and in the familyName values is 60.In addition, name values support unicode/UTF-8 characters, and can contain spaces, letters (a-z),numbers (0-9), dashes (-), forward slashes (/), and periods (.).Maximum allowed data size for this field is 1Kb. (see [below for nested schema](#nestedblock--name))
-- **notes** (Block List) Notes for the user as a nested object. (see [below for nested schema](#nestedblock--notes))
 - **org_unit_path** (String) The full path of the parent organization associated with the user.If the parent organization is the top-level, it is represented as a forward slash (/).
 - **organizations** (Block List) A list of organizations the user belongs to. The maximum allowed data size is 10Kb. (see [below for nested schema](#nestedblock--organizations))
 - **phones** (Block List) Holds the given and family names of the user, and the read-only fullName value.The maximum number of characters in the givenName and in the familyName values is 60.In addition, name values support unicode/UTF-8 characters, and can contain spaces, letters (a-z),numbers (0-9), dashes (-), forward slashes (/), and periods (.).Maximum allowed data size for this field is 1Kb. (see [below for nested schema](#nestedblock--phones))
@@ -55,7 +53,6 @@ User resource manages Google Workspace Users.
 - **deletion_time** (String) The time the user's account was deleted. The value is in ISO 8601 date and time format.The time is the complete date plus hours, minutes, and seconds in the form YYYY-MM-DDThh:mm:ssTZD.For example 2010-04-05T17:30:04+01:00.
 - **etag** (String) ETag of the resource.
 - **id** (String) The unique ID for the user.
-- **is_admin** (Boolean) Indicates a user with super admininistrator privileges.
 - **is_delegated_admin** (Boolean) Indicates if the user is a delegated administrator.
 - **is_enforced_in_2_step_verification** (Boolean) Is 2-step verification enforced.
 - **is_enrolled_in_2_step_verification** (Boolean) Is enrolled in 2-step verification.
@@ -64,7 +61,23 @@ User resource manages Google Workspace Users.
 - **non_editable_aliases** (List of String) asps.list of the user's non-editable alias email addresses. These are typically outsidethe account's primary domain or sub-domain.
 - **suspension_reason** (String) Has the reason a user account is suspended either by the administrator or by Google atthe time of suspension. The property is returned only if the suspended property is true.
 - **thumbnail_photo_etag** (String) ETag of the user's photo
-- **tumbnail_photo_url** (String) Photo Url of the user.
+- **thumbnail_photo_url** (String) Photo Url of the user.
+
+<a id="nestedblock--name"></a>
+### Nested Schema for `name`
+
+Required:
+
+- **family_name** (String) The user's last name.
+
+Optional:
+
+- **given_name** (String) The user's first name.
+
+Read-only:
+
+- **full_name** (String) The user's full name formed by concatenating the first and last name values.
+
 
 <a id="nestedblock--addresses"></a>
 ### Nested Schema for `addresses`
@@ -100,11 +113,13 @@ Optional:
 <a id="nestedblock--external_ids"></a>
 ### Nested Schema for `external_ids`
 
+Required:
+
+- **value** (String) The value of the ID.
+
 Optional:
 
-- **address** (String) The user's email address. Also serves as the email ID.This value can be the user's primary email address or an alias.
 - **custom_type** (String) If the value of type is custom, this property containsthe custom type string.
-- **primary** (Boolean) Indicates if this is the user's primary email.Only one entry can be marked as primary.
 - **type** (String) The type of the email account.Acceptable values: `custom`, `home`, `other`, `work`.
 
 
@@ -155,34 +170,6 @@ Optional:
 - **floor_name** (String) Floor name/number.
 - **floor_section** (String) Floor section. More specific location within the floor. For example,if a floor is divided into sections A, B, and C, this field would identify oneof those values.
 - **type** (String) The location type.Acceptable values: `custom`, `default`, `desk`
-
-
-<a id="nestedblock--name"></a>
-### Nested Schema for `name`
-
-Required:
-
-- **family_name** (String) The user's last name.
-
-Optional:
-
-- **given_name** (String) The user's first name.
-
-Read-only:
-
-- **full_name** (String) The user's full name formed by concatenating the first and last name values.
-
-
-<a id="nestedblock--notes"></a>
-### Nested Schema for `notes`
-
-Required:
-
-- **value** (String) Contents of notes.
-
-Optional:
-
-- **content_type** (String) Content type of note, either plain text or HTML. Default is plain text.Acceptable values: `text_plain`, `text_html`.
 
 
 <a id="nestedblock--organizations"></a>
