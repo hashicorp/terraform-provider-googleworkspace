@@ -69,7 +69,7 @@ func resourceDomainCreate(ctx context.Context, d *schema.ResourceData, meta inte
 	client := meta.(*apiClient)
 
 	domainName := d.Get("domain_name").(string)
-	log.Printf("[DEBUG] Deleting Domain %q: %#v", d.Id(), domainName)
+	log.Printf("[DEBUG] Creating Domain %q: %#v", d.Id(), domainName)
 
 	directoryService := client.NewDirectoryService()
 	if directoryService == nil {

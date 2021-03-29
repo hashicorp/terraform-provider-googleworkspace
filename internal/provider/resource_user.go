@@ -2,7 +2,10 @@ package provider
 
 import (
 	"context"
+	"fmt"
 	"log"
+	"strings"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -11,6 +14,52 @@ import (
 	directory "google.golang.org/api/admin/directory/v1"
 )
 
+func interfaceSliceIsEqual(sliceA, sliceB []interface{}) bool {
+	if (sliceA == nil) != (sliceB == nil) {
+		return false
+	}
+
+	if len(sliceA) != len(sliceB) {
+		return false
+	}
+
+	for i := range sliceA {
+		interfaceA := sliceA[i].(map[string]interface{})
+		interfaceB := sliceB[i].(map[string]interface{})
+		for k := range interfaceA {
+			if interfaceA[k] != interfaceB[k] {
+				return false
+			}
+		}
+	}
+
+	return true
+}
+
+func diffSuppressEmails(k, old, new string, d *schema.ResourceData) bool {
+	parts := strings.Split(k, ".")
+	path := strings.Join(parts[0:1], ".")
+
+	stateEmails, configEmails := d.GetChange(path)
+
+	// The primary email (and potentially a test email with the format <primary_email>.test-google-a.com,
+	// if the domain is the primary domain) are auto-added to the email list, even if it's not configured that way.
+	// Only show a diff if the other emails differ.
+	subsetEmails := []interface{}{}
+
+	for _, se := range stateEmails.([]interface{}) {
+		emailObj := se.(map[string]interface{})
+		primaryEmail := d.Get("primary_email").(string)
+		if emailObj["primary"].(bool) || emailObj["address"].(string) == fmt.Sprintf("%s.test-google-a.com", primaryEmail) {
+			continue
+		}
+
+		subsetEmails = append(subsetEmails, se)
+	}
+
+	return interfaceSliceIsEqual(subsetEmails, configEmails.([]interface{}))
+}
+
 func resourceUser() *schema.Resource {
 	return &schema.Resource{
 		// This description is used by the documentation generator and the language server.
@@ -18,6 +67,7 @@ func resourceUser() *schema.Resource {
 
 		CreateContext: resourceUserCreate,
 		ReadContext:   resourceUserRead,
+		UpdateContext: resourceUserUpdate,
 		DeleteContext: resourceUserDelete,
 
 		Importer: &schema.ResourceImporter{
@@ -48,12 +98,13 @@ func resourceUser() *schema.Resource {
 				Description: "Stores the hash format of the password property. We recommend sending the password" +
 					"property value as a base 16 bit hexadecimal-encoded hash value. Set the hashFunction values" +
 					"as either the SHA-1, MD5, or crypt hash format.",
-				Type: schema.TypeString,
+				Type:     schema.TypeString,
+				Optional: true,
 			},
-			// TODO: (mbang) look at makeAdmin op
 			"is_admin": {
 				Description: "Indicates a user with super admininistrator privileges.",
 				Type:        schema.TypeBool,
+				Optional:    true,
 				Computed:    true,
 			},
 			"is_delegated_admin": {
@@ -72,7 +123,7 @@ func resourceUser() *schema.Resource {
 				Type:        schema.TypeBool,
 				Optional:    true,
 			},
-			"changePasswordAtNextLogin": {
+			"change_password_at_next_login": {
 				Description: "Indicates if the user is forced to change their password at next login. This setting" +
 					"doesn't apply when the user signs in via a third-party identity provider.",
 				Type:     schema.TypeBool,
@@ -90,7 +141,7 @@ func resourceUser() *schema.Resource {
 					"numbers (0-9), dashes (-), forward slashes (/), and periods (.)." +
 					"Maximum allowed data size for this field is 1Kb.",
 				Type:     schema.TypeList,
-				Optional: true,
+				Required: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -120,9 +171,11 @@ func resourceUser() *schema.Resource {
 				Computed:    true,
 			},
 			"emails": {
-				Description: "A list of the user's email addresses. The maximum allowed data size is 10Kb.",
-				Type:        schema.TypeList,
-				Optional:    true,
+				Description:      "A list of the user's email addresses. The maximum allowed data size is 10Kb.",
+				Type:             schema.TypeList,
+				Optional:         true,
+				Computed:         true,
+				DiffSuppressFunc: diffSuppressEmails,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"address": {
@@ -142,6 +195,7 @@ func resourceUser() *schema.Resource {
 								"Only one entry can be marked as primary.",
 							Type:     schema.TypeBool,
 							Optional: true,
+							Default:  false,
 						},
 						"type": {
 							Description: "The type of the email account." +
@@ -161,22 +215,10 @@ func resourceUser() *schema.Resource {
 				Optional:    true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"address": {
-							Description: "The user's email address. Also serves as the email ID." +
-								"This value can be the user's primary email address or an alias.",
-							Type:     schema.TypeString,
-							Optional: true,
-						},
 						"custom_type": {
 							Description: "If the value of type is custom, this property contains" +
 								"the custom type string.",
 							Type:     schema.TypeString,
-							Optional: true,
-						},
-						"primary": {
-							Description: "Indicates if this is the user's primary email." +
-								"Only one entry can be marked as primary.",
-							Type:     schema.TypeBool,
 							Optional: true,
 						},
 						"type": {
@@ -187,6 +229,11 @@ func resourceUser() *schema.Resource {
 							ValidateDiagFunc: validation.ToDiagFunc(
 								validation.StringInSlice([]string{"custom", "home", "other", "work"}, false),
 							),
+						},
+						"value": {
+							Description: "The value of the ID.",
+							Type:        schema.TypeString,
+							Required:    true,
 						},
 					},
 				},
@@ -248,7 +295,7 @@ func resourceUser() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			// TODO: (mbang) make atLeastOneOf
+			// TODO: (mbang) AtLeastOneOf (https://github.com/hashicorp/terraform-plugin-sdk/issues/470)
 			"addresses": {
 				Description: "A list of the user's addresses. The maximum allowed data size is 10Kb.",
 				Type:        schema.TypeList,
@@ -463,7 +510,7 @@ func resourceUser() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"tumbnail_photo_url": {
+			"thumbnail_photo_url": {
 				Description: "Photo Url of the user.",
 				Type:        schema.TypeString,
 				Computed:    true,
@@ -477,21 +524,23 @@ func resourceUser() *schema.Resource {
 						"custom_language": {
 							Description: "Other language. A user can provide their own language name if there is no" +
 								"corresponding Google III language code. If this is set, LanguageCode can't be set.",
-							Type:         schema.TypeString,
-							Optional:     true,
-							ExactlyOneOf: []string{"custom_language", "language_code"},
+							Type:     schema.TypeString,
+							Optional: true,
+							// TODO: (mbang) https://github.com/hashicorp/terraform-plugin-sdk/issues/470
+							//ExactlyOneOf: []string{"custom_language", "language_code"},
 						},
 						"language_code": {
 							Description: "Language Code. Should be used for storing Google III LanguageCode string" +
 								"representation for language. Illegal values cause SchemaException.",
-							Type:         schema.TypeString,
-							Optional:     true,
-							ExactlyOneOf: []string{"custom_language", "language_code"},
+							Type:     schema.TypeString,
+							Optional: true,
+							// TODO: (mbang) https://github.com/hashicorp/terraform-plugin-sdk/issues/470
+							//ExactlyOneOf: []string{"custom_language", "language_code"},
 						},
 					},
 				},
 			},
-			// TODO: (mbang) make atLeastOneOf
+			// TODO: (mbang) AtLeastOneOf (https://github.com/hashicorp/terraform-plugin-sdk/issues/470)
 			"posix_accounts": {
 				Description: "A list of POSIX account information for the user.",
 				Type:        schema.TypeList,
@@ -595,27 +644,6 @@ func resourceUser() *schema.Resource {
 					},
 				},
 			},
-			"notes": {
-				Description: "Notes for the user as a nested object.",
-				Type:        schema.TypeList,
-				Optional:    true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"content_type": {
-							Description: "Content type of note, either plain text or HTML. Default is plain text." +
-								"Acceptable values: `text_plain`, `text_html`.",
-							Type:     schema.TypeString,
-							Optional: true,
-							Default:  "text_plain",
-						},
-						"value": {
-							Description: "Contents of notes.",
-							Type:        schema.TypeString,
-							Required:    true,
-						},
-					},
-				},
-			},
 			"websites": {
 				Description: "A list of the user's websites. The maximum allowed data size is 2Kb.",
 				Type:        schema.TypeList,
@@ -706,12 +734,7 @@ func resourceUser() *schema.Resource {
 					},
 				},
 			},
-			"include_in_global_address_list": {
-				Description: "Indicates if the user's profile is visible in the Google Workspace global address list" +
-					"when the contact sharing feature is enabled for the domain.",
-				Type:     schema.TypeBool,
-				Optional: true,
-			},
+			// IncludeInGlobalAddressList is not being sent in the request with the admin SDK, so leaving this out for now
 			"keywords": {
 				Description: "A list of the user's keywords. The maximum allowed data size is 1Kb.",
 				Type:        schema.TypeList,
@@ -751,11 +774,7 @@ func resourceUser() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"gender": {
-				Description: "The user's gender. The maximum allowed data size for this field is 1Kb.",
-				Type:        schema.TypeString,
-				Optional:    true,
-			},
+			// "gender" is not included in the GET response, currently, so leaving this out for now
 			"thumbnail_photo_etag": {
 				Description: "ETag of the user's photo",
 				Type:        schema.TypeString,
@@ -835,6 +854,7 @@ func resourceUser() *schema.Resource {
 					"If the parent organization is the top-level, it is represented as a forward slash (/).",
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
 			},
 			"recovery_email": {
 				Description: "Recovery email of the user.",
@@ -870,48 +890,65 @@ func resourceUserCreate(ctx context.Context, d *schema.ResourceData, meta interf
 		return diags
 	}
 
-	name, err := expandName(d.Get("name"))
+	name := expandName(d.Get("name"))
+	emails := expandInterfaceObjects(d.Get("emails"))
+	externalIds := expandInterfaceObjects(d.Get("external_ids"))
+	relations := expandInterfaceObjects(d.Get("relations"))
+	addresses := expandInterfaceObjects(d.Get("addresses"))
+	organizations := expandInterfaceObjects(d.Get("organizations"))
+	phones := expandInterfaceObjects(d.Get("phones"))
+	languages := expandInterfaceObjects(d.Get("languages"))
+	posixAccounts := expandInterfaceObjects(d.Get("posix_accounts"))
+	sshPublicKeys := expandInterfaceObjects(d.Get("ssh_public_keys"))
+	websites := expandInterfaceObjects(d.Get("websites"))
+	locations := expandInterfaceObjects(d.Get("locations"))
+	keywords := expandInterfaceObjects(d.Get("keywords"))
+	ims := expandInterfaceObjects(d.Get("ims"))
 
 	userObj := directory.User{
-		PrimaryEmail:               primaryEmail,
-		Password:                   d.Get("password").(string),
-		HashFunction:               d.Get("hash_function").(string),
-		Suspended:                  d.Get("suspended").(bool),
-		ChangePasswordAtNextLogin:  d.Get("change_password_at_next_login").(bool),
-		IpWhitelisted:              d.Get("ip_whitelisted").(bool),
-		Name:                       name,
-		Emails:                     d.Get("emails"),
-		ExternalIds:                d.Get("external_ids"),
-		Relations:                  d.Get("relations"),
-		Addresses:                  d.Get("addresses"),
-		Organizations:              d.Get("organizations"),
-		Phones:                     d.Get("phones"),
-		Languages:                  d.Get("languages"),
-		PosixAccounts:              d.Get("posix_accounts"),
-		SshPublicKeys:              d.Get("ssh_public_keys"),
-		Notes:                      d.Get("notes"),
-		Websites:                   d.Get("websites"),
-		Locations:                  d.Get("locations"),
-		IncludeInGlobalAddressList: d.Get("include_in_global_address_list").(bool),
-		Keywords:                   d.Get("keywords"),
-		Gender:                     d.Get("gender").(string),
-		Ims:                        d.Get("ims"),
-		Archived:                   d.Get("archived").(bool),
-		OrgUnitPath:                d.Get("org_unit_path").(string),
-		RecoveryEmail:              d.Get("recovery_email").(string),
-		RecoveryPhone:              d.Get("recovery_phone").(string),
+		PrimaryEmail:              primaryEmail,
+		Password:                  d.Get("password").(string),
+		HashFunction:              d.Get("hash_function").(string),
+		Suspended:                 d.Get("suspended").(bool),
+		ChangePasswordAtNextLogin: d.Get("change_password_at_next_login").(bool),
+		IpWhitelisted:             d.Get("ip_whitelisted").(bool),
+		Name:                      name,
+		Emails:                    emails,
+		ExternalIds:               externalIds,
+		Relations:                 relations,
+		Addresses:                 addresses,
+		Organizations:             organizations,
+		Phones:                    phones,
+		Languages:                 languages,
+		PosixAccounts:             posixAccounts,
+		SshPublicKeys:             sshPublicKeys,
+		Websites:                  websites,
+		Locations:                 locations,
+		Keywords:                  keywords,
+		Ims:                       ims,
+		Archived:                  d.Get("archived").(bool),
+		OrgUnitPath:               d.Get("org_unit_path").(string),
+		RecoveryEmail:             d.Get("recovery_email").(string),
+		RecoveryPhone:             d.Get("recovery_phone").(string),
 	}
 
 	user, err := directoryService.Users.Insert(&userObj).Do()
 	if err != nil {
 		return diag.FromErr(err)
 	}
-
-	// Use the user name as the ID, as it should be unique
 	d.SetId(user.Id)
 
-	log.Printf("[DEBUG] Finished creating User %q: %#v", d.Id(), primaryEmail)
+	if d.Get("is_admin").(bool) {
+		makeAdminObj := directory.UserMakeAdmin{
+			Status: d.Get("is_admin").(bool),
+		}
 
+		directoryService.Users.MakeAdmin(primaryEmail, &makeAdminObj).Do()
+	}
+
+	time.Sleep(5 * time.Second)
+
+	log.Printf("[DEBUG] Finished creating User %q: %#v", d.Id(), primaryEmail)
 	return resourceUserRead(ctx, d, meta)
 }
 
@@ -931,14 +968,15 @@ func resourceUserRead(ctx context.Context, d *schema.ResourceData, meta interfac
 		return diags
 	}
 
-	user, err := directoryService.Users.Get(d.Id()).Do()
+	user, err := directoryService.Users.Get(d.Id()).Projection("full").Do()
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	d.Set("id", user.Id)
 	d.Set("primary_email", user.PrimaryEmail)
-	d.Set("password", user.Password)
+	// password is not returned in the response, so set it to what we defined in the config
+	d.Set("password", d.Get("password"))
 	d.Set("hash_function", user.HashFunction)
 	d.Set("is_admin", user.IsAdmin)
 	d.Set("is_delegated_admin", user.IsDelegatedAdmin)
@@ -947,42 +985,121 @@ func resourceUserRead(ctx context.Context, d *schema.ResourceData, meta interfac
 	d.Set("change_password_at_next_login", user.ChangePasswordAtNextLogin)
 	d.Set("ip_whitelisted", user.IpWhitelisted)
 	d.Set("name", flattenName(user.Name))
+	d.Set("emails", flattenAndSetInterfaceObjects(user.Emails))
+	d.Set("external_ids", flattenAndSetInterfaceObjects(user.ExternalIds))
+	d.Set("relations", flattenAndSetInterfaceObjects(user.Relations))
 	d.Set("etag", user.Etag)
-	d.Set("emails", user.Emails)
-	d.Set("external_ids", user.ExternalIds)
-	d.Set("relations", user.Relations)
 	d.Set("aliases", user.Aliases)
 	d.Set("is_mailbox_setup", user.IsMailboxSetup)
 	d.Set("customer_id", user.CustomerId)
-	d.Set("addresses", user.Addresses)
-	d.Set("organizations", user.Organizations)
+	d.Set("addresses", flattenAndSetInterfaceObjects(user.Addresses))
+	d.Set("organizations", flattenAndSetInterfaceObjects(user.Organizations))
 	d.Set("last_login_time", user.LastLoginTime)
-	d.Set("phones", user.Phones)
+	d.Set("phones", flattenAndSetInterfaceObjects(user.Phones))
 	d.Set("suspension_reason", user.SuspensionReason)
 	d.Set("thumbnail_photo_url", user.ThumbnailPhotoUrl)
-	d.Set("languages", user.Languages)
-	d.Set("posix_accounts", user.PosixAccounts)
+	d.Set("languages", flattenAndSetInterfaceObjects(user.Languages))
+	d.Set("posix_accounts", flattenAndSetInterfaceObjects(user.PosixAccounts))
 	d.Set("creation_time", user.CreationTime)
 	d.Set("non_editable_aliases", user.NonEditableAliases)
-	d.Set("ssh_public_keys", user.SshPublicKeys)
-	d.Set("notes", user.Notes)
-	d.Set("websites", user.Websites)
-	d.Set("locations", user.Locations)
-	d.Set("include_in_global_address_list", user.IncludeInGlobalAddressList)
-	d.Set("keywords", user.Keywords)
+	d.Set("ssh_public_keys", flattenAndSetInterfaceObjects(user.SshPublicKeys))
+	d.Set("websites", flattenAndSetInterfaceObjects(user.Websites))
+	d.Set("locations", flattenAndSetInterfaceObjects(user.Locations))
+	d.Set("keywords", flattenAndSetInterfaceObjects(user.Keywords))
 	d.Set("deletion_time", user.DeletionTime)
-	d.Set("gender", user.Gender)
 	d.Set("thumbnail_photo_etag", user.ThumbnailPhotoEtag)
-	d.Set("ims", user.Ims)
+	d.Set("ims", flattenAndSetInterfaceObjects(user.Ims))
 	d.Set("is_enrolled_in_2_step_verification", user.IsEnrolledIn2Sv)
 	d.Set("is_enforced_in_2_step_verification", user.IsEnforcedIn2Sv)
 	d.Set("archived", user.Archived)
 	d.Set("org_unit_path", user.OrgUnitPath)
 	d.Set("recovery_email", user.RecoveryEmail)
 	d.Set("recovery_phone", user.RecoveryPhone)
+
 	d.SetId(user.Id)
 
 	return diags
+}
+
+func resourceUserUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	// use the meta value to retrieve your client from the provider configure method
+	client := meta.(*apiClient)
+
+	primaryEmail := d.Get("primary_email").(string)
+	log.Printf("[DEBUG] Updating User %q: %#v", d.Id(), primaryEmail)
+
+	directoryService := client.NewDirectoryService()
+	if directoryService == nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Directory Service could not be created.",
+		})
+
+		return diags
+	}
+
+	name := expandName(d.Get("name"))
+	emails := expandInterfaceObjects(d.Get("emails"))
+	externalIds := expandInterfaceObjects(d.Get("external_ids"))
+	relations := expandInterfaceObjects(d.Get("relations"))
+	addresses := expandInterfaceObjects(d.Get("addresses"))
+	organizations := expandInterfaceObjects(d.Get("organizations"))
+	phones := expandInterfaceObjects(d.Get("phones"))
+	languages := expandInterfaceObjects(d.Get("languages"))
+	posixAccounts := expandInterfaceObjects(d.Get("posix_accounts"))
+	sshPublicKeys := expandInterfaceObjects(d.Get("ssh_public_keys"))
+	websites := expandInterfaceObjects(d.Get("websites"))
+	locations := expandInterfaceObjects(d.Get("locations"))
+	keywords := expandInterfaceObjects(d.Get("keywords"))
+	ims := expandInterfaceObjects(d.Get("ims"))
+
+	userObj := directory.User{
+		PrimaryEmail:              primaryEmail,
+		Password:                  d.Get("password").(string),
+		HashFunction:              d.Get("hash_function").(string),
+		Suspended:                 d.Get("suspended").(bool),
+		ChangePasswordAtNextLogin: d.Get("change_password_at_next_login").(bool),
+		IpWhitelisted:             d.Get("ip_whitelisted").(bool),
+		Name:                      name,
+		Emails:                    emails,
+		ExternalIds:               externalIds,
+		Relations:                 relations,
+		Addresses:                 addresses,
+		Organizations:             organizations,
+		Phones:                    phones,
+		Languages:                 languages,
+		PosixAccounts:             posixAccounts,
+		SshPublicKeys:             sshPublicKeys,
+		Websites:                  websites,
+		Locations:                 locations,
+		Keywords:                  keywords,
+		Ims:                       ims,
+		Archived:                  d.Get("archived").(bool),
+		OrgUnitPath:               d.Get("org_unit_path").(string),
+		RecoveryEmail:             d.Get("recovery_email").(string),
+		RecoveryPhone:             d.Get("recovery_phone").(string),
+	}
+
+	user, err := directoryService.Users.Update(primaryEmail, &userObj).Do()
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	d.SetId(user.Id)
+
+	if d.HasChange("is_admin") {
+		makeAdminObj := directory.UserMakeAdmin{
+			Status: d.Get("is_admin").(bool),
+		}
+
+		directoryService.Users.MakeAdmin(primaryEmail, &makeAdminObj)
+	}
+
+	log.Printf("[DEBUG] Finished updating User %q: %#v", d.Id(), primaryEmail)
+
+	return resourceUserRead(ctx, d, meta)
 }
 
 func resourceUserDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -1015,24 +1132,89 @@ func resourceUserDelete(ctx context.Context, d *schema.ResourceData, meta interf
 }
 
 func resourceUserImport(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-	return []*schema.ResourceData{d}, err
+	return []*schema.ResourceData{d}, nil
 }
 
 // Expand functions
 
-func expandName(nameObj interface{}) (*directory.UserName, error) {
-	userNameObj := directory.UserName{
-		FamilyName: nameObj.(map[string]interface{})["family_name"].(string),
-		GivenName:  nameObj.(map[string]interface{})["given_name"].(string),
+func expandName(v interface{}) *directory.UserName {
+	nameObj := v.([]interface{})
+
+	if len(nameObj) == 0 {
+		return nil
 	}
-	return &userNameObj, nil
+
+	userNameObj := directory.UserName{
+		FamilyName: nameObj[0].(map[string]interface{})["family_name"].(string),
+		GivenName:  nameObj[0].(map[string]interface{})["given_name"].(string),
+	}
+	return &userNameObj
 }
 
-func flattenName(userNameObj *directory.UserName) interface{} {
-	nameObj := map[string]interface{}{}
+// User type has many nested interfaces, we can pass them to the API as is
+// only each field name needs to be camel case rather than snake case.
+func expandInterfaceObjects(v interface{}) []interface{} {
+	objList := v.([]interface{})
+	if objList == nil || len(objList) == 0 {
+		return nil
+	}
 
-	nameObj["family_name"] = userNameObj.FamilyName
-	nameObj["given_name"] = userNameObj.GivenName
+	newObjList := []interface{}{}
+
+	for _, o := range objList {
+		obj := o.(map[string]interface{})
+		for k, v := range obj {
+			if strings.Contains(k, "_") {
+				delete(obj, k)
+
+				// In the case that the field is not set, don't send it to the API
+				if v == "" {
+					continue
+				}
+
+				obj[SnakeToCamel(k)] = v
+			}
+		}
+		newObjList = append(newObjList, obj)
+	}
+
+	return newObjList
+}
+
+// Flatten functions
+
+func flattenName(userNameObj *directory.UserName) interface{} {
+	nameObj := []map[string]interface{}{}
+
+	if userNameObj != nil {
+		nameObj = append(nameObj, map[string]interface{}{
+			"family_name": userNameObj.FamilyName,
+			"full_name":   userNameObj.FullName,
+			"given_name":  userNameObj.GivenName,
+		})
+	}
 
 	return nameObj
+}
+
+// User type has many nested interfaces, we can set was was returned from the API as is
+// only the field names need to be snake case rather than the camel case that is returned
+func flattenAndSetInterfaceObjects(objList interface{}) interface{} {
+	if objList == nil || len(objList.([]interface{})) == 0 {
+		return nil
+	}
+
+	newObjList := []map[string]interface{}{}
+
+	for _, o := range objList.([]interface{}) {
+		obj := o.(map[string]interface{})
+		for k, v := range obj {
+			delete(obj, k)
+			obj[CameltoSnake(k)] = v
+		}
+
+		newObjList = append(newObjList, obj)
+	}
+
+	return newObjList
 }
