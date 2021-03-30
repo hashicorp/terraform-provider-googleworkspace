@@ -28,6 +28,7 @@ User resource manages Google Workspace Users.
 - **external_ids** (Block List) A list of external IDs for the user, such as an employee or network ID. The maximum allowed data size is 2Kb. (see [below for nested schema](#nestedblock--external_ids))
 - **hash_function** (String) Stores the hash format of the password property. We recommend sending the passwordproperty value as a base 16 bit hexadecimal-encoded hash value. Set the hashFunction valuesas either the SHA-1, MD5, or crypt hash format.
 - **ims** (Block List) The user's Instant Messenger (IM) accounts. A user account can have multiple imsproperties. But, only one of these ims properties can be the primary IM contact.The maximum allowed data size is 2Kb. (see [below for nested schema](#nestedblock--ims))
+- **include_in_global_address_list** (Boolean) Indicates if the user's profile is visible in the Google Workspace global address listwhen the contact sharing feature is enabled for the domain.
 - **ip_whitelisted** (Boolean) If true, the user's IP address is whitelisted.
 - **is_admin** (Boolean) Indicates a user with super admininistrator privileges.
 - **keywords** (Block List) A list of the user's keywords. The maximum allowed data size is 1Kb. (see [below for nested schema](#nestedblock--keywords))

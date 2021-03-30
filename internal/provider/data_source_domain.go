@@ -10,7 +10,7 @@ import (
 func dataSourceDomain() *schema.Resource {
 	return &schema.Resource{
 		// This description is used by the documentation generator and the language server.
-		Description: "Domain data source in the Terraform provider domain.",
+		Description: "Domain data source in the Terraform Googleworkspace provider.",
 
 		ReadContext: dataSourceDomainRead,
 

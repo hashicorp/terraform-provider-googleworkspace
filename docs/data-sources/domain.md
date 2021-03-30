@@ -2,12 +2,12 @@
 page_title: "googleworkspace_domain Data Source - terraform-provider-googleworkspace"
 subcategory: ""
 description: |-
-  Domain data source in the Terraform provider domain.
+  Domain data source in the Terraform Googleworkspace provider.
 ---
 
 # Data Source `googleworkspace_domain`
 
-Domain data source in the Terraform provider domain.
+Domain data source in the Terraform Googleworkspace provider.
 
 
 

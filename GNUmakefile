@@ -1,6 +1,9 @@
 TEST?=$$(go list ./...)
 
-default: testacc
+default: build
+
+build: fmtcheck generate
+	go install
 
 fmt:
 	@echo "==> Fixing source code with gofmt..."

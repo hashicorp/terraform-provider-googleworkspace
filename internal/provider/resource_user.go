@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"reflect"
 	"strings"
 	"time"
 
@@ -14,33 +15,8 @@ import (
 	directory "google.golang.org/api/admin/directory/v1"
 )
 
-func interfaceSliceIsEqual(sliceA, sliceB []interface{}) bool {
-	if (sliceA == nil) != (sliceB == nil) {
-		return false
-	}
-
-	if len(sliceA) != len(sliceB) {
-		return false
-	}
-
-	for i := range sliceA {
-		interfaceA := sliceA[i].(map[string]interface{})
-		interfaceB := sliceB[i].(map[string]interface{})
-		for k := range interfaceA {
-			if interfaceA[k] != interfaceB[k] {
-				return false
-			}
-		}
-	}
-
-	return true
-}
-
 func diffSuppressEmails(k, old, new string, d *schema.ResourceData) bool {
-	parts := strings.Split(k, ".")
-	path := strings.Join(parts[0:1], ".")
-
-	stateEmails, configEmails := d.GetChange(path)
+	stateEmails, configEmails := d.GetChange("emails")
 
 	// The primary email (and potentially a test email with the format <primary_email>.test-google-a.com,
 	// if the domain is the primary domain) are auto-added to the email list, even if it's not configured that way.
@@ -57,7 +33,7 @@ func diffSuppressEmails(k, old, new string, d *schema.ResourceData) bool {
 		subsetEmails = append(subsetEmails, se)
 	}
 
-	return interfaceSliceIsEqual(subsetEmails, configEmails.([]interface{}))
+	return reflect.DeepEqual(subsetEmails, configEmails.([]interface{}))
 }
 
 func resourceUser() *schema.Resource {
@@ -735,6 +711,13 @@ func resourceUser() *schema.Resource {
 				},
 			},
 			// IncludeInGlobalAddressList is not being sent in the request with the admin SDK, so leaving this out for now
+			"include_in_global_address_list": {
+				Description: "Indicates if the user's profile is visible in the Google Workspace global address list" +
+					"when the contact sharing feature is enabled for the domain.",
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  true,
+			},
 			"keywords": {
 				Description: "A list of the user's keywords. The maximum allowed data size is 1Kb.",
 				Type:        schema.TypeList,
@@ -890,46 +873,34 @@ func resourceUserCreate(ctx context.Context, d *schema.ResourceData, meta interf
 		return diags
 	}
 
-	name := expandName(d.Get("name"))
-	emails := expandInterfaceObjects(d.Get("emails"))
-	externalIds := expandInterfaceObjects(d.Get("external_ids"))
-	relations := expandInterfaceObjects(d.Get("relations"))
-	addresses := expandInterfaceObjects(d.Get("addresses"))
-	organizations := expandInterfaceObjects(d.Get("organizations"))
-	phones := expandInterfaceObjects(d.Get("phones"))
-	languages := expandInterfaceObjects(d.Get("languages"))
-	posixAccounts := expandInterfaceObjects(d.Get("posix_accounts"))
-	sshPublicKeys := expandInterfaceObjects(d.Get("ssh_public_keys"))
-	websites := expandInterfaceObjects(d.Get("websites"))
-	locations := expandInterfaceObjects(d.Get("locations"))
-	keywords := expandInterfaceObjects(d.Get("keywords"))
-	ims := expandInterfaceObjects(d.Get("ims"))
-
 	userObj := directory.User{
-		PrimaryEmail:              primaryEmail,
-		Password:                  d.Get("password").(string),
-		HashFunction:              d.Get("hash_function").(string),
-		Suspended:                 d.Get("suspended").(bool),
-		ChangePasswordAtNextLogin: d.Get("change_password_at_next_login").(bool),
-		IpWhitelisted:             d.Get("ip_whitelisted").(bool),
-		Name:                      name,
-		Emails:                    emails,
-		ExternalIds:               externalIds,
-		Relations:                 relations,
-		Addresses:                 addresses,
-		Organizations:             organizations,
-		Phones:                    phones,
-		Languages:                 languages,
-		PosixAccounts:             posixAccounts,
-		SshPublicKeys:             sshPublicKeys,
-		Websites:                  websites,
-		Locations:                 locations,
-		Keywords:                  keywords,
-		Ims:                       ims,
-		Archived:                  d.Get("archived").(bool),
-		OrgUnitPath:               d.Get("org_unit_path").(string),
-		RecoveryEmail:             d.Get("recovery_email").(string),
-		RecoveryPhone:             d.Get("recovery_phone").(string),
+		PrimaryEmail:               primaryEmail,
+		Password:                   d.Get("password").(string),
+		HashFunction:               d.Get("hash_function").(string),
+		Suspended:                  d.Get("suspended").(bool),
+		ChangePasswordAtNextLogin:  d.Get("change_password_at_next_login").(bool),
+		IpWhitelisted:              d.Get("ip_whitelisted").(bool),
+		Name:                       expandName(d.Get("name")),
+		Emails:                     expandInterfaceObjects(d.Get("emails")),
+		ExternalIds:                expandInterfaceObjects(d.Get("external_ids")),
+		Relations:                  expandInterfaceObjects(d.Get("relations")),
+		Addresses:                  expandInterfaceObjects(d.Get("addresses")),
+		Organizations:              expandInterfaceObjects(d.Get("organizations")),
+		Phones:                     expandInterfaceObjects(d.Get("phones")),
+		Languages:                  expandInterfaceObjects(d.Get("languages")),
+		PosixAccounts:              expandInterfaceObjects(d.Get("posix_accounts")),
+		SshPublicKeys:              expandInterfaceObjects(d.Get("ssh_public_keys")),
+		Websites:                   expandInterfaceObjects(d.Get("websites")),
+		Locations:                  expandInterfaceObjects(d.Get("locations")),
+		IncludeInGlobalAddressList: d.Get("include_in_global_address_list").(bool),
+		Keywords:                   expandInterfaceObjects(d.Get("keywords")),
+		Ims:                        expandInterfaceObjects(d.Get("ims")),
+		Archived:                   d.Get("archived").(bool),
+		OrgUnitPath:                d.Get("org_unit_path").(string),
+		RecoveryEmail:              d.Get("recovery_email").(string),
+		RecoveryPhone:              d.Get("recovery_phone").(string),
+
+		ForceSendFields: []string{"IncludeInGlobalAddressList"},
 	}
 
 	user, err := directoryService.Users.Insert(&userObj).Do()
@@ -943,10 +914,13 @@ func resourceUserCreate(ctx context.Context, d *schema.ResourceData, meta interf
 			Status: d.Get("is_admin").(bool),
 		}
 
-		directoryService.Users.MakeAdmin(primaryEmail, &makeAdminObj).Do()
+		err = directoryService.Users.MakeAdmin(user.Id, &makeAdminObj).Do()
+		if err != nil {
+			return diag.FromErr(err)
+		}
 	}
 
-	time.Sleep(5 * time.Second)
+	time.Sleep(15 * time.Second)
 
 	log.Printf("[DEBUG] Finished creating User %q: %#v", d.Id(), primaryEmail)
 	return resourceUserRead(ctx, d, meta)
@@ -975,9 +949,9 @@ func resourceUserRead(ctx context.Context, d *schema.ResourceData, meta interfac
 
 	d.Set("id", user.Id)
 	d.Set("primary_email", user.PrimaryEmail)
-	// password is not returned in the response, so set it to what we defined in the config
+	// password and hash_function are not returned in the response, so set them to what we defined in the config
 	d.Set("password", d.Get("password"))
-	d.Set("hash_function", user.HashFunction)
+	d.Set("hash_function", d.Get("hash_function"))
 	d.Set("is_admin", user.IsAdmin)
 	d.Set("is_delegated_admin", user.IsDelegatedAdmin)
 	d.Set("agreed_to_terms", user.AgreedToTerms)
@@ -1005,6 +979,7 @@ func resourceUserRead(ctx context.Context, d *schema.ResourceData, meta interfac
 	d.Set("ssh_public_keys", flattenAndSetInterfaceObjects(user.SshPublicKeys))
 	d.Set("websites", flattenAndSetInterfaceObjects(user.Websites))
 	d.Set("locations", flattenAndSetInterfaceObjects(user.Locations))
+	d.Set("include_in_global_address_list", user.IncludeInGlobalAddressList)
 	d.Set("keywords", flattenAndSetInterfaceObjects(user.Keywords))
 	d.Set("deletion_time", user.DeletionTime)
 	d.Set("thumbnail_photo_etag", user.ThumbnailPhotoEtag)
@@ -1040,62 +1015,157 @@ func resourceUserUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 		return diags
 	}
 
-	name := expandName(d.Get("name"))
-	emails := expandInterfaceObjects(d.Get("emails"))
-	externalIds := expandInterfaceObjects(d.Get("external_ids"))
-	relations := expandInterfaceObjects(d.Get("relations"))
-	addresses := expandInterfaceObjects(d.Get("addresses"))
-	organizations := expandInterfaceObjects(d.Get("organizations"))
-	phones := expandInterfaceObjects(d.Get("phones"))
-	languages := expandInterfaceObjects(d.Get("languages"))
-	posixAccounts := expandInterfaceObjects(d.Get("posix_accounts"))
-	sshPublicKeys := expandInterfaceObjects(d.Get("ssh_public_keys"))
-	websites := expandInterfaceObjects(d.Get("websites"))
-	locations := expandInterfaceObjects(d.Get("locations"))
-	keywords := expandInterfaceObjects(d.Get("keywords"))
-	ims := expandInterfaceObjects(d.Get("ims"))
+	userObj := directory.User{}
 
-	userObj := directory.User{
-		PrimaryEmail:              primaryEmail,
-		Password:                  d.Get("password").(string),
-		HashFunction:              d.Get("hash_function").(string),
-		Suspended:                 d.Get("suspended").(bool),
-		ChangePasswordAtNextLogin: d.Get("change_password_at_next_login").(bool),
-		IpWhitelisted:             d.Get("ip_whitelisted").(bool),
-		Name:                      name,
-		Emails:                    emails,
-		ExternalIds:               externalIds,
-		Relations:                 relations,
-		Addresses:                 addresses,
-		Organizations:             organizations,
-		Phones:                    phones,
-		Languages:                 languages,
-		PosixAccounts:             posixAccounts,
-		SshPublicKeys:             sshPublicKeys,
-		Websites:                  websites,
-		Locations:                 locations,
-		Keywords:                  keywords,
-		Ims:                       ims,
-		Archived:                  d.Get("archived").(bool),
-		OrgUnitPath:               d.Get("org_unit_path").(string),
-		RecoveryEmail:             d.Get("recovery_email").(string),
-		RecoveryPhone:             d.Get("recovery_phone").(string),
+	// Strings
+
+	if d.HasChange("primary_email") {
+		userObj.PrimaryEmail = primaryEmail
 	}
 
-	user, err := directoryService.Users.Update(primaryEmail, &userObj).Do()
-	if err != nil {
-		return diag.FromErr(err)
+	if d.HasChange("password") {
+		userObj.Password = d.Get("password").(string)
 	}
 
-	d.SetId(user.Id)
+	if d.HasChange("hash_function") {
+		userObj.HashFunction = d.Get("hash_function").(string)
+	}
+
+	if d.HasChange("org_unit_path") {
+		userObj.OrgUnitPath = d.Get("org_unit_path").(string)
+	}
+
+	if d.HasChange("recovery_email") {
+		userObj.RecoveryEmail = d.Get("recovery_email").(string)
+	}
+
+	if d.HasChange("recovery_phone") {
+		userObj.RecoveryPhone = d.Get("recovery_phone").(string)
+	}
+
+	// Booleans (need to send ForceNewFields)
+	forceSendFields := []string{}
+
+	if d.HasChange("suspended") {
+		userObj.Suspended = d.Get("suspended").(bool)
+		forceSendFields = append(forceSendFields, "Suspended")
+	}
+
+	if d.HasChange("change_password_at_next_login") {
+		userObj.ChangePasswordAtNextLogin = d.Get("change_password_at_next_login").(bool)
+		forceSendFields = append(forceSendFields, "ChangePasswordAtNextLogin")
+	}
+
+	if d.HasChange("ip_whitelisted") {
+		userObj.IpWhitelisted = d.Get("ip_whitelisted").(bool)
+		forceSendFields = append(forceSendFields, "IpWhitelisted")
+	}
+
+	if d.HasChange("include_in_global_address_list") {
+		userObj.IncludeInGlobalAddressList = d.Get("include_in_global_address_list").(bool)
+		forceSendFields = append(forceSendFields, "IncludeInGlobalAddressList")
+	}
+
+	if d.HasChange("archived") {
+		userObj.Archived = d.Get("archived").(bool)
+		forceSendFields = append(forceSendFields, "Archived")
+	}
+
+	userObj.ForceSendFields = forceSendFields
+
+	// Nested Objects
+
+	if d.HasChange("name") {
+		userObj.Name = expandName(d.Get("name"))
+	}
+
+	if d.HasChange("emails") {
+		emails := expandInterfaceObjects(d.Get("emails"))
+		userObj.Emails = emails
+	}
+
+	if d.HasChange("external_ids") {
+		externalIds := expandInterfaceObjects(d.Get("external_ids"))
+		userObj.ExternalIds = externalIds
+	}
+
+	if d.HasChange("relations") {
+		emails := expandInterfaceObjects(d.Get("relations"))
+		userObj.Relations = emails
+	}
+
+	if d.HasChange("addresses") {
+		addresses := expandInterfaceObjects(d.Get("addresses"))
+		userObj.Addresses = addresses
+	}
+
+	if d.HasChange("organizations") {
+		organizations := expandInterfaceObjects(d.Get("organizations"))
+		userObj.Organizations = organizations
+	}
+
+	if d.HasChange("phones") {
+		phones := expandInterfaceObjects(d.Get("phones"))
+		userObj.Phones = phones
+	}
+
+	if d.HasChange("languages") {
+		languages := expandInterfaceObjects(d.Get("languages"))
+		userObj.Languages = languages
+	}
+
+	if d.HasChange("posix_accounts") {
+		posixAccounts := expandInterfaceObjects(d.Get("posix_accounts"))
+		userObj.PosixAccounts = posixAccounts
+	}
+
+	if d.HasChange("ssh_public_keys") {
+		sshPublicKeys := expandInterfaceObjects(d.Get("ssh_public_keys"))
+		userObj.SshPublicKeys = sshPublicKeys
+	}
+
+	if d.HasChange("websites") {
+		websites := expandInterfaceObjects(d.Get("websites"))
+		userObj.Websites = websites
+	}
+
+	if d.HasChange("locations") {
+		locations := expandInterfaceObjects(d.Get("locations"))
+		userObj.Locations = locations
+	}
+
+	if d.HasChange("keywords") {
+		keywords := expandInterfaceObjects(d.Get("keywords"))
+		userObj.Keywords = keywords
+	}
+
+	if d.HasChange("ims") {
+		ims := expandInterfaceObjects(d.Get("ims"))
+		userObj.Ims = ims
+	}
+
+	if &userObj != new(directory.User) {
+		user, err := directoryService.Users.Update(d.Id(), &userObj).Do()
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		d.SetId(user.Id)
+	}
 
 	if d.HasChange("is_admin") {
 		makeAdminObj := directory.UserMakeAdmin{
-			Status: d.Get("is_admin").(bool),
+			Status:          d.Get("is_admin").(bool),
+			ForceSendFields: []string{"Status"},
 		}
 
-		directoryService.Users.MakeAdmin(primaryEmail, &makeAdminObj)
+		err := directoryService.Users.MakeAdmin(d.Id(), &makeAdminObj).Do()
+		if err != nil {
+			return diag.FromErr(err)
+		}
 	}
+
+	time.Sleep(60 * time.Second)
 
 	log.Printf("[DEBUG] Finished updating User %q: %#v", d.Id(), primaryEmail)
 
@@ -1121,7 +1191,7 @@ func resourceUserDelete(ctx context.Context, d *schema.ResourceData, meta interf
 		return diags
 	}
 
-	err := directoryService.Users.Delete(primaryEmail).Do()
+	err := directoryService.Users.Delete(d.Id()).Do()
 	if err != nil {
 		return diag.FromErr(err)
 	}
