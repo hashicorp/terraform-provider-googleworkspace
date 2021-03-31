@@ -1,4 +1,4 @@
-package provider
+package googleworkspace
 
 import (
 	"fmt"
@@ -18,6 +18,7 @@ func TestAccDataSourceDomain(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testAccDataSourceDomain(domainName),
+				Check:  resource.TestCheckResourceAttr("data.googleworkspace_domain.my-domain", "domain_name", domainName),
 			},
 		},
 	})

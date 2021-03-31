@@ -1,4 +1,4 @@
-package provider
+package googleworkspace
 
 import (
 	"context"
@@ -66,9 +66,9 @@ func TestConfigLoadAndValidate_credsFromEnv(t *testing.T) {
 		t.Fatalf(err.Error())
 	}
 
-	directoryService := config.NewDirectoryService()
-	if directoryService == nil {
-		t.Fatalf("Directory Service could not be created.")
+	directoryService, diags := config.NewDirectoryService()
+	if diags.HasError() {
+		t.Fatalf(diags[0].Summary)
 	}
 
 	_, err = directoryService.Customers.Get(config.Customer).Do()

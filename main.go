@@ -34,7 +34,7 @@ func main() {
 	flag.BoolVar(&debugMode, "debug", false, "set to true to run the provider with support for debuggers like delve")
 	flag.Parse()
 
-	opts := &plugin.ServeOpts{ProviderFunc: provider.New(version)}
+	opts := &plugin.ServeOpts{ProviderFunc: googleworkspace.New(version)}
 
 	if debugMode {
 		err := plugin.Debug(context.Background(), "registry.terraform.io/hashicorp/googleworkspace", opts)
