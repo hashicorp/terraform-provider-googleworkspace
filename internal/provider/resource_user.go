@@ -111,6 +111,8 @@ func resourceUser() *schema.Resource {
 				Type:        schema.TypeBool,
 				Optional:    true,
 			},
+			// TODO: (mbang) Add ValidateDiagFunc for max size when it's allowed on lists
+			// (https://github.com/hashicorp/terraform-plugin-sdk/issues/156)
 			"name": {
 				Description: "Holds the given and family names of the user, and the read-only fullName value. " +
 					"The maximum number of characters in the givenName and in the familyName values is 60. " +
@@ -147,6 +149,8 @@ func resourceUser() *schema.Resource {
 				Type:        schema.TypeString,
 				Computed:    true,
 			},
+			// TODO: (mbang) Add ValidateDiagFunc for max size when it's allowed on lists
+			// (https://github.com/hashicorp/terraform-plugin-sdk/issues/156)
 			"emails": {
 				Description:      "A list of the user's email addresses. The maximum allowed data size is 10Kb.",
 				Type:             schema.TypeList,
@@ -186,6 +190,8 @@ func resourceUser() *schema.Resource {
 					},
 				},
 			},
+			// TODO: (mbang) Add ValidateDiagFunc for max size when it's allowed on lists
+			// (https://github.com/hashicorp/terraform-plugin-sdk/issues/156)
 			"external_ids": {
 				Description: "A list of external IDs for the user, such as an employee or network ID. " +
 					"The maximum allowed data size is 2Kb.",
@@ -216,6 +222,8 @@ func resourceUser() *schema.Resource {
 					},
 				},
 			},
+			// TODO: (mbang) Add ValidateDiagFunc for max size when it's allowed on lists
+			// (https://github.com/hashicorp/terraform-plugin-sdk/issues/156)
 			"relations": {
 				Description: "A list of the user's relationships to other users. " +
 					"The maximum allowed data size for this field is 2Kb.",
@@ -275,6 +283,8 @@ func resourceUser() *schema.Resource {
 				Computed: true,
 			},
 			// TODO: (mbang) AtLeastOneOf (https://github.com/hashicorp/terraform-plugin-sdk/issues/470)
+			// And add ValidateDiagFunc for max size when it's allowed on lists
+			// (https://github.com/hashicorp/terraform-plugin-sdk/issues/156)
 			"addresses": {
 				Description: "A list of the user's addresses. The maximum allowed data size is 10Kb.",
 				Type:        schema.TypeList,
@@ -357,6 +367,8 @@ func resourceUser() *schema.Resource {
 					},
 				},
 			},
+			// TODO: (mbang) Add ValidateDiagFunc for max size when it's allowed on lists
+			// (https://github.com/hashicorp/terraform-plugin-sdk/issues/156)
 			"organizations": {
 				Description: "A list of organizations the user belongs to. The maximum allowed data size is 10Kb.",
 				Type:        schema.TypeList,
@@ -440,6 +452,8 @@ func resourceUser() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			// TODO: (mbang) Add ValidateDiagFunc for max size when it's allowed on lists
+			// (https://github.com/hashicorp/terraform-plugin-sdk/issues/156)
 			"phones": {
 				Description: "Holds the given and family names of the user, and the read-only fullName value. " +
 					"The maximum number of characters in the givenName and in the familyName values is 60. " +
@@ -495,6 +509,8 @@ func resourceUser() *schema.Resource {
 				Type:        schema.TypeString,
 				Computed:    true,
 			},
+			// TODO: (mbang) Add ValidateDiagFunc for max size when it's allowed on lists
+			// (https://github.com/hashicorp/terraform-plugin-sdk/issues/156)
 			"languages": {
 				Description: "A list of the user's languages. The maximum allowed data size is 1Kb.",
 				Type:        schema.TypeList,
@@ -600,6 +616,8 @@ func resourceUser() *schema.Resource {
 					Type: schema.TypeString,
 				},
 			},
+			// TODO: (mbang) Add ValidateDiagFunc for max size when it's allowed on lists
+			// (https://github.com/hashicorp/terraform-plugin-sdk/issues/156)
 			"ssh_public_keys": {
 				Description: "A list of SSH public keys. The maximum allowed data size is 10Kb.",
 				Type:        schema.TypeList,
@@ -624,6 +642,8 @@ func resourceUser() *schema.Resource {
 					},
 				},
 			},
+			// TODO: (mbang) Add ValidateDiagFunc for max size when it's allowed on lists
+			// (https://github.com/hashicorp/terraform-plugin-sdk/issues/156)
 			"websites": {
 				Description: "A list of the user's websites. The maximum allowed data size is 2Kb.",
 				Type:        schema.TypeList,
@@ -662,6 +682,8 @@ func resourceUser() *schema.Resource {
 					},
 				},
 			},
+			// TODO: (mbang) Add ValidateDiagFunc for max size when it's allowed on lists
+			// (https://github.com/hashicorp/terraform-plugin-sdk/issues/156)
 			"locations": {
 				Description: "A list of the user's locations. The maximum allowed data size is 10Kb.",
 				Type:        schema.TypeList,
@@ -714,7 +736,6 @@ func resourceUser() *schema.Resource {
 					},
 				},
 			},
-			// IncludeInGlobalAddressList is not being sent in the request with the admin SDK, so leaving this out for now
 			"include_in_global_address_list": {
 				Description: "Indicates if the user's profile is visible in the Google Workspace global address list " +
 					"when the contact sharing feature is enabled for the domain.",
@@ -722,6 +743,8 @@ func resourceUser() *schema.Resource {
 				Optional: true,
 				Default:  true,
 			},
+			// TODO: (mbang) Add ValidateDiagFunc for max size when it's allowed on lists
+			// (https://github.com/hashicorp/terraform-plugin-sdk/issues/156)
 			"keywords": {
 				Description: "A list of the user's keywords. The maximum allowed data size is 1Kb.",
 				Type:        schema.TypeList,
@@ -767,6 +790,8 @@ func resourceUser() *schema.Resource {
 				Type:        schema.TypeString,
 				Computed:    true,
 			},
+			// TODO: (mbang) Add ValidateDiagFunc for max size when it's allowed on lists
+			// (https://github.com/hashicorp/terraform-plugin-sdk/issues/156)
 			"ims": {
 				Description: "The user's Instant Messenger (IM) accounts. A user account can have multiple ims " +
 					"properties. But, only one of these ims properties can be the primary IM contact. " +
@@ -936,6 +961,9 @@ func resourceUserRead(ctx context.Context, d *schema.ResourceData, meta interfac
 	// use the meta value to retrieve your client from the provider configure method
 	client := meta.(*apiClient)
 
+	primaryEmail := d.Get("primary_email").(string)
+	log.Printf("[DEBUG] Getting User %q: %#v", d.Id(), primaryEmail)
+
 	directoryService, diags := client.NewDirectoryService()
 	if diags.HasError() {
 		return diags
@@ -948,7 +976,7 @@ func resourceUserRead(ctx context.Context, d *schema.ResourceData, meta interfac
 
 	user, err := usersService.Get(d.Id()).Projection("full").Do()
 	if err != nil {
-		return diag.FromErr(err)
+		return handleNotFoundError(err, d, primaryEmail)
 	}
 
 	if user == nil {
@@ -1005,6 +1033,7 @@ func resourceUserRead(ctx context.Context, d *schema.ResourceData, meta interfac
 	d.Set("recovery_phone", user.RecoveryPhone)
 
 	d.SetId(user.Id)
+	log.Printf("[DEBUG] Finished getting User %q: %#v", d.Id(), primaryEmail)
 
 	return diags
 }
@@ -1206,7 +1235,7 @@ func resourceUserDelete(ctx context.Context, d *schema.ResourceData, meta interf
 
 	err := usersService.Delete(d.Id()).Do()
 	if err != nil {
-		return diag.FromErr(err)
+		return handleNotFoundError(err, d, primaryEmail)
 	}
 
 	log.Printf("[DEBUG] Finished deleting User %q: %#v", d.Id(), primaryEmail)

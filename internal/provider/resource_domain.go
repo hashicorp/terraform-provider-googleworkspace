@@ -116,10 +116,11 @@ func resourceDomainRead(ctx context.Context, d *schema.ResourceData, meta interf
 	}
 
 	domainName := d.Get("domain_name").(string)
+	log.Printf("[DEBUG] Getting Domain %q: %#v", d.Id(), domainName)
 
 	domain, err := domainsService.Get(client.Customer, domainName).Do()
 	if err != nil {
-		return diag.FromErr(err)
+		return handleNotFoundError(err, d, domainName)
 	}
 
 	if domain == nil {
@@ -140,6 +141,7 @@ func resourceDomainRead(ctx context.Context, d *schema.ResourceData, meta interf
 	d.Set("is_primary", domain.IsPrimary)
 	d.Set("domain_name", domain.DomainName)
 	d.SetId(domain.DomainName)
+	log.Printf("[DEBUG] Finished getting Domain %q: %#v", d.Id(), domainName)
 
 	return diags
 }
@@ -165,7 +167,7 @@ func resourceDomainDelete(ctx context.Context, d *schema.ResourceData, meta inte
 
 	err := domainsService.Delete(client.Customer, domainName).Do()
 	if err != nil {
-		return diag.FromErr(err)
+		return handleNotFoundError(err, d, domainName)
 	}
 
 	log.Printf("[DEBUG] Finished deleting Domain %q: %#v", d.Id(), domainName)

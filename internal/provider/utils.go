@@ -3,11 +3,18 @@ package googleworkspace
 import (
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"strings"
 	"unicode"
 
+	"github.com/hashicorp/errwrap"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+
 	"github.com/mitchellh/go-homedir"
+
+	"google.golang.org/api/googleapi"
 )
 
 // If the argument is a path, pathOrContents loads it and returns the contents,
@@ -39,6 +46,24 @@ func pathOrContents(poc string) (string, bool, error) {
 	}
 
 	return poc, false, nil
+}
+
+// Check Error Code
+func isApiErrorWithCode(err error, errCode int) bool {
+	gerr, ok := errwrap.GetType(err, &googleapi.Error{}).(*googleapi.Error)
+	return ok && gerr != nil && gerr.Code == errCode
+}
+
+func handleNotFoundError(err error, d *schema.ResourceData, resource string) diag.Diagnostics {
+	if isApiErrorWithCode(err, 404) {
+		log.Printf("[WARN] Removing %s because it's gone", resource)
+		// The resource doesn't exist anymore
+		d.SetId("")
+
+		return nil
+	}
+
+	return diag.Errorf("Error when reading or editing %s: %s", resource, err.Error())
 }
 
 // This is a Printf sibling (Nprintf; Named Printf), which handles strings like
