@@ -65,13 +65,24 @@ func (c *apiClient) loadAndValidate(ctx context.Context) diag.Diagnostics {
 	return diags
 }
 
-func (c *apiClient) NewDirectoryService() *directory.Service {
+func (c *apiClient) NewDirectoryService() (*directory.Service, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
 	log.Printf("[INFO] Instantiating Google Admin Directory service")
+
 	directoryService, err := directory.NewService(context.Background(), option.WithHTTPClient(c.client))
 	if err != nil {
-		log.Printf("[WARN] Error creating directory service: %s", err)
-		return nil
+		return nil, diag.FromErr(err)
 	}
 
-	return directoryService
+	if directoryService == nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Directory Service could not be created.",
+		})
+
+		return nil, diags
+	}
+
+	return directoryService, diags
 }

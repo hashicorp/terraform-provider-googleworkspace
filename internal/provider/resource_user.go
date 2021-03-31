@@ -868,13 +868,13 @@ func resourceUserCreate(ctx context.Context, d *schema.ResourceData, meta interf
 	primaryEmail := d.Get("primary_email").(string)
 	log.Printf("[DEBUG] Creating User %q: %#v", d.Id(), primaryEmail)
 
-	directoryService := client.NewDirectoryService()
-	if directoryService == nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Directory Service could not be created.",
-		})
+	directoryService, diags := client.NewDirectoryService()
+	if diags.HasError() {
+		return diags
+	}
 
+	usersService, diags := GetUsersService(directoryService)
+	if diags.HasError() {
 		return diags
 	}
 
@@ -908,7 +908,7 @@ func resourceUserCreate(ctx context.Context, d *schema.ResourceData, meta interf
 		ForceSendFields: []string{"IncludeInGlobalAddressList"},
 	}
 
-	user, err := directoryService.Users.Insert(&userObj).Do()
+	user, err := usersService.Insert(&userObj).Do()
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -919,7 +919,7 @@ func resourceUserCreate(ctx context.Context, d *schema.ResourceData, meta interf
 			Status: d.Get("is_admin").(bool),
 		}
 
-		err = directoryService.Users.MakeAdmin(user.Id, &makeAdminObj).Do()
+		err = usersService.MakeAdmin(user.Id, &makeAdminObj).Do()
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -937,17 +937,17 @@ func resourceUserRead(ctx context.Context, d *schema.ResourceData, meta interfac
 	// use the meta value to retrieve your client from the provider configure method
 	client := meta.(*apiClient)
 
-	directoryService := client.NewDirectoryService()
-	if directoryService == nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Directory Service could not be created.",
-		})
-
+	directoryService, diags := client.NewDirectoryService()
+	if diags.HasError() {
 		return diags
 	}
 
-	user, err := directoryService.Users.Get(d.Id()).Projection("full").Do()
+	usersService, diags := GetUsersService(directoryService)
+	if diags.HasError() {
+		return diags
+	}
+
+	user, err := usersService.Get(d.Id()).Projection("full").Do()
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -1010,13 +1010,13 @@ func resourceUserUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 	primaryEmail := d.Get("primary_email").(string)
 	log.Printf("[DEBUG] Updating User %q: %#v", d.Id(), primaryEmail)
 
-	directoryService := client.NewDirectoryService()
-	if directoryService == nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Directory Service could not be created.",
-		})
+	directoryService, diags := client.NewDirectoryService()
+	if diags.HasError() {
+		return diags
+	}
 
+	usersService, diags := GetUsersService(directoryService)
+	if diags.HasError() {
 		return diags
 	}
 
@@ -1150,7 +1150,7 @@ func resourceUserUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 	}
 
 	if &userObj != new(directory.User) {
-		user, err := directoryService.Users.Update(d.Id(), &userObj).Do()
+		user, err := usersService.Update(d.Id(), &userObj).Do()
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -1164,7 +1164,7 @@ func resourceUserUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 			ForceSendFields: []string{"Status"},
 		}
 
-		err := directoryService.Users.MakeAdmin(d.Id(), &makeAdminObj).Do()
+		err := usersService.MakeAdmin(d.Id(), &makeAdminObj).Do()
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -1186,17 +1186,17 @@ func resourceUserDelete(ctx context.Context, d *schema.ResourceData, meta interf
 	primaryEmail := d.Get("primary_email").(string)
 	log.Printf("[DEBUG] Deleting User %q: %#v", d.Id(), primaryEmail)
 
-	directoryService := client.NewDirectoryService()
-	if directoryService == nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Directory Service could not be created.",
-		})
-
+	directoryService, diags := client.NewDirectoryService()
+	if diags.HasError() {
 		return diags
 	}
 
-	err := directoryService.Users.Delete(d.Id()).Do()
+	usersService, diags := GetUsersService(directoryService)
+	if diags.HasError() {
+		return diags
+	}
+
+	err := usersService.Delete(d.Id()).Do()
 	if err != nil {
 		return diag.FromErr(err)
 	}

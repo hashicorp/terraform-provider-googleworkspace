@@ -30,17 +30,17 @@ func dataSourceUserRead(ctx context.Context, d *schema.ResourceData, meta interf
 		// use the meta value to retrieve your client from the provider configure method
 		client := meta.(*apiClient)
 
-		directoryService := client.NewDirectoryService()
-		if directoryService == nil {
-			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Error,
-				Summary:  "Directory Service could not be created.",
-			})
-
+		directoryService, diags := client.NewDirectoryService()
+		if diags.HasError() {
 			return diags
 		}
 
-		user, err := directoryService.Users.Get(d.Get("primary_email").(string)).Do()
+		usersService, diags := GetUsersService(directoryService)
+		if len(diags) > 0 {
+			return diags
+		}
+
+		user, err := usersService.Get(d.Get("primary_email").(string)).Do()
 		if err != nil {
 			return diag.FromErr(err)
 		}

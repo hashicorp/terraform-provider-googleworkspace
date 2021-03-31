@@ -71,13 +71,13 @@ func resourceDomainCreate(ctx context.Context, d *schema.ResourceData, meta inte
 	domainName := d.Get("domain_name").(string)
 	log.Printf("[DEBUG] Creating Domain %q: %#v", d.Id(), domainName)
 
-	directoryService := client.NewDirectoryService()
-	if directoryService == nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Directory Service could not be created.",
-		})
+	directoryService, diags := client.NewDirectoryService()
+	if diags.HasError() {
+		return diags
+	}
 
+	domainsService, diags := GetDomainsService(directoryService)
+	if diags.HasError() {
 		return diags
 	}
 
@@ -85,7 +85,7 @@ func resourceDomainCreate(ctx context.Context, d *schema.ResourceData, meta inte
 		DomainName: d.Get("domain_name").(string),
 	}
 
-	domain, err := directoryService.Domains.Insert(client.Customer, &domainObj).Do()
+	domain, err := domainsService.Insert(client.Customer, &domainObj).Do()
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -104,19 +104,19 @@ func resourceDomainRead(ctx context.Context, d *schema.ResourceData, meta interf
 	// use the meta value to retrieve your client from the provider configure method
 	client := meta.(*apiClient)
 
-	directoryService := client.NewDirectoryService()
-	if directoryService == nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Directory Service could not be created.",
-		})
+	directoryService, diags := client.NewDirectoryService()
+	if diags.HasError() {
+		return diags
+	}
 
+	domainsService, diags := GetDomainsService(directoryService)
+	if diags.HasError() {
 		return diags
 	}
 
 	domainName := d.Get("domain_name").(string)
 
-	domain, err := directoryService.Domains.Get(client.Customer, domainName).Do()
+	domain, err := domainsService.Get(client.Customer, domainName).Do()
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -143,17 +143,17 @@ func resourceDomainDelete(ctx context.Context, d *schema.ResourceData, meta inte
 	domainName := d.Get("domain_name").(string)
 	log.Printf("[DEBUG] Deleting Domain %q: %#v", d.Id(), domainName)
 
-	directoryService := client.NewDirectoryService()
-	if directoryService == nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Directory Service could not be created.",
-		})
-
+	directoryService, diags := client.NewDirectoryService()
+	if diags.HasError() {
 		return diags
 	}
 
-	err := directoryService.Domains.Delete(client.Customer, domainName).Do()
+	domainsService, diags := GetDomainsService(directoryService)
+	if diags.HasError() {
+		return diags
+	}
+
+	err := domainsService.Delete(client.Customer, domainName).Do()
 	if err != nil {
 		return diag.FromErr(err)
 	}
