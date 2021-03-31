@@ -28,6 +28,16 @@ func TestAccDataSourceUser_withId(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testAccDataSourceUser_withId(testUserVals),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"data.googleworkspace_user.my-new-user", "primary_email", Nprintf("%{userEmail}@%{domainName}", testUserVals)),
+					resource.TestCheckResourceAttr(
+						"data.googleworkspace_user.my-new-user", "name.0.family_name", "Scott"),
+					resource.TestCheckResourceAttr(
+						"data.googleworkspace_user.my-new-user", "name.0.given_name", "Michael"),
+					resource.TestCheckResourceAttr(
+						"data.googleworkspace_user.my-new-user", "emails.#", "2"),
+				),
 			},
 		},
 	})
@@ -52,6 +62,16 @@ func TestAccDataSourceUser_withEmail(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testAccDataSourceUser_withEmail(testUserVals),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"data.googleworkspace_user.my-new-user", "primary_email", Nprintf("%{userEmail}@%{domainName}", testUserVals)),
+					resource.TestCheckResourceAttr(
+						"data.googleworkspace_user.my-new-user", "name.0.family_name", "Scott"),
+					resource.TestCheckResourceAttr(
+						"data.googleworkspace_user.my-new-user", "name.0.given_name", "Michael"),
+					resource.TestCheckResourceAttr(
+						"data.googleworkspace_user.my-new-user", "emails.#", "2"),
+				),
 			},
 		},
 	})
