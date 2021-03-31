@@ -1,4 +1,4 @@
-package provider
+package googleworkspace
 
 import (
 	"context"
@@ -23,9 +23,9 @@ func diffSuppressEmails(k, old, new string, d *schema.ResourceData) bool {
 	// Only show a diff if the other emails differ.
 	subsetEmails := []interface{}{}
 
+	primaryEmail := d.Get("primary_email").(string)
 	for _, se := range stateEmails.([]interface{}) {
 		emailObj := se.(map[string]interface{})
-		primaryEmail := d.Get("primary_email").(string)
 		if emailObj["primary"].(bool) || emailObj["address"].(string) == fmt.Sprintf("%s.test-google-a.com", primaryEmail) {
 			continue
 		}
@@ -57,13 +57,13 @@ func resourceUser() *schema.Resource {
 				Computed:    true,
 			},
 			"primary_email": {
-				Description: "The user's primary email address. The primaryEmail must be unique and cannot be an alias" +
+				Description: "The user's primary email address. The primaryEmail must be unique and cannot be an alias " +
 					"of another user.",
 				Type:     schema.TypeString,
 				Required: true,
 			},
 			"password": {
-				Description: "Stores the password for the user account. A password can contain any combination of" +
+				Description: "Stores the password for the user account. A password can contain any combination of " +
 					"ASCII characters. A minimum of 8 characters is required. The maximum length is 100 characters.",
 				Type:             schema.TypeString,
 				Required:         true,
@@ -71,8 +71,8 @@ func resourceUser() *schema.Resource {
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringLenBetween(8, 100)),
 			},
 			"hash_function": {
-				Description: "Stores the hash format of the password property. We recommend sending the password" +
-					"property value as a base 16 bit hexadecimal-encoded hash value. Set the hashFunction values" +
+				Description: "Stores the hash format of the password property. We recommend sending the password " +
+					"property value as a base 16 bit hexadecimal-encoded hash value. Set the hashFunction values " +
 					"as either the SHA-1, MD5, or crypt hash format.",
 				Type:     schema.TypeString,
 				Optional: true,
@@ -89,7 +89,7 @@ func resourceUser() *schema.Resource {
 				Computed:    true,
 			},
 			"agreed_to_terms": {
-				Description: "This property is true if the user has completed an initial login and accepted the" +
+				Description: "This property is true if the user has completed an initial login and accepted the " +
 					"Terms of Service agreement.",
 				Type:     schema.TypeBool,
 				Computed: true,
@@ -100,7 +100,7 @@ func resourceUser() *schema.Resource {
 				Optional:    true,
 			},
 			"change_password_at_next_login": {
-				Description: "Indicates if the user is forced to change their password at next login. This setting" +
+				Description: "Indicates if the user is forced to change their password at next login. This setting " +
 					"doesn't apply when the user signs in via a third-party identity provider.",
 				Type:     schema.TypeBool,
 				Optional: true,
@@ -111,10 +111,10 @@ func resourceUser() *schema.Resource {
 				Optional:    true,
 			},
 			"name": {
-				Description: "Holds the given and family names of the user, and the read-only fullName value." +
-					"The maximum number of characters in the givenName and in the familyName values is 60." +
-					"In addition, name values support unicode/UTF-8 characters, and can contain spaces, letters (a-z)," +
-					"numbers (0-9), dashes (-), forward slashes (/), and periods (.)." +
+				Description: "Holds the given and family names of the user, and the read-only fullName value. " +
+					"The maximum number of characters in the givenName and in the familyName values is 60. " +
+					"In addition, name values support unicode/UTF-8 characters, and can contain spaces, letters (a-z), " +
+					"numbers (0-9), dashes (-), forward slashes (/), and periods (.). " +
 					"Maximum allowed data size for this field is 1Kb.",
 				Type:     schema.TypeList,
 				Required: true,
@@ -155,26 +155,26 @@ func resourceUser() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"address": {
-							Description: "The user's email address. Also serves as the email ID." +
+							Description: "The user's email address. Also serves as the email ID. " +
 								"This value can be the user's primary email address or an alias.",
 							Type:     schema.TypeString,
 							Optional: true,
 						},
 						"custom_type": {
-							Description: "If the value of type is custom, this property contains" +
+							Description: "If the value of type is custom, this property contains " +
 								"the custom type string.",
 							Type:     schema.TypeString,
 							Optional: true,
 						},
 						"primary": {
-							Description: "Indicates if this is the user's primary email." +
+							Description: "Indicates if this is the user's primary email. " +
 								"Only one entry can be marked as primary.",
 							Type:     schema.TypeBool,
 							Optional: true,
 							Default:  false,
 						},
 						"type": {
-							Description: "The type of the email account." +
+							Description: "The type of the email account. " +
 								"Acceptable values: `custom`, `home`, `other`, `work`.",
 							Type:     schema.TypeString,
 							Optional: true,
@@ -186,19 +186,20 @@ func resourceUser() *schema.Resource {
 				},
 			},
 			"external_ids": {
-				Description: "A list of external IDs for the user, such as an employee or network ID. The maximum allowed data size is 2Kb.",
+				Description: "A list of external IDs for the user, such as an employee or network ID. " +
+					"The maximum allowed data size is 2Kb.",
 				Type:        schema.TypeList,
 				Optional:    true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"custom_type": {
-							Description: "If the value of type is custom, this property contains" +
+							Description: "If the value of type is custom, this property contains " +
 								"the custom type string.",
 							Type:     schema.TypeString,
 							Optional: true,
 						},
 						"type": {
-							Description: "The type of the email account." +
+							Description: "The type of the email account. " +
 								"Acceptable values: `custom`, `home`, `other`, `work`.",
 							Type:     schema.TypeString,
 							Optional: true,
@@ -215,22 +216,23 @@ func resourceUser() *schema.Resource {
 				},
 			},
 			"relations": {
-				Description: "A list of the user's relationships to other users. The maximum allowed data size for this field is 2Kb.",
+				Description: "A list of the user's relationships to other users. " +
+					"The maximum allowed data size for this field is 2Kb.",
 				Type:        schema.TypeList,
 				Optional:    true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"custom_type": {
-							Description: "If the value of type is custom, this property contains" +
+							Description: "If the value of type is custom, this property contains " +
 								"the custom type string.",
 							Type:     schema.TypeString,
 							Optional: true,
 						},
 						"type": {
-							Description: "The type of relation." +
-								"Acceptable values: `admin_assistant`, `assistant`, `brother`, `child`, `custom`," +
-								"`domestic_partner`, `dotted_line_manager`, `exec_assistant`, `father`, `friend`," +
-								"`manager`, `mother`, `parent`, `partner`, `referred_by`, `relative`, `sister`," +
+							Description: "The type of relation. " +
+								"Acceptable values: `admin_assistant`, `assistant`, `brother`, `child`, `custom`, " +
+								"`domestic_partner`, `dotted_line_manager`, `exec_assistant`, `father`, `friend`, " +
+								"`manager`, `mother`, `parent`, `partner`, `referred_by`, `relative`, `sister`, " +
 								"`spouse`.",
 							Type:     schema.TypeString,
 							Optional: true,
@@ -258,15 +260,15 @@ func resourceUser() *schema.Resource {
 				},
 			},
 			"is_mailbox_setup": {
-				Description: "Indicates if the user's Google mailbox is created. This property is only applicable" +
+				Description: "Indicates if the user's Google mailbox is created. This property is only applicable " +
 					"if the user has been assigned a Gmail license.",
 				Type:     schema.TypeBool,
 				Computed: true,
 			},
 			"customer_id": {
-				Description: "The customer ID to retrieve all account users. You can use the alias my_customer to" +
-					"represent your account's customerId. As a reseller administrator, you can use the resold" +
-					"customer account's customerId. To get a customerId, use the account's primary domain in the" +
+				Description: "The customer ID to retrieve all account users. You can use the alias my_customer to " +
+					"represent your account's customerId. As a reseller administrator, you can use the resold " +
+					"customer account's customerId. To get a customerId, use the account's primary domain in the " +
 					"domain parameter of a users.list request.",
 				Type:     schema.TypeString,
 				Computed: true,
@@ -299,7 +301,7 @@ func resourceUser() *schema.Resource {
 							Optional:    true,
 						},
 						"formatted": {
-							Description: "A full and unstructured postal address. This is not synced with the" +
+							Description: "A full and unstructured postal address. This is not synced with the " +
 								"structured address fields.",
 							Type:     schema.TypeString,
 							Optional: true,
@@ -320,7 +322,7 @@ func resourceUser() *schema.Resource {
 							Optional:    true,
 						},
 						"primary": {
-							Description: "If this is the user's primary address. The addresses list may contain" +
+							Description: "If this is the user's primary address. The addresses list may contain " +
 								"only one primary address.",
 							Type:     schema.TypeBool,
 							Optional: true,
@@ -331,19 +333,19 @@ func resourceUser() *schema.Resource {
 							Optional:    true,
 						},
 						"source_is_structured": {
-							Description: "Indicates if the user-supplied address was formatted." +
+							Description: "Indicates if the user-supplied address was formatted. " +
 								"Formatted addresses are not currently supported.",
 							Type:     schema.TypeBool,
 							Optional: true,
 						},
 						"street_address": {
-							Description: "The street address, such as 1600 Amphitheatre Parkway." +
+							Description: "The street address, such as 1600 Amphitheatre Parkway. " +
 								"Whitespace within the string is ignored; however, newlines are significant.",
 							Type:     schema.TypeString,
 							Optional: true,
 						},
 						"type": {
-							Description: "The address type." +
+							Description: "The address type. " +
 								"Acceptable values: `custom`, `home`, `other`, `work`.",
 							Type:     schema.TypeString,
 							Optional: true,
@@ -391,7 +393,7 @@ func resourceUser() *schema.Resource {
 							Optional:    true,
 						},
 						"location": {
-							Description: "The physical location of the organization." +
+							Description: "The physical location of the organization. " +
 								"This does not need to be a fully qualified address.",
 							Type:     schema.TypeString,
 							Optional: true,
@@ -402,12 +404,13 @@ func resourceUser() *schema.Resource {
 							Optional:    true,
 						},
 						"primary": {
-							Description: "Indicates if this is the user's primary organization. A user may only have one primary organization.",
+							Description: "Indicates if this is the user's primary organization. A user may only have " +
+								"one primary organization.",
 							Type:        schema.TypeBool,
 							Optional:    true,
 						},
 						"symbol": {
-							Description: "Text string symbol of the organization. For example," +
+							Description: "Text string symbol of the organization. For example, " +
 								"the text symbol for Google is GOOG.",
 							Type:     schema.TypeString,
 							Optional: true,
@@ -418,7 +421,7 @@ func resourceUser() *schema.Resource {
 							Optional:    true,
 						},
 						"type": {
-							Description: "The type of organization." +
+							Description: "The type of organization. " +
 								"Acceptable values: `domain_only`, `school`, `unknown`, `work`.",
 							Type:     schema.TypeString,
 							Optional: true,
@@ -430,17 +433,17 @@ func resourceUser() *schema.Resource {
 				},
 			},
 			"last_login_time": {
-				Description: "The last time the user logged into the user's account. The value is in ISO 8601 date" +
-					"and time format. The time is the complete date plus hours, minutes, and seconds" +
+				Description: "The last time the user logged into the user's account. The value is in ISO 8601 date " +
+					"and time format. The time is the complete date plus hours, minutes, and seconds " +
 					"in the form YYYY-MM-DDThh:mm:ssTZD. For example, 2010-04-05T17:30:04+01:00.",
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 			"phones": {
-				Description: "Holds the given and family names of the user, and the read-only fullName value." +
-					"The maximum number of characters in the givenName and in the familyName values is 60." +
-					"In addition, name values support unicode/UTF-8 characters, and can contain spaces, letters (a-z)," +
-					"numbers (0-9), dashes (-), forward slashes (/), and periods (.)." +
+				Description: "Holds the given and family names of the user, and the read-only fullName value. " +
+					"The maximum number of characters in the givenName and in the familyName values is 60. " +
+					"In addition, name values support unicode/UTF-8 characters, and can contain spaces, letters (a-z), " +
+					"numbers (0-9), dashes (-), forward slashes (/), and periods (.). " +
 					"Maximum allowed data size for this field is 1Kb.",
 				Type:     schema.TypeList,
 				Optional: true,
@@ -452,16 +455,16 @@ func resourceUser() *schema.Resource {
 							Optional:    true,
 						},
 						"primary": {
-							Description: "Indicates if this is the user's primary phone number." +
+							Description: "Indicates if this is the user's primary phone number. " +
 								"A user may only have one primary phone number.",
 							Type:     schema.TypeBool,
 							Optional: true,
 						},
 						"type": {
-							Description: "The type of phone number." +
-								"Acceptable values: `assistant`, `callback`, `car`, `company_main`" +
-								", `custom`, `grand_central`, `home`, `home_fax`, `isdn`, `main`, `mobile`, `other`," +
-								"`other_fax`, `pager`, `radio`, `telex`, `tty_tdd`, `work`, `work_fax`, `work_mobile`," +
+							Description: "The type of phone number. " +
+								"Acceptable values: `assistant`, `callback`, `car`, `company_main` " +
+								", `custom`, `grand_central`, `home`, `home_fax`, `isdn`, `main`, `mobile`, `other`, " +
+								"`other_fax`, `pager`, `radio`, `telex`, `tty_tdd`, `work`, `work_fax`, `work_mobile`, " +
 								"`work_pager`.",
 							Type:     schema.TypeString,
 							Optional: true,
@@ -481,7 +484,7 @@ func resourceUser() *schema.Resource {
 				},
 			},
 			"suspension_reason": {
-				Description: "Has the reason a user account is suspended either by the administrator or by Google at" +
+				Description: "Has the reason a user account is suspended either by the administrator or by Google at " +
 					"the time of suspension. The property is returned only if the suspended property is true.",
 				Type:     schema.TypeString,
 				Computed: true,
@@ -498,7 +501,7 @@ func resourceUser() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"custom_language": {
-							Description: "Other language. A user can provide their own language name if there is no" +
+							Description: "Other language. A user can provide their own language name if there is no " +
 								"corresponding Google III language code. If this is set, LanguageCode can't be set.",
 							Type:     schema.TypeString,
 							Optional: true,
@@ -506,7 +509,7 @@ func resourceUser() *schema.Resource {
 							//ExactlyOneOf: []string{"custom_language", "language_code"},
 						},
 						"language_code": {
-							Description: "Language Code. Should be used for storing Google III LanguageCode string" +
+							Description: "Language Code. Should be used for storing Google III LanguageCode string " +
 								"representation for language. Illegal values cause SchemaException.",
 							Type:     schema.TypeString,
 							Optional: true,
@@ -544,7 +547,7 @@ func resourceUser() *schema.Resource {
 							Optional:    true,
 						},
 						"operating_system_type": {
-							Description: "The operating system type for this account." +
+							Description: "The operating system type for this account. " +
 								"Acceptable values: `linux`, `unspecified`, `windows`.",
 							Type:     schema.TypeString,
 							Optional: true,
@@ -581,14 +584,14 @@ func resourceUser() *schema.Resource {
 				},
 			},
 			"creation_time": {
-				Description: "The time the user's account was created. The value is in ISO 8601 date and time format." +
-					"The time is the complete date plus hours, minutes, and seconds in the form" +
+				Description: "The time the user's account was created. The value is in ISO 8601 date and time format. " +
+					"The time is the complete date plus hours, minutes, and seconds in the form " +
 					"YYYY-MM-DDThh:mm:ssTZD. For example, 2010-04-05T17:30:04+01:00.",
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 			"non_editable_aliases": {
-				Description: "asps.list of the user's non-editable alias email addresses. These are typically outside" +
+				Description: "asps.list of the user's non-editable alias email addresses. These are typically outside " +
 					"the account's primary domain or sub-domain.",
 				Type:     schema.TypeList,
 				Computed: true,
@@ -608,7 +611,7 @@ func resourceUser() *schema.Resource {
 							Optional:    true,
 						},
 						"fingerprint": {
-							Description: "A SHA-256 fingerprint of the SSH public key. ",
+							Description: "A SHA-256 fingerprint of the SSH public key.",
 							Type:        schema.TypeString,
 							Computed:    true,
 						},
@@ -637,10 +640,10 @@ func resourceUser() *schema.Resource {
 							Optional:    true,
 						},
 						"type": {
-							Description: "The type or purpose of the website. For example, a website could be labeled" +
-								"as home or blog. Alternatively, an entry can have a custom type." +
-								"Custom types must have a customType value." +
-								"Acceptable values: `app_install_page`, `blog`, `custom`, `ftp`" +
+							Description: "The type or purpose of the website. For example, a website could be labeled " +
+								"as home or blog. Alternatively, an entry can have a custom type " +
+								"Custom types must have a customType value. " +
+								"Acceptable values: `app_install_page`, `blog`, `custom`, `ftp` " +
 								", `home`, `home_page`, `other`, `profile`, `reservations`, `resume`, `work`.",
 							Type:     schema.TypeString,
 							Optional: true,
@@ -665,7 +668,7 @@ func resourceUser() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"area": {
-							Description: "Textual location. This is most useful for display purposes to concisely" +
+							Description: "Textual location. This is most useful for display purposes to concisely " +
 								"describe the location. For example, Mountain View, CA or Near Seattle.",
 							Type:     schema.TypeString,
 							Optional: true,
@@ -691,14 +694,14 @@ func resourceUser() *schema.Resource {
 							Optional:    true,
 						},
 						"floor_section": {
-							Description: "Floor section. More specific location within the floor. For example," +
-								"if a floor is divided into sections A, B, and C, this field would identify one" +
+							Description: "Floor section. More specific location within the floor. For example, " +
+								"if a floor is divided into sections A, B, and C, this field would identify one " +
 								"of those values.",
 							Type:     schema.TypeString,
 							Optional: true,
 						},
 						"type": {
-							Description: "The location type." +
+							Description: "The location type. " +
 								"Acceptable values: `custom`, `default`, `desk`",
 							Type:     schema.TypeString,
 							Optional: true,
@@ -712,7 +715,7 @@ func resourceUser() *schema.Resource {
 			},
 			// IncludeInGlobalAddressList is not being sent in the request with the admin SDK, so leaving this out for now
 			"include_in_global_address_list": {
-				Description: "Indicates if the user's profile is visible in the Google Workspace global address list" +
+				Description: "Indicates if the user's profile is visible in the Google Workspace global address list " +
 					"when the contact sharing feature is enabled for the domain.",
 				Type:     schema.TypeBool,
 				Optional: true,
@@ -730,10 +733,10 @@ func resourceUser() *schema.Resource {
 							Optional:    true,
 						},
 						"type": {
-							Description: "Each entry can have a type which indicates standard type of that entry." +
-								"For example, keyword could be of type occupation or outlook. In addition to the" +
-								"standard type, an entry can have a custom type and can give it any name. Such types" +
-								"should have the CUSTOM value as type and also have a customType value." +
+							Description: "Each entry can have a type which indicates standard type of that entry. " +
+								"For example, keyword could be of type occupation or outlook. In addition to the " +
+								"standard type, an entry can have a custom type and can give it any name. Such types " +
+								"should have the CUSTOM value as type and also have a customType value. " +
 								"Acceptable values: `custom`, `mission`, `occupation`, `outlook`",
 							Type:     schema.TypeString,
 							Optional: true,
@@ -751,8 +754,8 @@ func resourceUser() *schema.Resource {
 				},
 			},
 			"deletion_time": {
-				Description: "The time the user's account was deleted. The value is in ISO 8601 date and time format." +
-					"The time is the complete date plus hours, minutes, and seconds in the form YYYY-MM-DDThh:mm:ssTZD." +
+				Description: "The time the user's account was deleted. The value is in ISO 8601 date and time format " +
+					"The time is the complete date plus hours, minutes, and seconds in the form YYYY-MM-DDThh:mm:ssTZD. " +
 					"For example 2010-04-05T17:30:04+01:00.",
 				Type:     schema.TypeString,
 				Computed: true,
@@ -764,15 +767,15 @@ func resourceUser() *schema.Resource {
 				Computed:    true,
 			},
 			"ims": {
-				Description: "The user's Instant Messenger (IM) accounts. A user account can have multiple ims" +
-					"properties. But, only one of these ims properties can be the primary IM contact." +
+				Description: "The user's Instant Messenger (IM) accounts. A user account can have multiple ims " +
+					"properties. But, only one of these ims properties can be the primary IM contact. " +
 					"The maximum allowed data size is 2Kb.",
 				Type:     schema.TypeList,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"custom_protocol": {
-							Description: "If the protocol value is custom_protocol, this property holds the custom" +
+							Description: "If the protocol value is custom_protocol, this property holds the custom " +
 								"protocol's string.",
 							Type:     schema.TypeString,
 							Optional: true,
@@ -788,15 +791,15 @@ func resourceUser() *schema.Resource {
 							Optional:    true,
 						},
 						"primary": {
-							Description: "If this is the user's primary IM." +
+							Description: "If this is the user's primary IM. " +
 								"Only one entry in the IM list can have a value of true.",
 							Type:     schema.TypeBool,
 							Optional: true,
 						},
 						"protocol": {
-							Description: "An IM protocol identifies the IM network." +
-								"The value can be a custom network or the standard network." +
-								"Acceptable values: `aim`, `custom_protocol`, `gtalk`, `icq`, `jabber`," +
+							Description: "An IM protocol identifies the IM network. " +
+								"The value can be a custom network or the standard network. " +
+								"Acceptable values: `aim`, `custom_protocol`, `gtalk`, `icq`, `jabber`, " +
 								"`msn`, `net_meeting`, `qq`, `skype`, `yahoo`.",
 							Type:     schema.TypeString,
 							Optional: true,
@@ -833,7 +836,7 @@ func resourceUser() *schema.Resource {
 				Optional:    true,
 			},
 			"org_unit_path": {
-				Description: "The full path of the parent organization associated with the user." +
+				Description: "The full path of the parent organization associated with the user. " +
 					"If the parent organization is the top-level, it is represented as a forward slash (/).",
 				Type:     schema.TypeString,
 				Optional: true,
@@ -845,7 +848,7 @@ func resourceUser() *schema.Resource {
 				Optional:    true,
 			},
 			"recovery_phone": {
-				Description: "Recovery phone of the user. The phone number must be in the E.164 format," +
+				Description: "Recovery phone of the user. The phone number must be in the E.164 format, " +
 					"starting with the plus sign (+). Example: +16506661212.",
 				Type:     schema.TypeString,
 				Optional: true,
