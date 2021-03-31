@@ -291,7 +291,7 @@ resource "googleworkspace_user" "my-new-user" {
   recovery_email = "dwightkschrute@example.com"
   recovery_phone = "+16506661212"
   change_password_at_next_login = true
-  ip_whitelisted = true
+  ip_allowlist = true
 }
 `, testUserVals)
 }
@@ -402,7 +402,7 @@ resource "googleworkspace_user" "my-new-user" {
   recovery_email = "dwight.schrute@example.com"
   recovery_phone = "+16506661212"
   change_password_at_next_login = false
-  ip_whitelisted = false
+  ip_allowlist = false
 }
 `, testUserVals)
 }

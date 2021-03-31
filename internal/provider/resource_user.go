@@ -64,7 +64,9 @@ func resourceUser() *schema.Resource {
 			},
 			"password": {
 				Description: "Stores the password for the user account. A password can contain any combination of " +
-					"ASCII characters. A minimum of 8 characters is required. The maximum length is 100 characters.",
+					"ASCII characters. A minimum of 8 characters is required. The maximum length is 100 characters. " +
+					"As the API does not return the value of password, this field is write-only, " +
+					"and the value stored in the state will be what is provided in the configuration.",
 				Type:             schema.TypeString,
 				Required:         true,
 				Sensitive:        true,
@@ -105,8 +107,8 @@ func resourceUser() *schema.Resource {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
-			"ip_whitelisted": {
-				Description: "If true, the user's IP address is whitelisted.",
+			"ip_allowlist": {
+				Description: "If true, the user's IP address is added to the allow list.",
 				Type:        schema.TypeBool,
 				Optional:    true,
 			},
@@ -882,7 +884,7 @@ func resourceUserCreate(ctx context.Context, d *schema.ResourceData, meta interf
 		HashFunction:               d.Get("hash_function").(string),
 		Suspended:                  d.Get("suspended").(bool),
 		ChangePasswordAtNextLogin:  d.Get("change_password_at_next_login").(bool),
-		IpWhitelisted:              d.Get("ip_whitelisted").(bool),
+		IpWhitelisted:              d.Get("ip_allowlist").(bool),
 		Name:                       expandName(d.Get("name")),
 		Emails:                     expandInterfaceObjects(d.Get("emails")),
 		ExternalIds:                expandInterfaceObjects(d.Get("external_ids")),
@@ -960,7 +962,7 @@ func resourceUserRead(ctx context.Context, d *schema.ResourceData, meta interfac
 	d.Set("agreed_to_terms", user.AgreedToTerms)
 	d.Set("suspended", user.Suspended)
 	d.Set("change_password_at_next_login", user.ChangePasswordAtNextLogin)
-	d.Set("ip_whitelisted", user.IpWhitelisted)
+	d.Set("ip_allowlist", user.IpWhitelisted)
 	d.Set("name", flattenName(user.Name))
 	d.Set("emails", flattenAndSetInterfaceObjects(user.Emails))
 	d.Set("external_ids", flattenAndSetInterfaceObjects(user.ExternalIds))
@@ -1059,8 +1061,8 @@ func resourceUserUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 		forceSendFields = append(forceSendFields, "ChangePasswordAtNextLogin")
 	}
 
-	if d.HasChange("ip_whitelisted") {
-		userObj.IpWhitelisted = d.Get("ip_whitelisted").(bool)
+	if d.HasChange("ip_allowlist") {
+		userObj.IpWhitelisted = d.Get("ip_allowlist").(bool)
 		forceSendFields = append(forceSendFields, "IpWhitelisted")
 	}
 
