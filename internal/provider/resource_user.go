@@ -188,8 +188,8 @@ func resourceUser() *schema.Resource {
 			"external_ids": {
 				Description: "A list of external IDs for the user, such as an employee or network ID. " +
 					"The maximum allowed data size is 2Kb.",
-				Type:        schema.TypeList,
-				Optional:    true,
+				Type:     schema.TypeList,
+				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"custom_type": {
@@ -218,8 +218,8 @@ func resourceUser() *schema.Resource {
 			"relations": {
 				Description: "A list of the user's relationships to other users. " +
 					"The maximum allowed data size for this field is 2Kb.",
-				Type:        schema.TypeList,
-				Optional:    true,
+				Type:     schema.TypeList,
+				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"custom_type": {
@@ -406,8 +406,8 @@ func resourceUser() *schema.Resource {
 						"primary": {
 							Description: "Indicates if this is the user's primary organization. A user may only have " +
 								"one primary organization.",
-							Type:        schema.TypeBool,
-							Optional:    true,
+							Type:     schema.TypeBool,
+							Optional: true,
 						},
 						"symbol": {
 							Description: "Text string symbol of the organization. For example, " +
