@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"reflect"
-	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -952,6 +951,15 @@ func resourceUserRead(ctx context.Context, d *schema.ResourceData, meta interfac
 		return diag.FromErr(err)
 	}
 
+	if user == nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  fmt.Sprintf("No user was returned for %s.", d.Get("primary_email").(string)),
+		})
+
+		return diags
+	}
+
 	d.Set("id", user.Id)
 	d.Set("primary_email", user.PrimaryEmail)
 	// password and hash_function are not returned in the response, so set them to what we defined in the config
@@ -964,31 +972,31 @@ func resourceUserRead(ctx context.Context, d *schema.ResourceData, meta interfac
 	d.Set("change_password_at_next_login", user.ChangePasswordAtNextLogin)
 	d.Set("ip_allowlist", user.IpWhitelisted)
 	d.Set("name", flattenName(user.Name))
-	d.Set("emails", flattenAndSetInterfaceObjects(user.Emails))
-	d.Set("external_ids", flattenAndSetInterfaceObjects(user.ExternalIds))
-	d.Set("relations", flattenAndSetInterfaceObjects(user.Relations))
+	d.Set("emails", flattenInterfaceObjects(user.Emails))
+	d.Set("external_ids", flattenInterfaceObjects(user.ExternalIds))
+	d.Set("relations", flattenInterfaceObjects(user.Relations))
 	d.Set("etag", user.Etag)
 	d.Set("aliases", user.Aliases)
 	d.Set("is_mailbox_setup", user.IsMailboxSetup)
 	d.Set("customer_id", user.CustomerId)
-	d.Set("addresses", flattenAndSetInterfaceObjects(user.Addresses))
-	d.Set("organizations", flattenAndSetInterfaceObjects(user.Organizations))
+	d.Set("addresses", flattenInterfaceObjects(user.Addresses))
+	d.Set("organizations", flattenInterfaceObjects(user.Organizations))
 	d.Set("last_login_time", user.LastLoginTime)
-	d.Set("phones", flattenAndSetInterfaceObjects(user.Phones))
+	d.Set("phones", flattenInterfaceObjects(user.Phones))
 	d.Set("suspension_reason", user.SuspensionReason)
 	d.Set("thumbnail_photo_url", user.ThumbnailPhotoUrl)
-	d.Set("languages", flattenAndSetInterfaceObjects(user.Languages))
-	d.Set("posix_accounts", flattenAndSetInterfaceObjects(user.PosixAccounts))
+	d.Set("languages", flattenInterfaceObjects(user.Languages))
+	d.Set("posix_accounts", flattenInterfaceObjects(user.PosixAccounts))
 	d.Set("creation_time", user.CreationTime)
 	d.Set("non_editable_aliases", user.NonEditableAliases)
-	d.Set("ssh_public_keys", flattenAndSetInterfaceObjects(user.SshPublicKeys))
-	d.Set("websites", flattenAndSetInterfaceObjects(user.Websites))
-	d.Set("locations", flattenAndSetInterfaceObjects(user.Locations))
+	d.Set("ssh_public_keys", flattenInterfaceObjects(user.SshPublicKeys))
+	d.Set("websites", flattenInterfaceObjects(user.Websites))
+	d.Set("locations", flattenInterfaceObjects(user.Locations))
 	d.Set("include_in_global_address_list", user.IncludeInGlobalAddressList)
-	d.Set("keywords", flattenAndSetInterfaceObjects(user.Keywords))
+	d.Set("keywords", flattenInterfaceObjects(user.Keywords))
 	d.Set("deletion_time", user.DeletionTime)
 	d.Set("thumbnail_photo_etag", user.ThumbnailPhotoEtag)
-	d.Set("ims", flattenAndSetInterfaceObjects(user.Ims))
+	d.Set("ims", flattenInterfaceObjects(user.Ims))
 	d.Set("is_enrolled_in_2_step_verification", user.IsEnrolledIn2Sv)
 	d.Set("is_enforced_in_2_step_verification", user.IsEnforcedIn2Sv)
 	d.Set("archived", user.Archived)
@@ -1226,36 +1234,6 @@ func expandName(v interface{}) *directory.UserName {
 	return &userNameObj
 }
 
-// User type has many nested interfaces, we can pass them to the API as is
-// only each field name needs to be camel case rather than snake case.
-func expandInterfaceObjects(v interface{}) []interface{} {
-	objList := v.([]interface{})
-	if objList == nil || len(objList) == 0 {
-		return nil
-	}
-
-	newObjList := []interface{}{}
-
-	for _, o := range objList {
-		obj := o.(map[string]interface{})
-		for k, v := range obj {
-			if strings.Contains(k, "_") {
-				delete(obj, k)
-
-				// In the case that the field is not set, don't send it to the API
-				if v == "" {
-					continue
-				}
-
-				obj[SnakeToCamel(k)] = v
-			}
-		}
-		newObjList = append(newObjList, obj)
-	}
-
-	return newObjList
-}
-
 // Flatten functions
 
 func flattenName(userNameObj *directory.UserName) interface{} {
@@ -1270,26 +1248,4 @@ func flattenName(userNameObj *directory.UserName) interface{} {
 	}
 
 	return nameObj
-}
-
-// User type has many nested interfaces, we can set was was returned from the API as is
-// only the field names need to be snake case rather than the camel case that is returned
-func flattenAndSetInterfaceObjects(objList interface{}) interface{} {
-	if objList == nil || len(objList.([]interface{})) == 0 {
-		return nil
-	}
-
-	newObjList := []map[string]interface{}{}
-
-	for _, o := range objList.([]interface{}) {
-		obj := o.(map[string]interface{})
-		for k, v := range obj {
-			delete(obj, k)
-			obj[CameltoSnake(k)] = v
-		}
-
-		newObjList = append(newObjList, obj)
-	}
-
-	return newObjList
 }

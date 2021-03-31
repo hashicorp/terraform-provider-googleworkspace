@@ -2,6 +2,7 @@ package googleworkspace
 
 import (
 	"context"
+	"fmt"
 	"log"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -119,6 +120,15 @@ func resourceDomainRead(ctx context.Context, d *schema.ResourceData, meta interf
 	domain, err := domainsService.Get(client.Customer, domainName).Do()
 	if err != nil {
 		return diag.FromErr(err)
+	}
+
+	if domain == nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  fmt.Sprintf("No domain was returned for %s.", d.Get("domain_name").(string)),
+		})
+
+		return diags
 	}
 
 	if err := d.Set("domain_aliases", flattenDomainAliases(domain.DomainAliases, d)); err != nil {

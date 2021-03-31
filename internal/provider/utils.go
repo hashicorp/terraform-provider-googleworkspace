@@ -77,3 +77,55 @@ func CameltoSnake(s string) string {
 	}
 	return string(res)
 }
+
+// For resources that have many nested interfaces, we can pass them to the API as is,
+// only each field name needs to be camel case rather than snake case.
+func expandInterfaceObjects(v interface{}) []interface{} {
+	objList := v.([]interface{})
+	if objList == nil || len(objList) == 0 {
+		return nil
+	}
+
+	newObjList := []interface{}{}
+
+	for _, o := range objList {
+		obj := o.(map[string]interface{})
+		for k, v := range obj {
+			if strings.Contains(k, "_") {
+				delete(obj, k)
+
+				// In the case that the field is not set, don't send it to the API
+				if v == "" {
+					continue
+				}
+
+				obj[SnakeToCamel(k)] = v
+			}
+		}
+		newObjList = append(newObjList, obj)
+	}
+
+	return newObjList
+}
+
+// User type has many nested interfaces, we can set was was returned from the API as is
+// only the field names need to be snake case rather than the camel case that is returned
+func flattenInterfaceObjects(objList interface{}) interface{} {
+	if objList == nil || len(objList.([]interface{})) == 0 {
+		return nil
+	}
+
+	newObjList := []map[string]interface{}{}
+
+	for _, o := range objList.([]interface{}) {
+		obj := o.(map[string]interface{})
+		for k, v := range obj {
+			delete(obj, k)
+			obj[CameltoSnake(k)] = v
+		}
+
+		newObjList = append(newObjList, obj)
+	}
+
+	return newObjList
+}

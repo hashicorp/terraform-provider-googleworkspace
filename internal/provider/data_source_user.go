@@ -2,6 +2,7 @@ package googleworkspace
 
 import (
 	"context"
+	"fmt"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -43,6 +44,15 @@ func dataSourceUserRead(ctx context.Context, d *schema.ResourceData, meta interf
 		user, err := usersService.Get(d.Get("primary_email").(string)).Do()
 		if err != nil {
 			return diag.FromErr(err)
+		}
+
+		if user == nil {
+			diags = append(diags, diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  fmt.Sprintf("No user was returned for %s.", d.Get("primary_email").(string)),
+			})
+
+			return diags
 		}
 
 		d.SetId(user.Id)
