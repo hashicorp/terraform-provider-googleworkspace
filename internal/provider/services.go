@@ -8,23 +8,6 @@ import (
 	directory "google.golang.org/api/admin/directory/v1"
 )
 
-func GetUsersService(directoryService *directory.Service) (*directory.UsersService, diag.Diagnostics) {
-	var diags diag.Diagnostics
-
-	log.Printf("[INFO] Instantiating Google Admin Users service")
-	usersService := directoryService.Users
-	if usersService == nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Users Service could not be created.",
-		})
-
-		return nil, diags
-	}
-
-	return usersService, diags
-}
-
 func GetDomainsService(directoryService *directory.Service) (*directory.DomainsService, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
@@ -40,4 +23,38 @@ func GetDomainsService(directoryService *directory.Service) (*directory.DomainsS
 	}
 
 	return domainsService, diags
+}
+
+func GetGroupsService(directoryService *directory.Service) (*directory.GroupsService, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	log.Printf("[INFO] Instantiating Google Admin Domains service")
+	groupsService := directoryService.Groups
+	if groupsService == nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Groups Service could not be created.",
+		})
+
+		return nil, diags
+	}
+
+	return groupsService, diags
+}
+
+func GetUsersService(directoryService *directory.Service) (*directory.UsersService, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	log.Printf("[INFO] Instantiating Google Admin Users service")
+	usersService := directoryService.Users
+	if usersService == nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Users Service could not be created.",
+		})
+
+		return nil, diags
+	}
+
+	return usersService, diags
 }

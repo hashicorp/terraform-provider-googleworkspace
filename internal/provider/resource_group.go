@@ -98,13 +98,13 @@ func resourceGroupCreate(ctx context.Context, d *schema.ResourceData, meta inter
 	email := d.Get("email").(string)
 	log.Printf("[DEBUG] Creating Group %q: %#v", email, email)
 
-	directoryService := client.NewDirectoryService()
-	if directoryService == nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Directory Service could not be created.",
-		})
+	directoryService, diags := client.NewDirectoryService()
+	if diags.HasError() {
+		return diags
+	}
 
+	groupsService, diags := GetGroupsService(directoryService)
+	if diags.HasError() {
 		return diags
 	}
 
@@ -112,16 +112,27 @@ func resourceGroupCreate(ctx context.Context, d *schema.ResourceData, meta inter
 		Email:       d.Get("email").(string),
 		Name:        d.Get("name").(string),
 		Description: d.Get("description").(string),
-		Aliases:     expandAliases(d.Get("aliases")),
 	}
 
-	group, err := directoryService.Groups.Insert(&groupObj).Do()
+	group, err := groupsService.Insert(&groupObj).Do()
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	// Use the group name as the ID, as it should be unique
 	d.SetId(group.Id)
+
+	aliases := listOfInterfacestoStrings(d.Get("aliases"))
+
+	if len(aliases) > 0 {
+		groupObj := directory.Group{
+			Aliases: aliases,
+		}
+
+		_, err := groupsService.Update(email, &groupObj).Do()
+		if err != nil {
+			return diag.FromErr(err)
+		}
+	}
 
 	log.Printf("[DEBUG] Finished creating Group %q: %#v", d.Id(), email)
 
@@ -134,17 +145,17 @@ func resourceGroupRead(ctx context.Context, d *schema.ResourceData, meta interfa
 	// use the meta value to retrieve your client from the provider configure method
 	client := meta.(*apiClient)
 
-	directoryService := client.NewDirectoryService()
-	if directoryService == nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Directory Service could not be created.",
-		})
-
+	directoryService, diags := client.NewDirectoryService()
+	if diags.HasError() {
 		return diags
 	}
 
-	group, err := directoryService.Groups.Get(d.Id()).Do()
+	groupsService, diags := GetGroupsService(directoryService)
+	if diags.HasError() {
+		return diags
+	}
+
+	group, err := groupsService.Get(d.Id()).Do()
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -173,13 +184,13 @@ func resourceGroupUpdate(ctx context.Context, d *schema.ResourceData, meta inter
 	email := d.Get("email").(string)
 	log.Printf("[DEBUG] Updating Group %q: %#v", d.Id(), email)
 
-	directoryService := client.NewDirectoryService()
-	if directoryService == nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Directory Service could not be created.",
-		})
+	directoryService, diags := client.NewDirectoryService()
+	if diags.HasError() {
+		return diags
+	}
 
+	groupsService, diags := GetGroupsService(directoryService)
+	if diags.HasError() {
 		return diags
 	}
 
@@ -202,21 +213,13 @@ func resourceGroupUpdate(ctx context.Context, d *schema.ResourceData, meta inter
 	}
 
 	if &groupObj != new(directory.Group) {
-		user, err := directoryService.Groups.Update(d.Id(), &groupObj).Do()
+		group, err := groupsService.Update(d.Id(), &groupObj).Do()
 		if err != nil {
 			return diag.FromErr(err)
 		}
 
-		d.SetId(user.Id)
+		d.SetId(group.Id)
 	}
-
-	group, err := directoryService.Groups.Update(d.Id(), &groupObj).Do()
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	// Use the group name as the ID, as it should be unique
-	d.SetId(group.Id)
 
 	log.Printf("[DEBUG] Finished creating Group %q: %#v", d.Id(), email)
 
@@ -232,17 +235,17 @@ func resourceGroupDelete(ctx context.Context, d *schema.ResourceData, meta inter
 	email := d.Get("email").(string)
 	log.Printf("[DEBUG] Deleting Group %q: %#v", d.Id(), email)
 
-	directoryService := client.NewDirectoryService()
-	if directoryService == nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Directory Service could not be created.",
-		})
-
+	directoryService, diags := client.NewDirectoryService()
+	if diags.HasError() {
 		return diags
 	}
 
-	err := directoryService.Groups.Delete(d.Id()).Do()
+	groupsService, diags := GetGroupsService(directoryService)
+	if diags.HasError() {
+		return diags
+	}
+
+	err := groupsService.Delete(d.Id()).Do()
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -254,20 +257,4 @@ func resourceGroupDelete(ctx context.Context, d *schema.ResourceData, meta inter
 
 func resourceGroupImport(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 	return []*schema.ResourceData{d}, nil
-}
-
-// Expand Functions
-
-func expandAliases(v interface{}) []string {
-	if v == nil {
-		return []string{}
-	}
-
-	result := []string{}
-
-	for _, s := range v.([]interface{}) {
-		result = append(result, s.(string))
-	}
-
-	return result
 }

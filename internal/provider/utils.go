@@ -133,7 +133,7 @@ func expandInterfaceObjects(parent interface{}) []interface{} {
 	return newObjList
 }
 
-// User type has many nested interfaces, we can set was was returned from the API as is
+// For resources that have many nested interfaces, we can set was was returned from the API as is
 // only the field names need to be snake case rather than the camel case that is returned
 func flattenInterfaceObjects(objList interface{}) interface{} {
 	if objList == nil || len(objList.([]interface{})) == 0 {
@@ -153,4 +153,19 @@ func flattenInterfaceObjects(objList interface{}) interface{} {
 	}
 
 	return newObjList
+}
+
+// Converts a list of interfaces to a list of strings
+func listOfInterfacestoStrings(v interface{}) []string {
+	result := []string{}
+
+	if v == nil {
+		return result
+	}
+
+	for _, s := range v.([]interface{}) {
+		result = append(result, s.(string))
+	}
+
+	return result
 }

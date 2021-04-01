@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
-func TestAccResourceGroup(t *testing.T) {
+func TestAccResourceGroup_basic(t *testing.T) {
 	domainName := os.Getenv("GOOGLEWORKSPACE_DOMAIN")
 
 	if domainName == "" {
@@ -18,7 +18,7 @@ func TestAccResourceGroup(t *testing.T) {
 
 	testGroupVals := map[string]interface{}{
 		"domainName": domainName,
-		"groupEmail": fmt.Sprintf("tf-test-%s", acctest.RandString(10)),
+		"email":      fmt.Sprintf("tf-test-%s", acctest.RandString(10)),
 	}
 
 	resource.Test(t, resource.TestCase{
@@ -26,7 +26,7 @@ func TestAccResourceGroup(t *testing.T) {
 		ProviderFactories: providerFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccResourceGroup(testGroupVals),
+				Config: testAccResourceGroup_basic(testGroupVals),
 			},
 			{
 				ResourceName:      "googleworkspace_group.my-group",
@@ -37,10 +37,70 @@ func TestAccResourceGroup(t *testing.T) {
 	})
 }
 
-func testAccResourceGroup(testGroupVals map[string]interface{}) string {
+func TestAccResourceGroup_full(t *testing.T) {
+	domainName := os.Getenv("GOOGLEWORKSPACE_DOMAIN")
+
+	if domainName == "" {
+		t.Skip("GOOGLEWORKSPACE_DOMAIN needs to be set to run this test")
+	}
+
+	testGroupVals := map[string]interface{}{
+		"domainName": domainName,
+		"email":      fmt.Sprintf("tf-test-%s", acctest.RandString(10)),
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: providerFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceGroup_full(testGroupVals),
+			},
+			{
+				ResourceName:      "googleworkspace_group.my-group",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			{
+				Config: testAccResourceGroup_fullUpdate(testGroupVals),
+			},
+			{
+				ResourceName:      "googleworkspace_group.my-group",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+func testAccResourceGroup_basic(testGroupVals map[string]interface{}) string {
 	return Nprintf(`
 resource "googleworkspace_group" "my-group" {
-  email = "%{groupEmail}@%{domainName}"
+  email = "%{email}@%{domainName}"
+}
+`, testGroupVals)
+}
+
+func testAccResourceGroup_full(testGroupVals map[string]interface{}) string {
+	return Nprintf(`
+resource "googleworkspace_group" "my-group" {
+  email = "%{email}@%{domainName}"
+  name  = "tf-test-name"
+  description = "my test description"
+
+  aliases = ["tf-test-alias@%{domainName}", "tf-test-name@%{domainName}"]
+}
+`, testGroupVals)
+}
+
+func testAccResourceGroup_fullUpdate(testGroupVals map[string]interface{}) string {
+	return Nprintf(`
+resource "googleworkspace_group" "my-group" {
+  email = "%{email}@%{domainName}"
+  name  = "tf-new-name"
+  description = "my new description"
+
+  aliases = ["tf-new-name@%{domainName}"]
 }
 `, testGroupVals)
 }
