@@ -959,24 +959,25 @@ func resourceUserCreate(ctx context.Context, d *schema.ResourceData, meta interf
 	}
 
 	// INSERT will respond with the User that will be created, however, it is eventually consistent
-	// Unfortunately, it's not as easy as doing a DeepEqual of two users, since there are some
-	// computed values (emails, etc) that don't show up in the INSERT, so we call out to compareUsers
+	// After INSERT, the etag is updated along with the user, and once we get a consistent etag, we
+	// can feel confident that our User is also consistent
 	var previousEtag string
+	numConsistent := 3
 	err = retryTimeDuration(ctx, d.Timeout(schema.TimeoutCreate), func() error {
 		var retryErr error
+
+		if numConsistent == 0 {
+			return nil
+		}
 
 		newUser, retryErr := usersService.Get(user.Id).Do()
 		if retryErr != nil {
 			return retryErr
 		}
 
-		same, err := compareUsers(user, newUser, previousEtag)
-		if err != nil {
-			return err
-		}
-
-		if same {
-			return nil
+		if previousEtag == newUser.Etag {
+			numConsistent = numConsistent - 1
+			return fmt.Errorf("User is not yet consistent. (%d/3 checks left)", numConsistent)
 		}
 
 		previousEtag = newUser.Etag
@@ -1250,26 +1251,27 @@ func resourceUserUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 	}
 
 	// UPDATE will respond with the updated User, however, it is eventually consistent
-	// Unfortunately, it's not as easy as doing a DeepEqual of two users, since there are some
-	// computed values (emails, etc) that don't show up in the UPDATE, so we call out to compareUsers
-	var previousEtag string
-	err := retryTimeDuration(ctx, d.Timeout(schema.TimeoutUpdate), func() error {
+	// After UPDATE, the etag is stays the same as what is in state, but once we get a new etag, we
+	// can feel confident that our User is consistent
+	previousEtag := ""
+	numConsistent := 3
+	changed := false
+	err := retryTimeDuration(ctx, d.Timeout(schema.TimeoutCreate), func() error {
 		var retryErr error
+
+		if numConsistent == 0 {
+			return nil
+		}
 
 		newUser, retryErr := usersService.Get(user.Id).Do()
 		if retryErr != nil {
 			return retryErr
 		}
 
-		// need to make sure that, when IsAdmin is false, its translated to false and not nil
-		newUser.ForceSendFields = user.ForceSendFields
-		same, err := compareUsers(&user, newUser, previousEtag)
-		if err != nil {
-			return err
-		}
-
-		if same {
-			return nil
+		if changed || previousEtag != "" && previousEtag != newUser.Etag {
+			numConsistent = numConsistent - 1
+			changed = true
+			return fmt.Errorf("User is not yet consistent. (%d/3 checks left)", numConsistent)
 		}
 
 		previousEtag = newUser.Etag
@@ -1349,136 +1351,4 @@ func flattenName(userNameObj *directory.UserName) interface{} {
 	}
 
 	return nameObj
-}
-
-// Compare user (returns true if users are the same)
-
-func compareUsers(returnedUser, updatingUser *directory.User, etag string) (bool, error) {
-	rUser, err := userToMap(returnedUser)
-	if err != nil {
-		return false, err
-	}
-
-	// This is returned by INSERT/UPDATE but not by GET, so just take it out here
-	delete(rUser, "hash_function")
-
-	uUser, err := userToMap(updatingUser)
-	if err != nil {
-		return false, err
-	}
-
-	// Etag shouldn't continue to update once we've become consistent
-	if etag == "" || etag != uUser["etag"].(string) {
-		return false, nil
-	}
-
-	// Remove computed fields, since they aren't returned in the returnedUser,
-	// but they are in the updatedUser
-	for k, v := range resourceUser().Schema {
-		if v.Computed && !v.Optional {
-			delete(rUser, k)
-			delete(uUser, k)
-			continue
-		}
-	}
-
-	for topKey, rTopVal := range rUser {
-		if uUser[topKey] == nil {
-			return false, nil
-		}
-		if reflect.DeepEqual(uUser[topKey], rTopVal) {
-			continue
-		}
-
-		// full_name is returned by GET, but not by INSERT/UPDATE, so we want to
-		// check that here
-		if topKey == "name" {
-			rNestedVal := rTopVal.(map[string]interface{})
-			uNestedVal := uUser[topKey].(map[string]interface{})
-
-			if rNestedVal["given_name"] != uNestedVal["given_name"] ||
-				rNestedVal["family_name"] != uNestedVal["family_name"] {
-				return false, nil
-			}
-
-			continue
-		}
-
-		if reflect.TypeOf(rTopVal) != reflect.TypeOf([]map[string]interface{}{}) {
-			return false, nil
-		}
-
-		rTopValList := rTopVal.([]map[string]interface{})
-		uTopValList := uUser[topKey].([]map[string]interface{})
-
-		for i, item := range rTopValList {
-			for nestedKey, rNestedVal := range item {
-				// primary = false is returned by INSERT/UPDATE, but primary is not returned by GET if its false
-				if nestedKey == "primary" && !rNestedVal.(bool) && uTopValList[i][nestedKey] == nil {
-					continue
-				}
-
-				if rNestedVal != uTopValList[i][nestedKey] {
-					return false, nil
-				}
-			}
-		}
-	}
-
-	// Check that the updated user has both a primary email and the primary_email.test-google-a.com
-	if uUser["emails"] != nil {
-		primary := false
-		test := false
-		for _, email := range uUser["emails"].([]map[string]interface{}) {
-			if !primary {
-				primary = email["primary"].(bool)
-			}
-
-			if !test {
-				test = email["address"].(string) == fmt.Sprintf("%s.test-google-a.com", rUser["primary_email"].(string))
-			}
-
-			if test && primary {
-				break
-			}
-		}
-	}
-
-	return true, nil
-}
-
-// Convert User to a map
-func userToMap(user *directory.User) (map[string]interface{}, error) {
-	interfaceFields := []string{}
-
-	for k, v := range resourceUser().Schema {
-		if v.Type == schema.TypeList && reflect.TypeOf(v.Elem) == reflect.TypeOf(&schema.Resource{}) {
-			if v.MaxItems == 1 {
-				continue
-			}
-			interfaceFields = append(interfaceFields, k)
-		}
-	}
-
-	jsonBytes, err := user.MarshalJSON()
-	if err != nil {
-		return nil, err
-	}
-
-	jsonMap := make(map[string]interface{})
-	err = json.Unmarshal(jsonBytes, &jsonMap)
-	if err != nil {
-		return nil, err
-	}
-
-	jsonMapList := flattenInterfaceObjects([]interface{}{jsonMap})
-	jsonMap = jsonMapList.([]map[string]interface{})[0]
-
-	for k, v := range jsonMap {
-		if stringInSlice(interfaceFields, k) {
-			jsonMap[k] = flattenInterfaceObjects(v)
-		}
-	}
-
-	return jsonMap, nil
 }
