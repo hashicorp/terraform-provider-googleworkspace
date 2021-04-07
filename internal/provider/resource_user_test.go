@@ -10,6 +10,8 @@ import (
 )
 
 func TestAccResourceUser_basic(t *testing.T) {
+	t.Parallel()
+
 	domainName := os.Getenv("GOOGLEWORKSPACE_DOMAIN")
 
 	if domainName == "" {
@@ -40,6 +42,8 @@ func TestAccResourceUser_basic(t *testing.T) {
 }
 
 func TestAccResourceUser_full(t *testing.T) {
+	t.Parallel()
+
 	domainName := os.Getenv("GOOGLEWORKSPACE_DOMAIN")
 
 	if domainName == "" {
@@ -78,6 +82,8 @@ func TestAccResourceUser_full(t *testing.T) {
 }
 
 func TestAccResourceUser_isAdmin(t *testing.T) {
+	t.Parallel()
+
 	domainName := os.Getenv("GOOGLEWORKSPACE_DOMAIN")
 
 	if domainName == "" {
@@ -118,6 +124,8 @@ func TestAccResourceUser_isAdmin(t *testing.T) {
 
 // this will test suspending a user, then archiving
 func TestAccResourceUser_gone(t *testing.T) {
+	t.Parallel()
+
 	domainName := os.Getenv("GOOGLEWORKSPACE_DOMAIN")
 
 	if domainName == "" {
@@ -352,6 +360,19 @@ resource "googleworkspace_user" "my-new-user" {
 
   languages {
     language_code = "en"
+  }
+
+  posix_accounts {
+    account_id = "dwightschrute"
+    gecos = "dwightschrute,1,5551230987,5551237890"
+    gid = "1001"
+    home_directory = "/home/dwightschrute"
+    operating_system_type = "linux"
+    primary = true
+    shell = "/bin/bash"
+    system_id = "5"
+    uid = "67543"
+    username = "dwightschrute"
   }
 
   ssh_public_keys {

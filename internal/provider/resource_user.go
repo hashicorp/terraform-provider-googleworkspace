@@ -2,7 +2,6 @@ package googleworkspace
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"reflect"
@@ -47,8 +46,8 @@ func resourceUser() *schema.Resource {
 		DeleteContext: resourceUserDelete,
 
 		Timeouts: &schema.ResourceTimeout{
-			Create: schema.DefaultTimeout(1 * time.Minute),
-			Update: schema.DefaultTimeout(2 * time.Minute),
+			Create: schema.DefaultTimeout(5 * time.Minute),
+			Update: schema.DefaultTimeout(5 * time.Minute),
 		},
 
 		Importer: &schema.ResourceImporter{
@@ -953,9 +952,6 @@ func resourceUserCreate(ctx context.Context, d *schema.ResourceData, meta interf
 		if err != nil {
 			return diag.FromErr(err)
 		}
-
-		user.IsAdmin = d.Get("is_admin").(bool)
-		user.ForceSendFields = append(user.ForceSendFields, "IsAdmin")
 	}
 
 	// INSERT will respond with the User that will be created, however, it is eventually consistent
@@ -1224,15 +1220,11 @@ func resourceUserUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 		userObj.Ims = ims
 	}
 
-	user := directory.User{}
-	user.Id = d.Id()
 	if &userObj != new(directory.User) {
-		updatedUser, err := usersService.Update(d.Id(), &userObj).Do()
+		_, err := usersService.Update(d.Id(), &userObj).Do()
 		if err != nil {
 			return diag.FromErr(err)
 		}
-
-		user = *updatedUser
 	}
 
 	if d.HasChange("is_admin") {
@@ -1245,9 +1237,6 @@ func resourceUserUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 		if err != nil {
 			return diag.FromErr(err)
 		}
-
-		user.IsAdmin = d.Get("is_admin").(bool)
-		user.ForceSendFields = append(user.ForceSendFields, "IsAdmin")
 	}
 
 	// UPDATE will respond with the updated User, however, it is eventually consistent
@@ -1263,7 +1252,7 @@ func resourceUserUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 			return nil
 		}
 
-		newUser, retryErr := usersService.Get(user.Id).Do()
+		newUser, retryErr := usersService.Get(d.Id()).Do()
 		if retryErr != nil {
 			return retryErr
 		}
