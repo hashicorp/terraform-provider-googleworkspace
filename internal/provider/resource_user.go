@@ -948,7 +948,7 @@ func resourceUserCreate(ctx context.Context, d *schema.ResourceData, meta interf
 			Status: d.Get("is_admin").(bool),
 		}
 
-		err = usersService.MakeAdmin(user.Id, &makeAdminObj).Do()
+		err = usersService.MakeAdmin(d.Id(), &makeAdminObj).Do()
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -957,7 +957,7 @@ func resourceUserCreate(ctx context.Context, d *schema.ResourceData, meta interf
 	// INSERT will respond with the User that will be created, however, it is eventually consistent
 	// After INSERT, the etag is updated along with the user, and once we get a consistent etag, we
 	// can feel confident that our User is also consistent
-	var previousEtag string
+	previousEtag := ""
 	numConsistent := 3
 	err = retryTimeDuration(ctx, d.Timeout(schema.TimeoutCreate), func() error {
 		var retryErr error
@@ -966,19 +966,19 @@ func resourceUserCreate(ctx context.Context, d *schema.ResourceData, meta interf
 			return nil
 		}
 
-		newUser, retryErr := usersService.Get(user.Id).Do()
+		newUser, retryErr := usersService.Get(d.Id()).Do()
 		if retryErr != nil {
 			return retryErr
 		}
 
 		if previousEtag == newUser.Etag {
 			numConsistent = numConsistent - 1
-			return fmt.Errorf("User is not yet consistent. (%d/3 checks left)", numConsistent)
+			return fmt.Errorf("timed out while waiting for user to be created (consistent etag %d/3 times)", 3-numConsistent)
 		}
 
 		previousEtag = newUser.Etag
 
-		return fmt.Errorf("User did not become consistent.")
+		return fmt.Errorf("timed out while waiting for user to be created")
 	})
 
 	if err != nil {
@@ -1257,15 +1257,15 @@ func resourceUserUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 			return retryErr
 		}
 
-		if changed || previousEtag != "" && previousEtag != newUser.Etag {
+		if changed && previousEtag == newUser.Etag || previousEtag != "" && previousEtag != newUser.Etag {
 			numConsistent = numConsistent - 1
 			changed = true
-			return fmt.Errorf("User is not yet consistent. (%d/3 checks left)", numConsistent)
+			return fmt.Errorf("timed out while waiting for user to be updated (consistent etag %d/3 times)", 3-numConsistent)
 		}
 
 		previousEtag = newUser.Etag
 
-		return fmt.Errorf("User did not become consistent.")
+		return fmt.Errorf("timed out while waiting for user to be updated")
 	})
 
 	if err != nil {
