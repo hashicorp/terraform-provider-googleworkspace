@@ -27,4 +27,4 @@ test: fmtcheck generate
 # Run acceptance tests
 .PHONY: testacc
 testacc: fmtcheck
-	TF_ACC=1 go test ./... -v $(TESTARGS) -timeout 120m
+	TF_ACC=1 go test -count=1 ./... -v $(TESTARGS) -timeout 120m

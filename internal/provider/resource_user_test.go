@@ -10,6 +10,8 @@ import (
 )
 
 func TestAccResourceUser_basic(t *testing.T) {
+	t.Parallel()
+
 	domainName := os.Getenv("GOOGLEWORKSPACE_DOMAIN")
 
 	if domainName == "" {
@@ -40,6 +42,8 @@ func TestAccResourceUser_basic(t *testing.T) {
 }
 
 func TestAccResourceUser_full(t *testing.T) {
+	t.Parallel()
+
 	domainName := os.Getenv("GOOGLEWORKSPACE_DOMAIN")
 
 	if domainName == "" {
@@ -78,6 +82,8 @@ func TestAccResourceUser_full(t *testing.T) {
 }
 
 func TestAccResourceUser_isAdmin(t *testing.T) {
+	t.Parallel()
+
 	domainName := os.Getenv("GOOGLEWORKSPACE_DOMAIN")
 
 	if domainName == "" {
@@ -118,6 +124,8 @@ func TestAccResourceUser_isAdmin(t *testing.T) {
 
 // this will test suspending a user, then archiving
 func TestAccResourceUser_gone(t *testing.T) {
+	t.Parallel()
+
 	domainName := os.Getenv("GOOGLEWORKSPACE_DOMAIN")
 
 	if domainName == "" {

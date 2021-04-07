@@ -45,6 +45,11 @@ func resourceUser() *schema.Resource {
 		UpdateContext: resourceUserUpdate,
 		DeleteContext: resourceUserDelete,
 
+		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(5 * time.Minute),
+			Update: schema.DefaultTimeout(5 * time.Minute),
+		},
+
 		Importer: &schema.ResourceImporter{
 			StateContext: resourceUserImport,
 		},
@@ -943,13 +948,42 @@ func resourceUserCreate(ctx context.Context, d *schema.ResourceData, meta interf
 			Status: d.Get("is_admin").(bool),
 		}
 
-		err = usersService.MakeAdmin(user.Id, &makeAdminObj).Do()
+		err = usersService.MakeAdmin(d.Id(), &makeAdminObj).Do()
 		if err != nil {
 			return diag.FromErr(err)
 		}
 	}
 
-	time.Sleep(15 * time.Second)
+	// INSERT will respond with the User that will be created, however, it is eventually consistent
+	// After INSERT, the etag is updated along with the user, and once we get a consistent etag, we
+	// can feel confident that our User is also consistent
+	previousEtag := ""
+	numConsistent := 3
+	err = retryTimeDuration(ctx, d.Timeout(schema.TimeoutCreate), func() error {
+		var retryErr error
+
+		if numConsistent == 0 {
+			return nil
+		}
+
+		newUser, retryErr := usersService.Get(d.Id()).Do()
+		if retryErr != nil {
+			return retryErr
+		}
+
+		if previousEtag == newUser.Etag {
+			numConsistent = numConsistent - 1
+			return fmt.Errorf("timed out while waiting for user to be created (consistent etag %d/3 times)", 3-numConsistent)
+		}
+
+		previousEtag = newUser.Etag
+
+		return fmt.Errorf("timed out while waiting for user to be created")
+	})
+
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	log.Printf("[DEBUG] Finished creating User %q: %#v", d.Id(), primaryEmail)
 	return resourceUserRead(ctx, d, meta)
@@ -1187,12 +1221,10 @@ func resourceUserUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 	}
 
 	if &userObj != new(directory.User) {
-		user, err := usersService.Update(d.Id(), &userObj).Do()
+		_, err := usersService.Update(d.Id(), &userObj).Do()
 		if err != nil {
 			return diag.FromErr(err)
 		}
-
-		d.SetId(user.Id)
 	}
 
 	if d.HasChange("is_admin") {
@@ -1207,7 +1239,56 @@ func resourceUserUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 		}
 	}
 
-	time.Sleep(60 * time.Second)
+	// UPDATE will respond with the updated User, however, it is eventually consistent
+	// After UPDATE, we get a new etag that doesn't change until it's consistent,
+	// once the new etag is consistent, we can feel confident that our User is consistent
+	previousEtag := ""
+	numConsistent := 3
+	changed := false
+	err := retryTimeDuration(ctx, d.Timeout(schema.TimeoutCreate), func() error {
+		var retryErr error
+
+		if numConsistent == 0 {
+			return nil
+		}
+
+		newUser, retryErr := usersService.Get(d.Id()).Do()
+		if retryErr != nil {
+			return retryErr
+		}
+
+		// This is our first time polling, set the previousEtag and return an error, it's not consistent yet
+		if previousEtag == "" {
+			previousEtag = newUser.Etag
+			return fmt.Errorf("timed out while waiting for user to be updated")
+		}
+
+		// If we've already seen the change, previousEtag has the value we want to match
+		if changed {
+			if previousEtag == newUser.Etag {
+				// We got another consistent tag
+				numConsistent = numConsistent - 1
+			}
+
+			// don't update previousEtag, since this is the one we want to match
+			return fmt.Errorf("timed out while waiting for user to be updated")
+		}
+
+		// Since changed = false, this is our very first change,
+		// we want the rest of the calls to be consistent with this etag
+		if previousEtag != newUser.Etag {
+			numConsistent = numConsistent - 1
+			changed = true
+		}
+
+		previousEtag = newUser.Etag
+
+		return fmt.Errorf("timed out while waiting for user to be updated")
+	})
+
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	log.Printf("[DEBUG] Finished updating User %q: %#v", d.Id(), primaryEmail)
 

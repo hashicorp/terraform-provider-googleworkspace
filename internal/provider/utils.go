@@ -105,8 +105,8 @@ func CameltoSnake(s string) string {
 
 // For resources that have many nested interfaces, we can pass them to the API as is,
 // only each field name needs to be camel case rather than snake case.
-func expandInterfaceObjects(v interface{}) []interface{} {
-	objList := v.([]interface{})
+func expandInterfaceObjects(parent interface{}) []interface{} {
+	objList := parent.([]interface{})
 	if objList == nil || len(objList) == 0 {
 		return nil
 	}
