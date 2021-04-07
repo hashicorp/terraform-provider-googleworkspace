@@ -1257,10 +1257,28 @@ func resourceUserUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 			return retryErr
 		}
 
-		if changed && previousEtag == newUser.Etag || previousEtag != "" && previousEtag != newUser.Etag {
+		// This is our first time polling, set the previousEtag and return an error, it's not consistent yet
+		if previousEtag == "" {
+			previousEtag = newUser.Etag
+			return fmt.Errorf("timed out while waiting for user to be updated")
+		}
+
+		// If we've already seen the change, previousEtag has the value we want to match
+		if changed {
+			if previousEtag == newUser.Etag {
+				// We got another consistent tag
+				numConsistent = numConsistent - 1
+			}
+
+			// don't update previousEtag, since this is the one we want to match
+			return fmt.Errorf("timed out while waiting for user to be updated")
+		}
+
+		// Since changed = false, this is our very first change,
+		// we want the rest of the calls to be consistent with this etag
+		if previousEtag != newUser.Etag {
 			numConsistent = numConsistent - 1
 			changed = true
-			return fmt.Errorf("timed out while waiting for user to be updated (consistent etag %d/3 times)", 3-numConsistent)
 		}
 
 		previousEtag = newUser.Etag
