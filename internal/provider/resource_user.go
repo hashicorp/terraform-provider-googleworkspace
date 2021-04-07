@@ -1240,8 +1240,8 @@ func resourceUserUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 	}
 
 	// UPDATE will respond with the updated User, however, it is eventually consistent
-	// After UPDATE, the etag is stays the same as what is in state, but once we get a new etag, we
-	// can feel confident that our User is consistent
+	// After UPDATE, we get a new etag that doesn't change until it's consistent,
+	// once the new etag is consistent, we can feel confident that our User is consistent
 	previousEtag := ""
 	numConsistent := 3
 	changed := false
