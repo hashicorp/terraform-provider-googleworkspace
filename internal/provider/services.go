@@ -28,7 +28,7 @@ func GetDomainsService(directoryService *directory.Service) (*directory.DomainsS
 func GetGroupsService(directoryService *directory.Service) (*directory.GroupsService, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
-	log.Printf("[INFO] Instantiating Google Admin Domains service")
+	log.Printf("[INFO] Instantiating Google Admin Groups service")
 	groupsService := directoryService.Groups
 	if groupsService == nil {
 		diags = append(diags, diag.Diagnostic{
@@ -40,6 +40,23 @@ func GetGroupsService(directoryService *directory.Service) (*directory.GroupsSer
 	}
 
 	return groupsService, diags
+}
+
+func GetGroupAliasService(groupsService *directory.GroupsService) (*directory.GroupsAliasesService, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	log.Printf("[INFO] Instantiating Google Admin Group Alias service")
+	aliasesService := groupsService.Aliases
+	if aliasesService == nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Groups Aliases Service could not be created.",
+		})
+
+		return nil, diags
+	}
+
+	return aliasesService, diags
 }
 
 func GetUsersService(directoryService *directory.Service) (*directory.UsersService, diag.Diagnostics) {

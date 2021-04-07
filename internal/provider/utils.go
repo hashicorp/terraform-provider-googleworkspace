@@ -169,3 +169,13 @@ func listOfInterfacestoStrings(v interface{}) []string {
 
 	return result
 }
+
+func stringInSlice(arr []string, str string) bool {
+	for _, i := range arr {
+		if i == str {
+			return true
+		}
+	}
+
+	return false
+}

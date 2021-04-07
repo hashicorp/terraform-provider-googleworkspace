@@ -10,6 +10,8 @@ import (
 )
 
 func TestAccResourceGroup_basic(t *testing.T) {
+	t.Parallel()
+
 	domainName := os.Getenv("GOOGLEWORKSPACE_DOMAIN")
 
 	if domainName == "" {
@@ -38,6 +40,8 @@ func TestAccResourceGroup_basic(t *testing.T) {
 }
 
 func TestAccResourceGroup_full(t *testing.T) {
+	t.Parallel()
+
 	domainName := os.Getenv("GOOGLEWORKSPACE_DOMAIN")
 
 	if domainName == "" {
@@ -88,7 +92,7 @@ resource "googleworkspace_group" "my-group" {
   name  = "tf-test-name"
   description = "my test description"
 
-  aliases = ["tf-test-alias@%{domainName}", "tf-test-name@%{domainName}"]
+  aliases = ["%{email}-alias-1@%{domainName}", "%{email}-alias-2@%{domainName}"]
 }
 `, testGroupVals)
 }
@@ -100,7 +104,7 @@ resource "googleworkspace_group" "my-group" {
   name  = "tf-new-name"
   description = "my new description"
 
-  aliases = ["tf-new-name@%{domainName}"]
+  aliases = ["%{email}-alias-2@%{domainName}", "%{email}-new-alias@%{domainName}"]
 }
 `, testGroupVals)
 }

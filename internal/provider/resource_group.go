@@ -2,7 +2,9 @@ package googleworkspace
 
 import (
 	"context"
+	"fmt"
 	"log"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -20,6 +22,11 @@ func resourceGroup() *schema.Resource {
 		ReadContext:   resourceGroupRead,
 		UpdateContext: resourceGroupUpdate,
 		DeleteContext: resourceGroupDelete,
+
+		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(5 * time.Minute),
+			Update: schema.DefaultTimeout(5 * time.Minute),
+		},
 
 		Importer: &schema.ResourceImporter{
 			StateContext: resourceGroupImport,
@@ -121,17 +128,78 @@ func resourceGroupCreate(ctx context.Context, d *schema.ResourceData, meta inter
 
 	d.SetId(group.Id)
 
-	aliases := listOfInterfacestoStrings(d.Get("aliases"))
+	aliases := d.Get("aliases.#").(int)
 
-	if len(aliases) > 0 {
-		groupObj := directory.Group{
-			Aliases: aliases,
+	if aliases > 0 {
+		aliasesService, diags := GetGroupAliasService(groupsService)
+		if diags.HasError() {
+			return diags
 		}
 
-		_, err := groupsService.Update(email, &groupObj).Do()
-		if err != nil {
-			return diag.FromErr(err)
+		for i := 0; i < aliases; i++ {
+			aliasObj := directory.Alias{
+				Alias: d.Get(fmt.Sprintf("aliases.%d", i)).(string),
+			}
+
+			_, err := aliasesService.Insert(d.Id(), &aliasObj).Do()
+			if err != nil {
+				return diag.FromErr(err)
+			}
 		}
+	}
+
+	// INSERT will respond with the Group that will be created, however, it is eventually consistent
+	// After INSERT, the etag is updated along with the group (and any aliases),
+	// once we get a consistent etag, we can feel confident that our Group is also consistent
+	previousEtag := ""
+	numConsistent := 3
+	changed := false
+	err = retryTimeDuration(ctx, d.Timeout(schema.TimeoutCreate), func() error {
+		var retryErr error
+
+		if numConsistent == 0 {
+			return nil
+		}
+
+		newGroup, retryErr := groupsService.Get(d.Id()).Do()
+		if retryErr != nil {
+			return retryErr
+		}
+
+		// This is our first time polling, set the previousEtag and return an error, it's not consistent yet
+		if previousEtag == "" {
+			previousEtag = newGroup.Etag
+			return fmt.Errorf("timed out while waiting for group to be inserted")
+		}
+
+		// If we've already seen the change, previousEtag has the value we want to match
+		if changed {
+			if previousEtag == newGroup.Etag {
+				// We got another consistent tag
+				numConsistent = numConsistent - 1
+			} else {
+				// because there are potentially multiple calls to INSERT ALIAS, we will
+				// likely get multiple new etags, we need to reset here
+				previousEtag = newGroup.Etag
+				changed = false
+			}
+
+			return fmt.Errorf("timed out while waiting for group to be inserted")
+		}
+
+		// Since changed = false, this will be the new etag we want to be consistent with
+		if previousEtag != newGroup.Etag {
+			numConsistent = numConsistent - 1
+			changed = true
+		}
+
+		previousEtag = newGroup.Etag
+
+		return fmt.Errorf("timed out while waiting for group to be inserted")
+	})
+
+	if err != nil {
+		return diag.FromErr(err)
 	}
 
 	log.Printf("[DEBUG] Finished creating Group %q: %#v", d.Id(), email)
@@ -209,7 +277,42 @@ func resourceGroupUpdate(ctx context.Context, d *schema.ResourceData, meta inter
 	}
 
 	if d.HasChange("aliases") {
-		groupObj.Aliases = d.Get("aliases").([]string)
+		old, new := d.GetChange("aliases")
+		oldAliases := listOfInterfacestoStrings(old.([]interface{}))
+		newAliases := listOfInterfacestoStrings(new.([]interface{}))
+
+		aliasesService, diags := GetGroupAliasService(groupsService)
+		if diags.HasError() {
+			return diags
+		}
+
+		// Remove old aliases that aren't in the new aliases list
+		for _, alias := range oldAliases {
+			if stringInSlice(newAliases, alias) {
+				continue
+			}
+
+			err := aliasesService.Delete(d.Id(), alias).Do()
+			if err != nil {
+				return diag.FromErr(err)
+			}
+		}
+
+		// Insert all new aliases that weren't previously in state
+		for _, alias := range newAliases {
+			if stringInSlice(oldAliases, alias) {
+				continue
+			}
+
+			aliasObj := directory.Alias{
+				Alias: alias,
+			}
+
+			_, err := aliasesService.Insert(d.Id(), &aliasObj).Do()
+			if err != nil {
+				return diag.FromErr(err)
+			}
+		}
 	}
 
 	if &groupObj != new(directory.Group) {
@@ -219,6 +322,60 @@ func resourceGroupUpdate(ctx context.Context, d *schema.ResourceData, meta inter
 		}
 
 		d.SetId(group.Id)
+	}
+
+	// UPDATE will respond with the Group that will be created, however, it is eventually consistent
+	// After UPDATE, the etag is updated along with the group (and any aliases),
+	// once we get a consistent etag, we can feel confident that our Group is also consistent
+	previousEtag := ""
+	numConsistent := 3
+	changed := false
+	err := retryTimeDuration(ctx, d.Timeout(schema.TimeoutUpdate), func() error {
+		var retryErr error
+
+		if numConsistent == 0 {
+			return nil
+		}
+
+		newGroup, retryErr := groupsService.Get(d.Id()).Do()
+		if retryErr != nil {
+			return retryErr
+		}
+
+		// This is our first time polling, set the previousEtag and return an error, it's not consistent yet
+		if previousEtag == "" {
+			previousEtag = newGroup.Etag
+			return fmt.Errorf("timed out while waiting for group to be inserted")
+		}
+
+		// If we've already seen the change, previousEtag has the value we want to match
+		if changed {
+			if previousEtag == newGroup.Etag {
+				// We got another consistent tag
+				numConsistent = numConsistent - 1
+			} else {
+				// because there are potentially multiple calls to INSERT ALIAS, we will
+				// likely get multiple new etags, we need to reset here
+				previousEtag = newGroup.Etag
+				changed = false
+			}
+
+			return fmt.Errorf("timed out while waiting for group to be inserted")
+		}
+
+		// Since changed = false, this will be the new etag we want to be consistent with
+		if previousEtag != newGroup.Etag {
+			numConsistent = numConsistent - 1
+			changed = true
+		}
+
+		previousEtag = newGroup.Etag
+
+		return fmt.Errorf("timed out while waiting for group to be inserted")
+	})
+
+	if err != nil {
+		return diag.FromErr(err)
 	}
 
 	log.Printf("[DEBUG] Finished creating Group %q: %#v", d.Id(), email)
