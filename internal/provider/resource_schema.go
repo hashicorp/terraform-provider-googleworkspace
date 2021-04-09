@@ -23,7 +23,7 @@ func resourceSchema() *schema.Resource {
 		DeleteContext: resourceSchemaDelete,
 
 		Importer: &schema.ResourceImporter{
-			StateContext: resourceSchemaImport,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -298,10 +298,6 @@ func resourceSchemaDelete(ctx context.Context, d *schema.ResourceData, meta inte
 	return diags
 }
 
-func resourceSchemaImport(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-	return []*schema.ResourceData{d}, nil
-}
-
 // Expand functions
 
 func expandFields(v interface{}) []*directory.SchemaFieldSpec {
@@ -356,20 +352,18 @@ func expandNestedFieldsIndexed(v interface{}) *bool {
 func flattenFields(fieldObjs []*directory.SchemaFieldSpec) interface{} {
 	fields := []map[string]interface{}{}
 
-	if fieldObjs != nil {
-		for _, fieldObj := range fieldObjs {
-			fields = append(fields, map[string]interface{}{
-				"field_name":            fieldObj.FieldName,
-				"field_id":              fieldObj.FieldId,
-				"field_type":            fieldObj.FieldType,
-				"multi_valued":          fieldObj.MultiValued,
-				"etag":                  fieldObj.Etag,
-				"indexed":               *fieldObj.Indexed,
-				"display_name":          fieldObj.DisplayName,
-				"read_access_type":      fieldObj.ReadAccessType,
-				"numeric_indexing_spec": flattenNestedNumericIndexingSpec(fieldObj.NumericIndexingSpec),
-			})
-		}
+	for _, fieldObj := range fieldObjs {
+		fields = append(fields, map[string]interface{}{
+			"field_name":            fieldObj.FieldName,
+			"field_id":              fieldObj.FieldId,
+			"field_type":            fieldObj.FieldType,
+			"multi_valued":          fieldObj.MultiValued,
+			"etag":                  fieldObj.Etag,
+			"indexed":               *fieldObj.Indexed,
+			"display_name":          fieldObj.DisplayName,
+			"read_access_type":      fieldObj.ReadAccessType,
+			"numeric_indexing_spec": flattenNestedNumericIndexingSpec(fieldObj.NumericIndexingSpec),
+		})
 	}
 
 	return fields

@@ -107,7 +107,7 @@ func CameltoSnake(s string) string {
 // only each field name needs to be camel case rather than snake case.
 func expandInterfaceObjects(parent interface{}) []interface{} {
 	objList := parent.([]interface{})
-	if objList == nil || len(objList) == 0 {
+	if len(objList) == 0 {
 		return nil
 	}
 

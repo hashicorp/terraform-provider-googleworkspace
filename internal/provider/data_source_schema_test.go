@@ -9,6 +9,7 @@ import (
 )
 
 func TestAccDataSourceSchema_withId(t *testing.T) {
+	t.Parallel()
 
 	schemaName := fmt.Sprintf("tf-test-%s", acctest.RandString(10))
 
@@ -32,6 +33,7 @@ func TestAccDataSourceSchema_withId(t *testing.T) {
 }
 
 func TestAccDataSourceSchema_withName(t *testing.T) {
+	t.Parallel()
 
 	schemaName := fmt.Sprintf("tf-test-%s", acctest.RandString(10))
 
