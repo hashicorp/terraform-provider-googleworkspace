@@ -92,3 +92,20 @@ func GetUsersService(directoryService *directory.Service) (*directory.UsersServi
 
 	return usersService, diags
 }
+
+func GetUserAliasService(usersService *directory.UsersService) (*directory.UsersAliasesService, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	log.Printf("[INFO] Instantiating Google Admin User Alias service")
+	aliasesService := usersService.Aliases
+	if aliasesService == nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Users Aliases Service could not be created.",
+		})
+
+		return nil, diags
+	}
+
+	return aliasesService, diags
+}

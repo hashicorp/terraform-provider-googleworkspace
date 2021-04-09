@@ -200,6 +200,8 @@ resource "googleworkspace_user" "my-new-user" {
     given_name = "Dwight"
   }
 
+  aliases = ["%{userEmail}-assistant_to_regional_manager@%{domainName}", "%{userEmail}-regional_manager@%{domainName}"]
+
   emails {
     address = "dwight.schrute@example.com"
     type = "home"
@@ -315,6 +317,8 @@ resource "googleworkspace_user" "my-new-user" {
     family_name = "Schrute"
     given_name = "Dwight K"
   }
+
+  aliases = ["%{userEmail}-assist_to_regional_manager@%{domainName}"]
 
   emails {
     address = "dwight.schrute@example.com"

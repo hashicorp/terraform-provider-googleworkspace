@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"reflect"
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -18,14 +20,28 @@ func diffSuppressEmails(k, old, new string, d *schema.ResourceData) bool {
 	stateEmails, configEmails := d.GetChange("emails")
 
 	// The primary email (and potentially a test email with the format <primary_email>.test-google-a.com,
-	// if the domain is the primary domain) are auto-added to the email list, even if it's not configured that way.
+	// if the domain is the primary domain), along with aliases and associated test-google-a email addresses for them,
+	// are auto-added to the email list, even if it's not configured that way.
 	// Only show a diff if the other emails differ.
 	subsetEmails := []interface{}{}
 
 	primaryEmail := d.Get("primary_email").(string)
+	aliases := listOfInterfacestoStrings(d.Get("aliases").([]interface{}))
 	for _, se := range stateEmails.([]interface{}) {
 		email := se.(map[string]interface{})
-		if email["primary"].(bool) || email["address"].(string) == fmt.Sprintf("%s.test-google-a.com", primaryEmail) {
+		emailAddress := email["address"].(string)
+
+		testEmail, err := regexp.MatchString("test-google-a.com", emailAddress)
+		if err != nil {
+			log.Println("[ERROR] Failed to match emails")
+			return false
+		}
+
+		if testEmail {
+			emailAddress = strings.ReplaceAll(emailAddress, ".test-google-a.com", "")
+		}
+
+		if emailAddress == primaryEmail || stringInSlice(aliases, emailAddress) {
 			continue
 		}
 
@@ -268,7 +284,7 @@ func resourceUser() *schema.Resource {
 			"aliases": {
 				Description: "asps.list of the user's alias email addresses.",
 				Type:        schema.TypeList,
-				Computed:    true,
+				Optional:    true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
@@ -943,6 +959,26 @@ func resourceUserCreate(ctx context.Context, d *schema.ResourceData, meta interf
 	}
 	d.SetId(user.Id)
 
+	aliases := d.Get("aliases.#").(int)
+
+	if aliases > 0 {
+		aliasesService, diags := GetUserAliasService(usersService)
+		if diags.HasError() {
+			return diags
+		}
+
+		for i := 0; i < aliases; i++ {
+			aliasObj := directory.Alias{
+				Alias: d.Get(fmt.Sprintf("aliases.%d", i)).(string),
+			}
+
+			_, err := aliasesService.Insert(d.Id(), &aliasObj).Do()
+			if err != nil {
+				return diag.FromErr(err)
+			}
+		}
+	}
+
 	if d.Get("is_admin").(bool) {
 		makeAdminObj := directory.UserMakeAdmin{
 			Status: d.Get("is_admin").(bool),
@@ -955,14 +991,16 @@ func resourceUserCreate(ctx context.Context, d *schema.ResourceData, meta interf
 	}
 
 	// INSERT will respond with the User that will be created, however, it is eventually consistent
-	// After INSERT, the etag is updated along with the user, and once we get a consistent etag, we
-	// can feel confident that our User is also consistent
+	// After INSERT, the etag is updated along with the User (and any aliases),
+	// once we get a consistent etag, we can feel confident that our User is also consistent
 	previousEtag := ""
 	numConsistent := 3
+	currConsistent := numConsistent
+	changed := false
 	err = retryTimeDuration(ctx, d.Timeout(schema.TimeoutCreate), func() error {
 		var retryErr error
 
-		if numConsistent == 0 {
+		if currConsistent == 0 {
 			return nil
 		}
 
@@ -971,14 +1009,40 @@ func resourceUserCreate(ctx context.Context, d *schema.ResourceData, meta interf
 			return retryErr
 		}
 
-		if previousEtag == newUser.Etag {
-			numConsistent = numConsistent - 1
-			return fmt.Errorf("timed out while waiting for user to be created (consistent etag %d/3 times)", 3-numConsistent)
+		// This is our first time polling, set the previousEtag and return an error, it's not consistent yet
+		if previousEtag == "" {
+			previousEtag = newUser.Etag
+			return fmt.Errorf("timed out while waiting for user to be inserted (%d/%d consistent etags)", currConsistent, numConsistent)
+		}
+
+		// If we've already seen the change, previousEtag has the value we want to match
+		if changed {
+			if previousEtag == newUser.Etag {
+				// We got another consistent tag
+				currConsistent = currConsistent - 1
+			} else {
+				// because there are potentially multiple calls to INSERT ALIAS, we will
+				// likely get multiple new etags, we need to reset here.
+				// We won't set previousEtag to the new Etag here.
+				// Setting it to "" will be one extra retry (caught above) and setting it to the newUser.Etag will make
+				// it look like its still never changed (changed == false and previousEtag == newUser.Etag) if the next
+				// retry ends up being consistent with this one
+				currConsistent = numConsistent
+				changed = false
+			}
+
+			return fmt.Errorf("timed out while waiting for user to be inserted (%d/%d consistent etags)", currConsistent, numConsistent)
+		}
+
+		// Since changed = false, this will be the new etag we want to be consistent with
+		if previousEtag != newUser.Etag {
+			currConsistent = currConsistent - 1
+			changed = true
 		}
 
 		previousEtag = newUser.Etag
 
-		return fmt.Errorf("timed out while waiting for user to be created")
+		return fmt.Errorf("timed out while waiting for user to be inserted (%d/%d consistent etags)", currConsistent, numConsistent)
 	})
 
 	if err != nil {
@@ -1227,6 +1291,45 @@ func resourceUserUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 		}
 	}
 
+	if d.HasChange("aliases") {
+		old, new := d.GetChange("aliases")
+		oldAliases := listOfInterfacestoStrings(old.([]interface{}))
+		newAliases := listOfInterfacestoStrings(new.([]interface{}))
+
+		aliasesService, diags := GetUserAliasService(usersService)
+		if diags.HasError() {
+			return diags
+		}
+
+		// Remove old aliases that aren't in the new aliases list
+		for _, alias := range oldAliases {
+			if stringInSlice(newAliases, alias) {
+				continue
+			}
+
+			err := aliasesService.Delete(d.Id(), alias).Do()
+			if err != nil {
+				return diag.FromErr(err)
+			}
+		}
+
+		// Insert all new aliases that weren't previously in state
+		for _, alias := range newAliases {
+			if stringInSlice(oldAliases, alias) {
+				continue
+			}
+
+			aliasObj := directory.Alias{
+				Alias: alias,
+			}
+
+			_, err := aliasesService.Insert(d.Id(), &aliasObj).Do()
+			if err != nil {
+				return diag.FromErr(err)
+			}
+		}
+	}
+
 	if d.HasChange("is_admin") {
 		makeAdminObj := directory.UserMakeAdmin{
 			Status:          d.Get("is_admin").(bool),
@@ -1240,15 +1343,16 @@ func resourceUserUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 	}
 
 	// UPDATE will respond with the updated User, however, it is eventually consistent
-	// After UPDATE, we get a new etag that doesn't change until it's consistent,
-	// once the new etag is consistent, we can feel confident that our User is consistent
+	// After UPDATE, the etag is updated along with the User (and any aliases),
+	// once we get a consistent etag, we can feel confident that our User is also consistent
 	previousEtag := ""
 	numConsistent := 3
+	currConsistent := numConsistent
 	changed := false
-	err := retryTimeDuration(ctx, d.Timeout(schema.TimeoutCreate), func() error {
+	err := retryTimeDuration(ctx, d.Timeout(schema.TimeoutUpdate), func() error {
 		var retryErr error
 
-		if numConsistent == 0 {
+		if currConsistent == 0 {
 			return nil
 		}
 
@@ -1260,30 +1364,37 @@ func resourceUserUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 		// This is our first time polling, set the previousEtag and return an error, it's not consistent yet
 		if previousEtag == "" {
 			previousEtag = newUser.Etag
-			return fmt.Errorf("timed out while waiting for user to be updated")
+			return fmt.Errorf("timed out while waiting for user to be updated (%d/%d consistent etags)", currConsistent, numConsistent)
 		}
 
 		// If we've already seen the change, previousEtag has the value we want to match
 		if changed {
 			if previousEtag == newUser.Etag {
 				// We got another consistent tag
-				numConsistent = numConsistent - 1
+				currConsistent = currConsistent - 1
+			} else {
+				// because there are potentially multiple calls to INSERT ALIAS, we will
+				// likely get multiple new etags, we need to reset here.
+				// We won't set previousEtag to the new Etag here.
+				// Setting it to "" will be one extra retry (caught above) and setting it to the newUser.Etag will make
+				// it look like its still never changed (changed == false and previousEtag == newUser.Etag) if the next
+				// retry ends up being consistent with this one
+				currConsistent = numConsistent
+				changed = false
 			}
 
-			// don't update previousEtag, since this is the one we want to match
-			return fmt.Errorf("timed out while waiting for user to be updated")
+			return fmt.Errorf("timed out while waiting for user to be update (%d/%d consistent etags)", currConsistent, numConsistent)
 		}
 
-		// Since changed = false, this is our very first change,
-		// we want the rest of the calls to be consistent with this etag
+		// Since changed = false, this will be the new etag we want to be consistent with
 		if previousEtag != newUser.Etag {
-			numConsistent = numConsistent - 1
+			currConsistent = currConsistent - 1
 			changed = true
 		}
 
 		previousEtag = newUser.Etag
 
-		return fmt.Errorf("timed out while waiting for user to be updated")
+		return fmt.Errorf("timed out while waiting for user to be updated (%d/%d consistent etags)", currConsistent, numConsistent)
 	})
 
 	if err != nil {

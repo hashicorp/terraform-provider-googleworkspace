@@ -149,15 +149,16 @@ func resourceGroupCreate(ctx context.Context, d *schema.ResourceData, meta inter
 	}
 
 	// INSERT will respond with the Group that will be created, however, it is eventually consistent
-	// After INSERT, the etag is updated along with the group (and any aliases),
+	// After INSERT, the etag is updated along with the Group (and any aliases),
 	// once we get a consistent etag, we can feel confident that our Group is also consistent
 	previousEtag := ""
 	numConsistent := 3
+	currConsistent := numConsistent
 	changed := false
 	err = retryTimeDuration(ctx, d.Timeout(schema.TimeoutCreate), func() error {
 		var retryErr error
 
-		if numConsistent == 0 {
+		if currConsistent == 0 {
 			return nil
 		}
 
@@ -169,33 +170,37 @@ func resourceGroupCreate(ctx context.Context, d *schema.ResourceData, meta inter
 		// This is our first time polling, set the previousEtag and return an error, it's not consistent yet
 		if previousEtag == "" {
 			previousEtag = newGroup.Etag
-			return fmt.Errorf("timed out while waiting for group to be inserted")
+			return fmt.Errorf("timed out while waiting for group to be inserted (%d/%d consistent etags)", currConsistent, numConsistent)
 		}
 
 		// If we've already seen the change, previousEtag has the value we want to match
 		if changed {
 			if previousEtag == newGroup.Etag {
 				// We got another consistent tag
-				numConsistent = numConsistent - 1
+				currConsistent = currConsistent - 1
 			} else {
 				// because there are potentially multiple calls to INSERT ALIAS, we will
-				// likely get multiple new etags, we need to reset here
-				previousEtag = newGroup.Etag
+				// likely get multiple new etags, we need to reset here.
+				// We won't set previousEtag to the new Etag here.
+				// Setting it to "" will be one extra retry (caught above) and setting it to the newUser.Etag will make
+				// it look like its still never changed (changed == false and previousEtag == newUser.Etag) if the next
+				// retry ends up being consistent with this one
+				currConsistent = numConsistent
 				changed = false
 			}
 
-			return fmt.Errorf("timed out while waiting for group to be inserted")
+			return fmt.Errorf("timed out while waiting for group to be inserted (%d/%d consistent etags)", currConsistent, numConsistent)
 		}
 
 		// Since changed = false, this will be the new etag we want to be consistent with
 		if previousEtag != newGroup.Etag {
-			numConsistent = numConsistent - 1
+			currConsistent = currConsistent - 1
 			changed = true
 		}
 
 		previousEtag = newGroup.Etag
 
-		return fmt.Errorf("timed out while waiting for group to be inserted")
+		return fmt.Errorf("timed out while waiting for group to be inserted (%d/%d consistent etags)", currConsistent, numConsistent)
 	})
 
 	if err != nil {
@@ -325,15 +330,16 @@ func resourceGroupUpdate(ctx context.Context, d *schema.ResourceData, meta inter
 	}
 
 	// UPDATE will respond with the Group that will be created, however, it is eventually consistent
-	// After UPDATE, the etag is updated along with the group (and any aliases),
+	// After UPDATE, the etag is updated along with the Group (and any aliases),
 	// once we get a consistent etag, we can feel confident that our Group is also consistent
 	previousEtag := ""
 	numConsistent := 3
+	currConsistent := numConsistent
 	changed := false
 	err := retryTimeDuration(ctx, d.Timeout(schema.TimeoutUpdate), func() error {
 		var retryErr error
 
-		if numConsistent == 0 {
+		if currConsistent == 0 {
 			return nil
 		}
 
@@ -345,33 +351,37 @@ func resourceGroupUpdate(ctx context.Context, d *schema.ResourceData, meta inter
 		// This is our first time polling, set the previousEtag and return an error, it's not consistent yet
 		if previousEtag == "" {
 			previousEtag = newGroup.Etag
-			return fmt.Errorf("timed out while waiting for group to be inserted")
+			return fmt.Errorf("timed out while waiting for group to be updated (%d/%d consistent etags)", currConsistent, numConsistent)
 		}
 
 		// If we've already seen the change, previousEtag has the value we want to match
 		if changed {
 			if previousEtag == newGroup.Etag {
 				// We got another consistent tag
-				numConsistent = numConsistent - 1
+				currConsistent = currConsistent - 1
 			} else {
 				// because there are potentially multiple calls to INSERT ALIAS, we will
-				// likely get multiple new etags, we need to reset here
-				previousEtag = newGroup.Etag
+				// likely get multiple new etags, we need to reset here.
+				// We won't set previousEtag to the new Etag here.
+				// Setting it to "" will be one extra retry (caught above) and setting it to the newUser.Etag will make
+				// it look like its still never changed (changed == false and previousEtag == newUser.Etag) if the next
+				// retry ends up being consistent with this one
+				currConsistent = numConsistent
 				changed = false
 			}
 
-			return fmt.Errorf("timed out while waiting for group to be inserted")
+			return fmt.Errorf("timed out while waiting for group to be updated (%d/%d consistent etags)", currConsistent, numConsistent)
 		}
 
 		// Since changed = false, this will be the new etag we want to be consistent with
 		if previousEtag != newGroup.Etag {
-			numConsistent = numConsistent - 1
+			currConsistent = currConsistent - 1
 			changed = true
 		}
 
 		previousEtag = newGroup.Etag
 
-		return fmt.Errorf("timed out while waiting for group to be inserted")
+		return fmt.Errorf("timed out while waiting for group to be updated (%d/%d consistent etags)", currConsistent, numConsistent)
 	})
 
 	if err != nil {
