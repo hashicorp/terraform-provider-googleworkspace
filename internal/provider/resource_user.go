@@ -24,8 +24,8 @@ func diffSuppressEmails(k, old, new string, d *schema.ResourceData) bool {
 
 	primaryEmail := d.Get("primary_email").(string)
 	for _, se := range stateEmails.([]interface{}) {
-		emailObj := se.(map[string]interface{})
-		if emailObj["primary"].(bool) || emailObj["address"].(string) == fmt.Sprintf("%s.test-google-a.com", primaryEmail) {
+		email := se.(map[string]interface{})
+		if email["primary"].(bool) || email["address"].(string) == fmt.Sprintf("%s.test-google-a.com", primaryEmail) {
 			continue
 		}
 
@@ -51,7 +51,7 @@ func resourceUser() *schema.Resource {
 		},
 
 		Importer: &schema.ResourceImporter{
-			StateContext: resourceUserImport,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -1324,38 +1324,34 @@ func resourceUserDelete(ctx context.Context, d *schema.ResourceData, meta interf
 	return diags
 }
 
-func resourceUserImport(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-	return []*schema.ResourceData{d}, nil
-}
-
 // Expand functions
 
 func expandName(v interface{}) *directory.UserName {
-	nameObj := v.([]interface{})
+	name := v.([]interface{})
 
-	if len(nameObj) == 0 {
+	if len(name) == 0 {
 		return nil
 	}
 
-	userNameObj := directory.UserName{
-		FamilyName: nameObj[0].(map[string]interface{})["family_name"].(string),
-		GivenName:  nameObj[0].(map[string]interface{})["given_name"].(string),
+	nameObj := directory.UserName{
+		FamilyName: name[0].(map[string]interface{})["family_name"].(string),
+		GivenName:  name[0].(map[string]interface{})["given_name"].(string),
 	}
-	return &userNameObj
+	return &nameObj
 }
 
 // Flatten functions
 
-func flattenName(userNameObj *directory.UserName) interface{} {
-	nameObj := []map[string]interface{}{}
+func flattenName(nameObj *directory.UserName) interface{} {
+	name := []map[string]interface{}{}
 
-	if userNameObj != nil {
-		nameObj = append(nameObj, map[string]interface{}{
-			"family_name": userNameObj.FamilyName,
-			"full_name":   userNameObj.FullName,
-			"given_name":  userNameObj.GivenName,
+	if nameObj != nil {
+		name = append(name, map[string]interface{}{
+			"family_name": nameObj.FamilyName,
+			"full_name":   nameObj.FullName,
+			"given_name":  nameObj.GivenName,
 		})
 	}
 
-	return nameObj
+	return name
 }

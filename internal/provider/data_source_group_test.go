@@ -10,6 +10,8 @@ import (
 )
 
 func TestAccDataSourceGroup_withId(t *testing.T) {
+	t.Parallel()
+
 	domainName := os.Getenv("GOOGLEWORKSPACE_DOMAIN")
 
 	if domainName == "" {
@@ -39,6 +41,8 @@ func TestAccDataSourceGroup_withId(t *testing.T) {
 }
 
 func TestAccDataSourceGroup_withEmail(t *testing.T) {
+	t.Parallel()
+
 	domainName := os.Getenv("GOOGLEWORKSPACE_DOMAIN")
 
 	if domainName == "" {

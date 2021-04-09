@@ -21,7 +21,7 @@ func resourceDomain() *schema.Resource {
 		DeleteContext: resourceDomainDelete,
 
 		Importer: &schema.ResourceImporter{
-			StateContext: resourceDomainImport,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -173,12 +173,6 @@ func resourceDomainDelete(ctx context.Context, d *schema.ResourceData, meta inte
 	log.Printf("[DEBUG] Finished deleting Domain %q: %#v", d.Id(), domainName)
 
 	return diags
-}
-
-func resourceDomainImport(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-	err := d.Set("domain_name", d.Id())
-
-	return []*schema.ResourceData{d}, err
 }
 
 func flattenDomainAliases(domainAliases []*directory.DomainAlias, d *schema.ResourceData) interface{} {
