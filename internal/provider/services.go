@@ -59,6 +59,23 @@ func GetGroupAliasService(groupsService *directory.GroupsService) (*directory.Gr
 	return aliasesService, diags
 }
 
+func GetSchemasService(directoryService *directory.Service) (*directory.SchemasService, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	log.Printf("[INFO] Instantiating Google Admin Schemas service")
+	schemasService := directoryService.Schemas
+	if schemasService == nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Schemas Service could not be created.",
+		})
+
+		return nil, diags
+	}
+
+	return schemasService, diags
+}
+
 func GetUsersService(directoryService *directory.Service) (*directory.UsersService, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
