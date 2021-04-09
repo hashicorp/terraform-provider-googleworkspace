@@ -37,7 +37,7 @@ func dataSourceUserRead(ctx context.Context, d *schema.ResourceData, meta interf
 		}
 
 		usersService, diags := GetUsersService(directoryService)
-		if len(diags) > 0 {
+		if diags.HasError() {
 			return diags
 		}
 

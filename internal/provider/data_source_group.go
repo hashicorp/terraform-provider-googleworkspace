@@ -37,7 +37,7 @@ func dataSourceGroupRead(ctx context.Context, d *schema.ResourceData, meta inter
 		}
 
 		groupsService, diags := GetGroupsService(directoryService)
-		if len(diags) > 0 {
+		if diags.HasError() {
 			return diags
 		}
 
