@@ -51,7 +51,7 @@ func resourceUser() *schema.Resource {
 		},
 
 		Importer: &schema.ResourceImporter{
-			StateContext: resourceUserImport,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -1322,10 +1322,6 @@ func resourceUserDelete(ctx context.Context, d *schema.ResourceData, meta interf
 	log.Printf("[DEBUG] Finished deleting User %q: %#v", d.Id(), primaryEmail)
 
 	return diags
-}
-
-func resourceUserImport(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-	return []*schema.ResourceData{d}, nil
 }
 
 // Expand functions

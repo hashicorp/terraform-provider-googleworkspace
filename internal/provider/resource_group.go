@@ -29,7 +29,7 @@ func resourceGroup() *schema.Resource {
 		},
 
 		Importer: &schema.ResourceImporter{
-			StateContext: resourceGroupImport,
+			StateContext: schema.ImportStatePassthroughContext,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -410,8 +410,4 @@ func resourceGroupDelete(ctx context.Context, d *schema.ResourceData, meta inter
 	log.Printf("[DEBUG] Finished deleting Group %q: %#v", d.Id(), email)
 
 	return diags
-}
-
-func resourceGroupImport(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-	return []*schema.ResourceData{d}, nil
 }

@@ -9,6 +9,7 @@ import (
 )
 
 func TestAccDataSourceDomain(t *testing.T) {
+	t.Parallel()
 
 	domainName := fmt.Sprintf("tf-test-%s.com", acctest.RandString(10))
 
