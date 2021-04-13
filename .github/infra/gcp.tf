@@ -11,7 +11,7 @@ data "google_project" "project" {
 resource "google_service_account" "acctest-sa" {
   account_id   = "tf-acctest"
   display_name = "Acceptance Test SA"
-  description  = "SA for Acceptence Testing"
+  description  = "SA for Acceptance Testing"
   project      = data.google_project.project.project_id
 }
 
