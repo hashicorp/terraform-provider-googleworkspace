@@ -10,7 +10,7 @@ data "google_project" "project" {
 // Google service account to use
 resource "google_service_account" "acctest-sa" {
   account_id   = "tf-acctest"
-  display_name = "Acceptence Test SA"
+  display_name = "Acceptance Test SA"
   description  = "SA for Acceptence Testing"
   project      = data.google_project.project.project_id
 }
