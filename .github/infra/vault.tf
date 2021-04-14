@@ -15,7 +15,7 @@ resource "vault_approle_auth_backend_role" "gha-role" {
 
 resource "vault_gcp_secret_backend" "gcp" {
   path        = "gcp"
-  credentials = google_service_account_key.tf-acctest-key.private_key
+  credentials = base64decode(google_service_account_key.tf-acctest-key.private_key)
 }
 
 resource "vault_gcp_secret_roleset" "roleset" {
