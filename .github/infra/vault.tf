@@ -33,5 +33,5 @@ resource "vault_gcp_secret_roleset" "roleset" {
     ]
   }
 
-  depends_on = [google_project_iam_member.tf-acctest-sa-create]
+  depends_on = [google_project_iam_member.tf-acctest-sa-admin]
 }
