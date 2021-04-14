@@ -45,3 +45,9 @@ resource "google_project_service" "resource-manager" {
   project = data.google_project.project.project_id
   service = "cloudresourcemanager.googleapis.com"
 }
+
+// Enable the admin sdk api service
+resource "google_project_service" "admin" {
+  project = data.google_project.project.project_id
+  service = "admin.googleapis.com"
+}
