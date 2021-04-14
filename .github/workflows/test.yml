@@ -85,7 +85,7 @@ jobs:
         secretId: ${{ secrets.SECRET_ID }}
         tlsSkipVerify: true
         exportEnv: false
-        namespace: admin
+        namespace: admin/tpgw
         secrets: |
           gcp/key/tf-acctest private_key_data
 
