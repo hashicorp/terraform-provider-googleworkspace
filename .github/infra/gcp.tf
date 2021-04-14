@@ -22,11 +22,11 @@ resource "google_service_account_iam_member" "tf-acctest-iam" {
   member             = "user:${var.impersonated_user}"
 }
 
-// Impersonate the User with admin permissions
-resource "google_service_account_iam_member" "tf-acctest-sa-create" {
-  service_account_id = google_service_account.acctest-sa.id
-  role               = "roles/iam.serviceAccountCreator"
-  member             = "user:${google_service_account.acctest-sa.email}"
+// Add ability for this SA to create other service accounts
+resource "google_project_iam_member" "tf-acctest-sa-create" {
+  project = data.google_project.project.project_id
+  role    = "roles/iam.serviceAccountCreator"
+  member  = "serviceAccount:${google_service_account.acctest-sa.email}"
 }
 
 // generate the key to be used by vault
