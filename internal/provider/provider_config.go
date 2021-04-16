@@ -13,6 +13,7 @@ import (
 	"google.golang.org/api/option"
 
 	directory "google.golang.org/api/admin/directory/v1"
+	"google.golang.org/api/groupssettings/v1"
 )
 
 type apiClient struct {
@@ -85,4 +86,26 @@ func (c *apiClient) NewDirectoryService() (*directory.Service, diag.Diagnostics)
 	}
 
 	return directoryService, diags
+}
+
+func (c *apiClient) NewGroupsSettingsService() (*groupssettings.Service, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	log.Printf("[INFO] Instantiating Google Admin Groups Settings service")
+
+	groupsSettingsService, err := groupssettings.NewService(context.Background(), option.WithHTTPClient(c.client))
+	if err != nil {
+		return nil, diag.FromErr(err)
+	}
+
+	if groupsSettingsService == nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Groups Settings Service could not be created.",
+		})
+
+		return nil, diags
+	}
+
+	return groupsSettingsService, diags
 }

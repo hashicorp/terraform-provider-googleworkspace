@@ -19,6 +19,7 @@ var DefaultClientScopes = []string{
 	"https://www.googleapis.com/auth/admin.directory.group",
 	"https://www.googleapis.com/auth/admin.directory.userschema",
 	"https://www.googleapis.com/auth/admin.directory.user",
+	"https://www.googleapis.com/auth/apps.groups.settings",
 }
 
 func init() {
@@ -80,10 +81,11 @@ func New(version string) func() *schema.Provider {
 				"googleworkspace_user":   dataSourceUser(),
 			},
 			ResourcesMap: map[string]*schema.Resource{
-				"googleworkspace_domain": resourceDomain(),
-				"googleworkspace_group":  resourceGroup(),
-				"googleworkspace_schema": resourceSchema(),
-				"googleworkspace_user":   resourceUser(),
+				"googleworkspace_domain":         resourceDomain(),
+				"googleworkspace_group":          resourceGroup(),
+				"googleworkspace_group_settings": resourceGroupSettings(),
+				"googleworkspace_schema":         resourceSchema(),
+				"googleworkspace_user":           resourceUser(),
 			},
 		}
 

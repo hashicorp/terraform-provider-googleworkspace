@@ -6,6 +6,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 
 	directory "google.golang.org/api/admin/directory/v1"
+	"google.golang.org/api/groupssettings/v1"
 )
 
 func GetDomainsService(directoryService *directory.Service) (*directory.DomainsService, diag.Diagnostics) {
@@ -30,6 +31,23 @@ func GetGroupsService(directoryService *directory.Service) (*directory.GroupsSer
 
 	log.Printf("[INFO] Instantiating Google Admin Groups service")
 	groupsService := directoryService.Groups
+	if groupsService == nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Groups Service could not be created.",
+		})
+
+		return nil, diags
+	}
+
+	return groupsService, diags
+}
+
+func GetGroupsSettingsService(groupsSettingsService *groupssettings.Service) (*groupssettings.GroupsService, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	log.Printf("[INFO] Instantiating Google Admin Groups Settings Groups service")
+	groupsService := groupsSettingsService.Groups
 	if groupsService == nil {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Error,
