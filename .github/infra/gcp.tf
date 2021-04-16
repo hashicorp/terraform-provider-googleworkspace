@@ -55,5 +55,5 @@ resource "google_project_service" "admin" {
 // Enable the group settings api service
 resource "google_project_service" "group-settings" {
   project = data.google_project.project.project_id
-  service = "groupsettings.googleapis.com"
+  service = "groupssettings.googleapis.com"
 }
