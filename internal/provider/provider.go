@@ -77,6 +77,7 @@ func New(version string) func() *schema.Provider {
 			DataSourcesMap: map[string]*schema.Resource{
 				"googleworkspace_domain":         dataSourceDomain(),
 				"googleworkspace_group":          dataSourceGroup(),
+				"googleworkspace_group_member":   dataSourceGroupMember(),
 				"googleworkspace_group_settings": dataSourceGroupSettings(),
 				"googleworkspace_schema":         dataSourceSchema(),
 				"googleworkspace_user":           dataSourceUser(),
@@ -84,6 +85,7 @@ func New(version string) func() *schema.Provider {
 			ResourcesMap: map[string]*schema.Resource{
 				"googleworkspace_domain":         resourceDomain(),
 				"googleworkspace_group":          resourceGroup(),
+				"googleworkspace_group_member":   resourceGroupMember(),
 				"googleworkspace_group_settings": resourceGroupSettings(),
 				"googleworkspace_schema":         resourceSchema(),
 				"googleworkspace_user":           resourceUser(),
