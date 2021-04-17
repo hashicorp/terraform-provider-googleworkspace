@@ -75,10 +75,11 @@ func New(version string) func() *schema.Provider {
 				},
 			},
 			DataSourcesMap: map[string]*schema.Resource{
-				"googleworkspace_domain": dataSourceDomain(),
-				"googleworkspace_group":  dataSourceGroup(),
-				"googleworkspace_schema": dataSourceSchema(),
-				"googleworkspace_user":   dataSourceUser(),
+				"googleworkspace_domain":         dataSourceDomain(),
+				"googleworkspace_group":          dataSourceGroup(),
+				"googleworkspace_group_settings": dataSourceGroupSettings(),
+				"googleworkspace_schema":         dataSourceSchema(),
+				"googleworkspace_user":           dataSourceUser(),
 			},
 			ResourcesMap: map[string]*schema.Resource{
 				"googleworkspace_domain":         resourceDomain(),
