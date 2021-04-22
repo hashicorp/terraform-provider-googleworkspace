@@ -27,7 +27,6 @@ var credsEnvVars = []string{
 	"GOOGLEWORKSPACE_USE_DEFAULT_CREDENTIALS",
 }
 
-// testAccPreCheck ensures at least one of the credentials env variables is set.
 func getTestCredsFromEnv() string {
 	// Return empty string if GOOGLEWORKSPACE_USE_DEFAULT_CREDENTIALS is set to true.
 	if os.Getenv("GOOGLEWORKSPACE_USE_DEFAULT_CREDENTIALS") == "true" {
@@ -36,12 +35,21 @@ func getTestCredsFromEnv() string {
 	return multiEnvSearch(credsEnvVars)
 }
 
+func getTestCustomerFromEnv() string {
+	return os.Getenv("GOOGLEWORKSPACE_CUSTOMER_ID")
+}
+
+func getTestImpersonatedUserFromEnv() string {
+	return os.Getenv("GOOGLEWORKSPACE_IMPERSONATED_USER_EMAIL")
+}
+
 func TestProvider(t *testing.T) {
 	if err := New("dev")().InternalValidate(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 }
 
+// testAccPreCheck ensures at least one of the credentials env variables is set.
 func testAccPreCheck(t *testing.T) {
 	// You can add code here to run prior to any test case execution, for example assertions
 	// about the appropriate environment variables being set are common to see in a pre-check
