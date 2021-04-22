@@ -52,6 +52,7 @@ jobs:
     timeout-minutes: 15
     strategy:
       fail-fast: false
+      max-parallel: 1
       matrix:
         # list whatever Terraform versions here you would like to support
         terraform:
@@ -89,6 +90,16 @@ jobs:
         secrets: |
           gcp/key/tf-acctest private_key_data
 
+    - name: Pre-sweep lingering resources
+      timeout-minutes: 10
+      env:
+        GOOGLEWORKSPACE_CUSTOMER_ID: ${{ secrets.GOOGLEWORKSPACE_CUSTOMER_ID }}
+        GOOGLEWORKSPACE_IMPERSONATED_USER_EMAIL: ${{ secrets.GOOGLEWORKSPACE_IMPERSONATED_USER_EMAIL }}
+
+      run: |
+        export GOOGLEWORKSPACE_CREDENTIALS=$(echo -n ${{ steps.vault.outputs.private_key_data }} | base64 --decode)
+        go test ./internal/provider -v -sweep=us-central1 -sweep-run= -timeout 60m
+
     - name: TF acceptance tests
       timeout-minutes: 10
       env:
@@ -107,3 +118,13 @@ jobs:
       run: |
         export GOOGLEWORKSPACE_CREDENTIALS=$(echo -n ${{ steps.vault.outputs.private_key_data }} | base64 --decode)
         go test -v -cover ./internal/provider/
+
+    - name: Post-sweep lingering resources
+      timeout-minutes: 10
+      env:
+        GOOGLEWORKSPACE_CUSTOMER_ID: ${{ secrets.GOOGLEWORKSPACE_CUSTOMER_ID }}
+        GOOGLEWORKSPACE_IMPERSONATED_USER_EMAIL: ${{ secrets.GOOGLEWORKSPACE_IMPERSONATED_USER_EMAIL }}
+
+      run: |
+        export GOOGLEWORKSPACE_CREDENTIALS=$(echo -n ${{ steps.vault.outputs.private_key_data }} | base64 --decode)
+        go test ./internal/provider -v -sweep=us-central1 -sweep-run= -timeout 60m
