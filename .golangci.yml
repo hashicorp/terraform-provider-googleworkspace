@@ -1,0 +1,3 @@
+linters-settings:
+  errcheck:
+    ignore: github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema:Set,fmt:.*
