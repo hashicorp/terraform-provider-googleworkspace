@@ -374,7 +374,7 @@ resource "googleworkspace_user" "my-new-user" {
     operating_system_type = "linux"
     primary = true
     shell = "/bin/bash"
-    system_id = "uid"
+    system_id = "5"
     uid = "67543"
     username = "dwightschrute"
   }
