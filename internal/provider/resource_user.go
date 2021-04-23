@@ -27,15 +27,17 @@ func diffSuppressEmails(k, old, new string, d *schema.ResourceData) bool {
 
 	primaryEmail := d.Get("primary_email").(string)
 	aliases := listOfInterfacestoStrings(d.Get("aliases").([]interface{}))
+	testEmailMatch, err := regexp.Compile("test-google-a.com")
+	if err != nil {
+		log.Println("[ERROR] Failed to compile email match")
+		return false
+	}
+
 	for _, se := range stateEmails.([]interface{}) {
 		email := se.(map[string]interface{})
 		emailAddress := email["address"].(string)
 
-		testEmail, err := regexp.MatchString("test-google-a.com", emailAddress)
-		if err != nil {
-			log.Println("[ERROR] Failed to match emails")
-			return false
-		}
+		testEmail := testEmailMatch.MatchString(emailAddress)
 
 		if testEmail {
 			emailAddress = strings.ReplaceAll(emailAddress, ".test-google-a.com", "")

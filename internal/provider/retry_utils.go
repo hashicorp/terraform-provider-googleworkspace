@@ -22,7 +22,11 @@ func retryTimeDuration(ctx context.Context, duration time.Duration, retryFunc fu
 }
 
 func IsNotConsistent(err error) bool {
-	regexp.MatchString(err.Error(), "timed out while waiting")
+	errString, nErr := regexp.Compile("timed out while waiting")
+	if nErr != nil {
+		return false
+	}
+	matched := len(errString.FindAllStringSubmatch(err.Error(), 1)) > 0
 
-	return true
+	return matched
 }
