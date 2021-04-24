@@ -21,7 +21,7 @@ func testSweepSchema(region string) error {
 	resourceName := "Schema"
 	log.Printf("[INFO][SWEEPER_LOG] Starting sweeper for %s", resourceName)
 
-	client, err := sharedClientForRegion()
+	client, err := googleworkspaceTestClient()
 	if err != nil {
 		log.Printf("[INFO][SWEEPER_LOG] error getting sweeper client: %s", err)
 		return err

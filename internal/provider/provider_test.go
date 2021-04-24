@@ -43,6 +43,32 @@ func getTestImpersonatedUserFromEnv() string {
 	return os.Getenv("GOOGLEWORKSPACE_IMPERSONATED_USER_EMAIL")
 }
 
+// googleworkspaceTestClient returns a common client
+func googleworkspaceTestClient() (*apiClient, error) {
+	creds := getTestCredsFromEnv()
+	if creds == "" {
+		return nil, fmt.Errorf("set credentials using any of these env variables %v", credsEnvVars)
+	}
+
+	customerId := getTestCustomerFromEnv()
+	if customerId == "" {
+		return nil, fmt.Errorf("set customer id with GOOGLEWORKSPACE_CUSTOMER_ID")
+	}
+
+	impersonatedUser := getTestImpersonatedUserFromEnv()
+	if impersonatedUser == "" {
+		return nil, fmt.Errorf("set customer id with GOOGLEWORKSPACE_IMPERSONATED_USER_EMAIL")
+	}
+
+	client := &apiClient{
+		Credentials:           creds,
+		Customer:              customerId,
+		ImpersonatedUserEmail: impersonatedUser,
+	}
+
+	return client, nil
+}
+
 func TestProvider(t *testing.T) {
 	if err := New("dev")().InternalValidate(); err != nil {
 		t.Fatalf("err: %s", err)
