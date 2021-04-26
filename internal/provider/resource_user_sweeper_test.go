@@ -1,7 +1,6 @@
 package googleworkspace
 
 import (
-	"context"
 	"fmt"
 	"log"
 
@@ -21,16 +20,10 @@ func testSweepUser(region string) error {
 	resourceName := "User"
 	log.Printf("[INFO][SWEEPER_LOG] Starting sweeper for %s", resourceName)
 
-	client, err := sharedClientForRegion()
+	client, err := googleworkspaceTestClient()
 	if err != nil {
 		log.Printf("[INFO][SWEEPER_LOG] error getting sweeper client: %s", err)
 		return err
-	}
-
-	diags := client.loadAndValidate(context.Background())
-	if diags.HasError() {
-		log.Printf("[INFO][SWEEPER_LOG] error loading: %s", diags[0].Summary)
-		return fmt.Errorf(diags[0].Summary)
 	}
 
 	directoryService, diags := client.NewDirectoryService()

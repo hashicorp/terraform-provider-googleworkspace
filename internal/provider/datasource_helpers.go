@@ -50,6 +50,24 @@ func datasourceSchemaFromResourceSchema(rs map[string]*schema.Schema) map[string
 	return ds
 }
 
+// fixDatasourceSchemaFlags is a convenience func that toggles the Computed,
+// Optional + Required flags on a schema element. This is useful when the schema
+// has been generated (using `datasourceSchemaFromResourceSchema` above for
+// example) and therefore the attribute flags were not set appropriately when
+// first added to the schema definition. Currently only supports top-level
+// schema elements.
+func fixDatasourceSchemaFlags(schema map[string]*schema.Schema, required bool, keys ...string) {
+	for _, v := range keys {
+		schema[v].Computed = false
+		schema[v].Optional = !required
+		schema[v].Required = required
+	}
+}
+
+func addRequiredFieldsToSchema(schema map[string]*schema.Schema, keys ...string) {
+	fixDatasourceSchemaFlags(schema, true, keys...)
+}
+
 // addExactlyOneOfFieldsToSchema is a convenience func that sets a list of keys Optional & ExactlyOneOf.
 // This is useful when the schema has been generated (using `datasourceSchemaFromResourceSchema` above for
 // example) and the datasource could take one multiple inputs (say a unique name or a unique id)
