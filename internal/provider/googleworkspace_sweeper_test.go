@@ -1,7 +1,6 @@
 package googleworkspace
 
 import (
-	"fmt"
 	"strings"
 	"testing"
 
