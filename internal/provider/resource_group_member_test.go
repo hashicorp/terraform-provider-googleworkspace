@@ -3,10 +3,12 @@ package googleworkspace
 import (
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccResourceGroupMember_basic(t *testing.T) {
@@ -28,6 +30,9 @@ func TestAccResourceGroupMember_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: providerFactories,
+		CheckDestroy: resource.ComposeTestCheckFunc(
+			testAccResourceGroupMemberExists("googleworkspace_group_member.my-group-member"),
+		),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccResourceGroupMember_basic(testGroupVals),
@@ -60,6 +65,9 @@ func TestAccResourceGroupMember_full(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: providerFactories,
+		CheckDestroy: resource.ComposeTestCheckFunc(
+			testAccResourceGroupMemberExists("googleworkspace_group_member.my-group-member"),
+		),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccResourceGroupMember_full(testGroupVals),
@@ -79,6 +87,44 @@ func TestAccResourceGroupMember_full(t *testing.T) {
 			},
 		},
 	})
+}
+
+func testAccResourceGroupMemberExists(resource string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[resource]
+		if !ok {
+			return fmt.Errorf("%s key not found in state", resource)
+		}
+
+		client, err := googleworkspaceTestClient()
+		if err != nil {
+			return err
+		}
+
+		directoryService, diags := client.NewDirectoryService()
+		if diags.HasError() {
+			return fmt.Errorf("Error creating directory service %+v", diags)
+		}
+
+		membersService, diags := GetMembersService(directoryService)
+		if diags.HasError() {
+			return fmt.Errorf("Error getting group members service %+v", diags)
+		}
+
+		parts := strings.Split(rs.Primary.ID, "/")
+
+		// id is of format "groups/<group_id>/members/<member_id>"
+		if len(parts) != 4 {
+			return fmt.Errorf("Group Member Id (%s) is not of the correct format (groups/<group_id>/members/<member_id>)", rs.Primary.ID)
+		}
+
+		_, err = membersService.Get(parts[1], parts[3]).Do()
+		if err == nil {
+			return fmt.Errorf("Group Member still exists (%s)", rs.Primary.ID)
+		}
+
+		return nil
+	}
 }
 
 func testAccResourceGroupMember_basic(testGroupVals map[string]interface{}) string {
