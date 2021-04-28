@@ -56,11 +56,11 @@ jobs:
       matrix:
         # list whatever Terraform versions here you would like to support
         terraform:
-          - '0.12.29'
+          - '0.12.31'
           # skipping due to https://github.com/hashicorp/terraform/issues/25961 test failures
           # - '0.13.4'
-          - '0.14.8'
-          - '0.15.0'
+          - '0.14.11'
+          - '0.15.1'
     steps:
 
     - name: Set up Go
@@ -78,7 +78,7 @@ jobs:
 
     - name: Get credentials
       id: vault
-      uses: hashicorp/vault-action@v2.0.1
+      uses: hashicorp/vault-action@v2.1.2
       with:
         url: ${{ secrets.VAULT_ADDR }}
         method: approle

@@ -3,12 +3,12 @@ module github.com/hashicorp/terraform-provider-googleworkspace
 go 1.16
 
 require (
-	github.com/hashicorp/errwrap v1.0.0
-	github.com/hashicorp/go-cleanhttp v0.5.1
+	github.com/hashicorp/errwrap v1.1.0
+	github.com/hashicorp/go-cleanhttp v0.5.2
 	github.com/hashicorp/go-cty v1.4.1-0.20200414143053-d3edf31b6320
 	github.com/hashicorp/terraform-plugin-docs v0.4.0
-	github.com/hashicorp/terraform-plugin-sdk/v2 v2.5.0
+	github.com/hashicorp/terraform-plugin-sdk/v2 v2.6.1
 	github.com/mitchellh/go-homedir v1.1.0
-	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
-	google.golang.org/api v0.29.0
+	golang.org/x/oauth2 v0.0.0-20210413134643-5e61552d6c78
+	google.golang.org/api v0.45.0
 )
