@@ -5,6 +5,9 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"reflect"
+	"sort"
+	"strconv"
 	"strings"
 	"unicode"
 
@@ -178,4 +181,18 @@ func stringInSlice(arr []string, str string) bool {
 	}
 
 	return false
+}
+
+// sort a slice of interfaces regardless the type, return the equivalent slice of strings
+func sortListOfInterfaces(v []interface{}) []string {
+	newVal := make([]string, len(v))
+	for idx, attr := range v {
+		kind := reflect.ValueOf(v).Kind()
+		if kind == reflect.Float64 {
+			attr = strconv.FormatFloat(attr.(float64), 'f', -1, 64)
+		}
+		newVal[idx] = fmt.Sprintf("%+v", attr)
+	}
+	sort.Strings(newVal)
+	return newVal
 }
