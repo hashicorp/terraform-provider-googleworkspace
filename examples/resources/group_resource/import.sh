@@ -1,0 +1,1 @@
+terraform import googleworkspace_group 01abcde23fg4h5i

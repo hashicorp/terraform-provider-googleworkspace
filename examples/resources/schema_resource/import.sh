@@ -1,0 +1,1 @@
+terraform import googleworkspace_schema Ab0C_DEFGhIJKLmNopQ1Rs==
