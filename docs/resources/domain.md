@@ -13,7 +13,7 @@ Domain resource manages Google Workspace Domains.
 ## Example Usage
 
 ```terraform
-resource "googleworkspace_domain" "example-domain" {
+resource "googleworkspace_domain" "example" {
   domain_name = "example.com"
 }
 ```
@@ -42,5 +42,5 @@ resource "googleworkspace_domain" "example-domain" {
 Import is supported using the following syntax:
 
 ```shell
-terraform import googleworkspace_domain example.com
+terraform import googleworkspace_domain.example example.com
 ```

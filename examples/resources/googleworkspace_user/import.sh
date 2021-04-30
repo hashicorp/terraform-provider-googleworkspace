@@ -1,1 +1,1 @@
-terraform import googleworkspace_user 123456789012345678901
+terraform import googleworkspace_user.dwight 123456789012345678901

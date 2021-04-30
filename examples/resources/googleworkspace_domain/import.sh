@@ -1,1 +1,1 @@
-terraform import googleworkspace_domain example.com
+terraform import googleworkspace_domain.example example.com
