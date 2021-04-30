@@ -5,55 +5,55 @@ resource "googleworkspace_user" "dwight" {
 
   name {
     family_name = "Schrute"
-    given_name = "Dwight"
+    given_name  = "Dwight"
   }
 
-  aliases = ["assistant_to_regional_manager@%{domainName}"]
+  aliases = ["assistant_to_regional_manager@example.com"]
 
   emails {
     address = "dwight.schrute.dunder.mifflin@example.com"
-    type = "work"
+    type    = "work"
   }
 
   relations {
-    type = "assistant"
+    type  = "assistant"
     value = "Michael Scott"
   }
 
   addresses {
-    country = "USA"
-    country_code = "US"
-    locality = "Scranton"
-    po_box = "123"
-    postal_code = "18508"
-    region = "PA"
+    country        = "USA"
+    country_code   = "US"
+    locality       = "Scranton"
+    po_box         = "123"
+    postal_code    = "18508"
+    region         = "PA"
     street_address = "123 Dunder Mifflin Pkwy"
-    type = "work"
+    type           = "work"
   }
 
   organizations {
     department = "sales"
-    location = "Scranton"
-    name = "Dunder Mifflin"
-    primary = true
-    symbol = "DUMI"
-    title = "member"
-    type = "work"
+    location   = "Scranton"
+    name       = "Dunder Mifflin"
+    primary    = true
+    symbol     = "DUMI"
+    title      = "member"
+    type       = "work"
   }
 
   phones {
-    type = "home"
+    type  = "home"
     value = "555-123-7890"
   }
 
   phones {
-    type = "work"
+    type    = "work"
     primary = true
-    value = "555-123-0987"
+    value   = "555-123-0987"
   }
 
   keywords {
-    type = "occupation"
+    type  = "occupation"
     value = "salesperson"
   }
 
