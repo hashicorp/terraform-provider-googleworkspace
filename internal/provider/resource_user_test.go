@@ -42,8 +42,6 @@ func TestAccResourceUser_basic(t *testing.T) {
 }
 
 func TestAccResourceUser_full(t *testing.T) {
-	t.Parallel()
-
 	domainName := os.Getenv("GOOGLEWORKSPACE_DOMAIN")
 
 	if domainName == "" {
@@ -174,6 +172,36 @@ func TestAccResourceUser_gone(t *testing.T) {
 	})
 }
 
+func TestAccResourceUser_customSchemas(t *testing.T) {
+	domainName := os.Getenv("GOOGLEWORKSPACE_DOMAIN")
+
+	if domainName == "" {
+		t.Skip("GOOGLEWORKSPACE_DOMAIN needs to be set to run this test")
+	}
+
+	testUserVals := map[string]interface{}{
+		"domainName": domainName,
+		"userEmail":  fmt.Sprintf("tf-test-%s", acctest.RandString(10)),
+		"password":   acctest.RandString(10),
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: providerFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceUser_customSchemaAllTypes(testUserVals),
+			},
+			{
+				ResourceName:            "googleworkspace_user.my-new-user",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"password"},
+			},
+		},
+	})
+}
+
 func testAccResourceUser_basic(testUserVals map[string]interface{}) string {
 	return Nprintf(`
 resource "googleworkspace_user" "my-new-user" {
@@ -190,6 +218,26 @@ resource "googleworkspace_user" "my-new-user" {
 
 func testAccResourceUser_full(testUserVals map[string]interface{}) string {
 	return Nprintf(`
+resource "googleworkspace_schema" "my-schema" {
+  schema_name = "%{userEmail}-schema"
+
+  fields {
+    field_name = "birthday"
+    field_type = "DATE"
+  }
+
+  fields {
+    field_name = "favorite-numbers"
+    field_type = "INT64"
+    multi_valued = true
+
+    numeric_indexing_spec {
+      min_value = 1
+      max_value = 100
+    }
+  }
+}
+
 resource "googleworkspace_user" "my-new-user" {
   primary_email = "%{userEmail}@%{domainName}"
   password      = "34819d7beeabb9260a5c854bc85b3e44"
@@ -297,6 +345,15 @@ resource "googleworkspace_user" "my-new-user" {
     type = "home"
   }
 
+  custom_schemas {
+    schema_name = googleworkspace_schema.my-schema.schema_name
+
+    schema_values = {
+      "birthday" = jsonencode("1970-01-20")
+      "favorite-numbers" = jsonencode([1, 2, 3])
+    }
+  }
+
   include_in_global_address_list = false
   recovery_email = "dwightkschrute@example.com"
   recovery_phone = "+16506661212"
@@ -308,6 +365,31 @@ resource "googleworkspace_user" "my-new-user" {
 
 func testAccResourceUser_fullUpdate(testUserVals map[string]interface{}) string {
 	return Nprintf(`
+resource "googleworkspace_schema" "my-schema" {
+  schema_name = "%{userEmail}-schema"
+
+  fields {
+    field_name = "birthday"
+    field_type = "DATE"
+  }
+
+  fields {
+    field_name = "favorite-numbers"
+    field_type = "INT64"
+    multi_valued = true
+
+    numeric_indexing_spec {
+      min_value = 1
+      max_value = 100
+    }
+  }
+
+  fields {
+    field_name = "num-cats"
+    field_type = "INT64"
+  }
+}
+
 resource "googleworkspace_user" "my-new-user" {
   primary_email = "%{userEmail}@%{domainName}"
   password      = "34819d7beeabb9260a5c854bc85b3e44"
@@ -410,6 +492,16 @@ resource "googleworkspace_user" "my-new-user" {
     type = "home"
   }
 
+  custom_schemas {
+    schema_name = googleworkspace_schema.my-schema.schema_name
+
+    schema_values = {
+      "birthday" = jsonencode("1970-01-20")
+      "favorite-numbers" = jsonencode([1, 2])
+      "num-cats" = jsonencode(3)
+    }
+  }
+
   include_in_global_address_list = true
   recovery_email = "dwight.schrute@example.com"
   recovery_phone = "+16506661212"
@@ -469,3 +561,78 @@ resource "googleworkspace_user" "my-new-user" {
 //}
 //`, testUserVals)
 //}
+
+func testAccResourceUser_customSchemaAllTypes(testUserVals map[string]interface{}) string {
+	return Nprintf(`
+resource "googleworkspace_schema" "my-schema" {
+  schema_name = "%{userEmail}-schema"
+
+  fields {
+    field_name = "birthday"
+    field_type = "DATE"
+  }
+
+  fields {
+    field_name = "favorite-numbers"
+    field_type = "INT64"
+    multi_valued = true
+
+    numeric_indexing_spec {
+      min_value = 1
+      max_value = 100
+    }
+  }
+
+  fields {
+    field_name = "my-custom-phones"
+    field_type = "PHONE"
+    multi_valued = true
+  }
+
+  fields {
+    field_name = "my-custom-email"
+    field_type = "EMAIL"
+  }
+
+  fields {
+    field_name = "lbs-of-beets"
+    field_type = "DOUBLE"
+    multi_valued = true
+  }
+
+  fields {
+    field_name = "favorite-animal"
+    field_type = "STRING"
+  }
+
+  fields {
+    field_name = "fire-certified"
+    field_type = "BOOL"
+  }
+}
+
+resource "googleworkspace_user" "my-new-user" {
+  primary_email = "%{userEmail}@%{domainName}"
+  password = "%{password}"
+
+  name {
+    family_name = "Scott"
+    given_name = "Michael"
+  }
+
+  custom_schemas {
+    schema_name = googleworkspace_schema.my-schema.schema_name
+
+    schema_values = {
+      "birthday" = jsonencode("1970-01-20")
+      "favorite-numbers" = jsonencode([1, 2, 3])
+      "my-custom-phones" = jsonencode(["555-555-5555", "123-456-7890"])
+      "my-custom-email" = jsonencode("beets4life@example.com")
+      "lbs-of-beets" = jsonencode([1004.35, 100.0, 658])
+      "favorite-animal" = jsonencode("bears")
+      "fire-certified" =  jsonencode(true)
+    }
+  }
+}
+`, testUserVals)
+}

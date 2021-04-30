@@ -35,6 +35,7 @@ func resourceSchema() *schema.Resource {
 			"schema_name": {
 				Description: "The schema's name.",
 				Type:        schema.TypeString,
+				ForceNew:    true,
 				Required:    true,
 			},
 			"fields": {
@@ -47,6 +48,7 @@ func resourceSchema() *schema.Resource {
 							Description: "The name of the field.",
 							Type:        schema.TypeString,
 							Required:    true,
+							ForceNew:    true,
 						},
 						"field_id": {
 							Description: "The unique identifier of the field.",
@@ -58,6 +60,7 @@ func resourceSchema() *schema.Resource {
 								"BOOL, DATE, DOUBLE, EMAIL, INT64, PHONE, STRING",
 							Type:     schema.TypeString,
 							Required: true,
+							ForceNew: true,
 							ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{
 								"BOOL", "DATE", "DOUBLE", "EMAIL", "INT64", "PHONE", "STRING"}, true)),
 						},

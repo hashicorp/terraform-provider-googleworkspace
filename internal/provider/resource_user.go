@@ -2,10 +2,13 @@ package googleworkspace
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
+	"net/mail"
 	"reflect"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -14,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	directory "google.golang.org/api/admin/directory/v1"
+	"google.golang.org/api/googleapi"
 )
 
 func diffSuppressEmails(k, old, new string, d *schema.ResourceData) bool {
@@ -53,6 +57,40 @@ func diffSuppressEmails(k, old, new string, d *schema.ResourceData) bool {
 	return reflect.DeepEqual(subsetEmails, configEmails.([]interface{}))
 }
 
+func diffSuppressCustomSchemas(k, old, new string, d *schema.ResourceData) bool {
+	// we only care about the nested schema values
+	parts := strings.Split(k, ".")
+	if !stringInSlice(parts, "schema_values") || parts[len(parts)-1] == "%" {
+		return false
+	}
+
+	var oldVal interface{}
+	err := json.Unmarshal([]byte(old), &oldVal)
+	if err != nil {
+		return false
+	}
+
+	var newVal interface{}
+	err = json.Unmarshal([]byte(new), &newVal)
+	if err != nil {
+		return false
+	}
+
+	// sort nested lists
+	if reflect.ValueOf(oldVal).Kind() == reflect.Slice {
+		if reflect.ValueOf(newVal).Kind() != reflect.Slice {
+			return false
+		}
+
+		sortedOld := sortListOfInterfaces(oldVal.([]interface{}))
+		sortedNew := sortListOfInterfaces(newVal.([]interface{}))
+
+		return reflect.DeepEqual(sortedOld, sortedNew)
+	}
+
+	return reflect.DeepEqual(oldVal, newVal)
+}
+
 func resourceUser() *schema.Resource {
 	return &schema.Resource{
 		// This description is used by the documentation generator and the language server.
@@ -65,7 +103,7 @@ func resourceUser() *schema.Resource {
 
 		Timeouts: &schema.ResourceTimeout{
 			Create: schema.DefaultTimeout(5 * time.Minute),
-			Update: schema.DefaultTimeout(5 * time.Minute),
+			Update: schema.DefaultTimeout(10 * time.Minute),
 		},
 
 		Importer: &schema.ResourceImporter{
@@ -868,7 +906,33 @@ func resourceUser() *schema.Resource {
 					},
 				},
 			},
-			// TODO: (mbang) custom schemas
+			"custom_schemas": {
+				Description:      "Custom fields of the user.",
+				Type:             schema.TypeList,
+				Optional:         true,
+				DiffSuppressFunc: diffSuppressCustomSchemas,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"schema_name": {
+							Description: "The name of the schema.",
+							Type:        schema.TypeString,
+							Required:    true,
+						},
+						"schema_values": {
+							Description: "JSON encoded map that represents key/value pairs that " +
+								"correspond to the given schema. ",
+							Type:     schema.TypeMap,
+							Required: true,
+							Elem: &schema.Schema{
+								Type: schema.TypeString,
+								ValidateDiagFunc: validation.ToDiagFunc(
+									validation.StringIsJSON,
+								),
+							},
+						},
+					},
+				},
+			},
 			"is_enrolled_in_2_step_verification": {
 				Description: "Is enrolled in 2-step verification.",
 				Type:        schema.TypeBool,
@@ -953,6 +1017,20 @@ func resourceUserCreate(ctx context.Context, d *schema.ResourceData, meta interf
 		RecoveryPhone:              d.Get("recovery_phone").(string),
 
 		ForceSendFields: []string{"IncludeInGlobalAddressList"},
+	}
+
+	if len(d.Get("custom_schemas").([]interface{})) > 0 {
+		diags = validateCustomSchemas(d, client)
+		if diags.HasError() {
+			return diags
+		}
+
+		customSchemas, diags := expandCustomSchemaValues(d.Get("custom_schemas").([]interface{}))
+		if diags.HasError() {
+			return diags
+		}
+
+		userObj.CustomSchemas = customSchemas
 	}
 
 	user, err := usersService.Insert(&userObj).Do()
@@ -1088,6 +1166,14 @@ func resourceUserRead(ctx context.Context, d *schema.ResourceData, meta interfac
 		return diags
 	}
 
+	customSchemas := []map[string]interface{}{}
+	if len(user.CustomSchemas) > 0 {
+		customSchemas, diags = flattenCustomSchemas(user.CustomSchemas, client)
+		if diags.HasError() {
+			return diags
+		}
+	}
+
 	d.Set("id", user.Id)
 	d.Set("primary_email", user.PrimaryEmail)
 	// password and hash_function are not returned in the response, so set them to what we defined in the config
@@ -1125,6 +1211,7 @@ func resourceUserRead(ctx context.Context, d *schema.ResourceData, meta interfac
 	d.Set("deletion_time", user.DeletionTime)
 	d.Set("thumbnail_photo_etag", user.ThumbnailPhotoEtag)
 	d.Set("ims", flattenInterfaceObjects(user.Ims))
+	d.Set("custom_schemas", customSchemas)
 	d.Set("is_enrolled_in_2_step_verification", user.IsEnrolledIn2Sv)
 	d.Set("is_enforced_in_2_step_verification", user.IsEnforcedIn2Sv)
 	d.Set("archived", user.Archived)
@@ -1284,6 +1371,22 @@ func resourceUserUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 	if d.HasChange("ims") {
 		ims := expandInterfaceObjects(d.Get("ims"))
 		userObj.Ims = ims
+	}
+
+	if d.HasChange("custom_schemas") {
+		if len(d.Get("custom_schemas").([]interface{})) > 0 {
+			diags = validateCustomSchemas(d, client)
+			if diags.HasError() {
+				return diags
+			}
+
+			customSchemas, diags := expandCustomSchemaValues(d.Get("custom_schemas").([]interface{}))
+			if diags.HasError() {
+				return diags
+			}
+
+			userObj.CustomSchemas = customSchemas
+		}
 	}
 
 	if &userObj != new(directory.User) {
@@ -1467,4 +1570,277 @@ func flattenName(nameObj *directory.UserName) interface{} {
 	}
 
 	return name
+}
+
+// Helper functions
+
+// Custom Schemas
+
+func validateCustomSchemas(d *schema.ResourceData, client *apiClient) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	new := d.Get("custom_schemas")
+
+	directoryService, diags := client.NewDirectoryService()
+	if diags.HasError() {
+		return diags
+	}
+
+	schemaService, diags := GetSchemasService(directoryService)
+	if diags.HasError() {
+		return diags
+	}
+
+	// Validate config against schemas
+	for _, customSchema := range new.([]interface{}) {
+		schemaName := customSchema.(map[string]interface{})["schema_name"].(string)
+
+		schemaDef, err := schemaService.Get(client.Customer, schemaName).Do()
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		if schemaDef == nil {
+			return append(diags, diag.Diagnostic{
+				Summary:  fmt.Sprintf("schema definition (%s) is empty", schemaName),
+				Severity: diag.Error,
+			})
+		}
+
+		schemaFieldMap := map[string]*directory.SchemaFieldSpec{}
+		for _, schemaField := range schemaDef.Fields {
+			schemaFieldMap[schemaField.FieldName] = schemaField
+		}
+
+		customSchemaDef := customSchema.(map[string]interface{})["schema_values"].(map[string]interface{})
+
+		for csKey, csJsonVal := range customSchemaDef {
+			if _, ok := schemaFieldMap[csKey]; !ok {
+				return append(diags, diag.Diagnostic{
+					Summary:  fmt.Sprintf("field name (%s) is not found in this schema definition (%s)", csKey, schemaName),
+					Severity: diag.Error,
+				})
+			}
+
+			var csVal interface{}
+			err := json.Unmarshal([]byte(csJsonVal.(string)), &csVal)
+			if err != nil {
+				return diag.FromErr(err)
+			}
+
+			if schemaFieldMap[csKey].MultiValued {
+				if reflect.ValueOf(csVal).Kind() != reflect.Slice {
+					return append(diags, diag.Diagnostic{
+						Summary:  fmt.Sprintf("field %s is multi-values and should be a list (%+v)", csKey, csVal),
+						Severity: diag.Error,
+					})
+				}
+
+				if len(csVal.([]interface{})) > 0 {
+					csVal = csVal.([]interface{})[0]
+				}
+			}
+
+			validType := validateFieldValueType(schemaFieldMap[csKey].FieldType, csVal)
+			if !validType {
+				return append(diags, diag.Diagnostic{
+					Summary:  fmt.Sprintf("value provided for %s is of incorrect type (expected type: %s)", csKey, schemaFieldMap[csKey].FieldType),
+					Severity: diag.Error,
+				})
+			}
+		}
+	}
+
+	return nil
+}
+
+// This will take a value and validate whether the type is correct
+func validateFieldValueType(fieldType string, fieldValue interface{}) bool {
+	valid := false
+
+	switch fieldType {
+	case "BOOL":
+		valid = reflect.ValueOf(fieldValue).Kind() == reflect.Bool
+	case "DATE":
+		// ISO 8601 format
+		_, err := time.Parse("2006-01-02", fieldValue.(string))
+		if err == nil {
+			valid = true
+		}
+	case "DOUBLE":
+		valid = reflect.ValueOf(fieldValue).Kind() == reflect.Float64
+	case "EMAIL":
+		_, err := mail.ParseAddress(fieldValue.(string))
+		if err == nil {
+			valid = true
+		}
+	case "INT64":
+		// this is unmarshalled as a float, check that it's an int
+		if reflect.ValueOf(fieldValue).Kind() == reflect.Float64 &&
+			fieldValue == float64(int(fieldValue.(float64))) {
+			valid = true
+		}
+	case "PHONE":
+		fallthrough
+	case "STRING":
+		fallthrough
+	default:
+		valid = reflect.ValueOf(fieldValue).Kind() == reflect.String
+	}
+
+	return valid
+}
+
+// The API returns numeric values as strings. This will convert it to the appropriate type
+func convertFieldValueType(fieldType string, fieldValue interface{}) (interface{}, error) {
+	// If it's not of type string, then we'll assume it's the right type
+	if reflect.ValueOf(fieldValue).Kind() != reflect.String {
+		return fieldValue, nil
+	}
+
+	var err error
+	var value interface{}
+
+	switch fieldType {
+	case "BOOL":
+		value, err = strconv.ParseBool(fieldValue.(string))
+	case "DOUBLE":
+		value, err = strconv.ParseFloat(fieldValue.(string), 64)
+	case "INT64":
+		value, err = strconv.ParseInt(fieldValue.(string), 10, 64)
+	case "DATE":
+		// The string stays the same
+		fallthrough
+	case "EMAIL":
+		fallthrough
+	case "PHONE":
+		fallthrough
+	case "STRING":
+		fallthrough
+	default:
+		value = fieldValue
+	}
+
+	return value, err
+}
+
+func expandCustomSchemaValues(customSchemas []interface{}) (map[string]googleapi.RawMessage, diag.Diagnostics) {
+	var diags diag.Diagnostics
+	result := map[string]googleapi.RawMessage{}
+
+	for _, cs := range customSchemas {
+		customSchema := cs.(map[string]interface{})
+
+		schemaName := customSchema["schema_name"].(string)
+		schemaValues := customSchema["schema_values"].(map[string]interface{})
+
+		customSchemaObj := map[string]interface{}{}
+		for k, v := range schemaValues {
+			var csVal interface{}
+			err := json.Unmarshal([]byte(v.(string)), &csVal)
+			if err != nil {
+				return nil, diag.FromErr(err)
+			}
+
+			if reflect.ValueOf(csVal).Kind() == reflect.Slice {
+				newSlice := []map[string]interface{}{}
+				for _, nested := range csVal.([]interface{}) {
+					newSlice = append(newSlice, map[string]interface{}{
+						"type":  "work",
+						"value": nested,
+					})
+				}
+
+				customSchemaObj[k] = newSlice
+			} else {
+				customSchemaObj[k] = csVal
+			}
+		}
+		// create the json object and assign to the schema
+		schemaValuesJson, err := json.Marshal(customSchemaObj)
+		if err != nil {
+			return nil, diag.FromErr(err)
+		}
+
+		result[schemaName] = schemaValuesJson
+	}
+
+	return result, diags
+}
+
+func flattenCustomSchemas(schemaAttrObj interface{}, client *apiClient) ([]map[string]interface{}, diag.Diagnostics) {
+	var customSchemas []map[string]interface{}
+
+	directoryService, diags := client.NewDirectoryService()
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	schemaService, diags := GetSchemasService(directoryService)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	for schemaName, sv := range schemaAttrObj.(map[string]googleapi.RawMessage) {
+		schemaDef, err := schemaService.Get(client.Customer, schemaName).Do()
+		if err != nil {
+			return nil, diag.FromErr(err)
+		}
+
+		schemaFieldMap := map[string]*directory.SchemaFieldSpec{}
+		for _, schemaField := range schemaDef.Fields {
+			schemaFieldMap[schemaField.FieldName] = schemaField
+		}
+
+		var schemaValuesObj map[string]interface{}
+
+		err = json.Unmarshal(sv, &schemaValuesObj)
+		if err != nil {
+			return nil, diag.FromErr(err)
+		}
+
+		schemaValues := map[string]interface{}{}
+		for k, v := range schemaValuesObj {
+			if _, ok := schemaFieldMap[k]; !ok {
+				return nil, append(diags, diag.Diagnostic{
+					Summary:  fmt.Sprintf("field name (%s) is not found in this schema definition (%s)", k, schemaName),
+					Severity: diag.Warning,
+				})
+			}
+
+			if schemaFieldMap[k].MultiValued {
+				vals := []interface{}{}
+				for _, item := range v.([]interface{}) {
+					val, err := convertFieldValueType(schemaFieldMap[k].FieldType, item.(map[string]interface{})["value"])
+					if err != nil {
+						return nil, diag.FromErr(err)
+					}
+					vals = append(vals, val)
+				}
+				jsonVals, err := json.Marshal(vals)
+				if err != nil {
+					return nil, diag.FromErr(err)
+				}
+				schemaValues[k] = string(jsonVals)
+			} else {
+				val, err := convertFieldValueType(schemaFieldMap[k].FieldType, v)
+				if err != nil {
+					return nil, diag.FromErr(err)
+				}
+
+				jsonVal, err := json.Marshal(val)
+				if err != nil {
+					return nil, diag.FromErr(err)
+				}
+				schemaValues[k] = string(jsonVal)
+			}
+		}
+
+		customSchemas = append(customSchemas, map[string]interface{}{
+			"schema_name":   schemaName,
+			"schema_values": schemaValues,
+		})
+	}
+
+	return customSchemas, nil
 }

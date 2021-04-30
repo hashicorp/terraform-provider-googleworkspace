@@ -80,7 +80,7 @@ resource "googleworkspace_schema" "my-schema" {
   }
 
   fields {
-    field_name = "favorite_number"
+    field_name = "favorite_numbers"
     field_type = "INT64"
     multi_valued = true
 
