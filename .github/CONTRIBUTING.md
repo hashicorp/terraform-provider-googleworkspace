@@ -1,6 +1,6 @@
 # Contributing to Terraform - Google Workspace Provider
 
-For a set of general guidelines, see the [CONTRIBUTING.md](https://github.com/hashicorp/terraform/blob/master/.github/CONTRIBUTING.md) page in the main Terraform repository.
+For a set of general guidelines, see the [CONTRIBUTING.md](https://github.com/hashicorp/terraform/blob/main/.github/CONTRIBUTING.md) page in the main Terraform repository.
 
 The following are certain Google Workspace Provider-specific things to be aware of when contributing.
 
