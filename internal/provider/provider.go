@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -29,13 +30,13 @@ func init() {
 
 	// Customize the content of descriptions when output. For example you can add defaults on
 	// to the exported descriptions if present.
-	// schema.SchemaDescriptionBuilder = func(s *schema.Schema) string {
-	// 	desc := s.Description
-	// 	if s.Default != nil {
-	// 		desc += fmt.Sprintf(" Defaults to `%v`.", s.Default)
-	// 	}
-	// 	return strings.TrimSpace(desc)
-	// }
+	schema.SchemaDescriptionBuilder = func(s *schema.Schema) string {
+		desc := s.Description
+		if s.Default != nil {
+			desc += fmt.Sprintf(" Defaults to `%v`.", s.Default)
+		}
+		return strings.TrimSpace(desc)
+	}
 }
 
 func New(version string) func() *schema.Provider {
@@ -43,6 +44,9 @@ func New(version string) func() *schema.Provider {
 		p := &schema.Provider{
 			Schema: map[string]*schema.Schema{
 				"credentials": {
+					Description: "Either the path to or the contents of a service account key file in JSON format " +
+						"you can manage key files using the Cloud Console).  If not provided, the application default " +
+						"credentials will be used.",
 					Type:     schema.TypeString,
 					Optional: true,
 					DefaultFunc: schema.MultiEnvDefaultFunc([]string{
@@ -53,6 +57,8 @@ func New(version string) func() *schema.Provider {
 				},
 
 				"customer_id": {
+					Description: "The customer id provided with your Google Workspace subscription. It is found admin " +
+						"in the admin console under Account Settings.",
 					Type: schema.TypeString,
 					DefaultFunc: schema.MultiEnvDefaultFunc([]string{
 						"GOOGLEWORKSPACE_CUSTOMER_ID",
@@ -61,7 +67,8 @@ func New(version string) func() *schema.Provider {
 				},
 
 				"impersonated_user_email": {
-					Type: schema.TypeString,
+					Description: "The impersonated user's email with access to the Admin APIs can access the Admin SDK Directory API.",
+					Type:        schema.TypeString,
 					DefaultFunc: schema.MultiEnvDefaultFunc([]string{
 						"GOOGLEWORKSPACE_IMPERSONATED_USER_EMAIL",
 					}, nil),
@@ -69,6 +76,8 @@ func New(version string) func() *schema.Provider {
 				},
 
 				"oauth_scopes": {
+					Description: "The list of the scopes required for your application (for a list of possible scopes, see " +
+						"[Authorize requests](https://developers.google.com/admin-sdk/directory/v1/guides/authorizing))",
 					Type:     schema.TypeList,
 					Optional: true,
 					Elem:     &schema.Schema{Type: schema.TypeString},
