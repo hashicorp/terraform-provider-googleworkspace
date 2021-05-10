@@ -52,10 +52,10 @@ Required:
 Optional:
 
 - **display_name** (String) Display Name of the field.
-- **indexed** (Boolean) Boolean specifying whether the field is indexed or not.
-- **multi_valued** (Boolean) A boolean specifying whether this is a multi-valued field or not.
+- **indexed** (Boolean) Boolean specifying whether the field is indexed or not. Defaults to `true`.
+- **multi_valued** (Boolean) A boolean specifying whether this is a multi-valued field or not. Defaults to `false`.
 - **numeric_indexing_spec** (Block List, Max: 1) Indexing spec for a numeric field. By default, only exact match queries will be supported for numeric fields. Setting the numericIndexingSpec allows range queries to be supported. (see [below for nested schema](#nestedblock--fields--numeric_indexing_spec))
-- **read_access_type** (String) Specifies who can view values of this field. See Retrieve users as a non-administrator for more information. Acceptable values are: ADMINS_AND_SELF or ALL_DOMAIN_USERS. Note: It may take up to 24 hours for changes to this field to be reflected.
+- **read_access_type** (String) Specifies who can view values of this field. See Retrieve users as a non-administrator for more information. Acceptable values are: ADMINS_AND_SELF or ALL_DOMAIN_USERS. Note: It may take up to 24 hours for changes to this field to be reflected. Defaults to `ALL_DOMAIN_USERS`.
 
 Read-Only:
 

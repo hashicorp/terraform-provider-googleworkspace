@@ -57,7 +57,7 @@ func New(version string) func() *schema.Provider {
 				},
 
 				"customer_id": {
-					Description: "The customer id provided with your Google Workspace subscription. It is found admin " +
+					Description: "The customer id provided with your Google Workspace subscription. It is found " +
 						"in the admin console under Account Settings.",
 					Type: schema.TypeString,
 					DefaultFunc: schema.MultiEnvDefaultFunc([]string{
