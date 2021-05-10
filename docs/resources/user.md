@@ -125,7 +125,7 @@ resource "googleworkspace_user" "dwight" {
 - **external_ids** (Block List) A list of external IDs for the user, such as an employee or network ID. The maximum allowed data size is 2Kb. (see [below for nested schema](#nestedblock--external_ids))
 - **hash_function** (String) Stores the hash format of the password property. We recommend sending the password property value as a base 16 bit hexadecimal-encoded hash value. Set the hashFunction values as either the SHA-1, MD5, or crypt hash format.
 - **ims** (Block List) The user's Instant Messenger (IM) accounts. A user account can have multiple ims properties. But, only one of these ims properties can be the primary IM contact. The maximum allowed data size is 2Kb. (see [below for nested schema](#nestedblock--ims))
-- **include_in_global_address_list** (Boolean) Indicates if the user's profile is visible in the Google Workspace global address list when the contact sharing feature is enabled for the domain.
+- **include_in_global_address_list** (Boolean) Indicates if the user's profile is visible in the Google Workspace global address list when the contact sharing feature is enabled for the domain. Defaults to `true`.
 - **ip_allowlist** (Boolean) If true, the user's IP address is added to the allow list.
 - **is_admin** (Boolean) Indicates a user with super admininistrator privileges.
 - **keywords** (Block List) A list of the user's keywords. The maximum allowed data size is 1Kb. (see [below for nested schema](#nestedblock--keywords))
@@ -213,7 +213,7 @@ Optional:
 
 - **address** (String) The user's email address. Also serves as the email ID. This value can be the user's primary email address or an alias.
 - **custom_type** (String) If the value of type is custom, this property contains the custom type string.
-- **primary** (Boolean) Indicates if this is the user's primary email. Only one entry can be marked as primary.
+- **primary** (Boolean) Indicates if this is the user's primary email. Only one entry can be marked as primary. Defaults to `false`.
 - **type** (String) The type of the email account. Acceptable values: `custom`, `home`, `other`, `work`.
 
 
