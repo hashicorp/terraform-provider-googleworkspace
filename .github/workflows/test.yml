@@ -104,7 +104,7 @@ jobs:
       timeout-minutes: 10
       env:
         TF_ACC: "1"
-        TF_LOG: "TRACE"
+        TF_LOG: "DEBUG"
         TF_ACC_TERRAFORM_VERSION: ${{ matrix.terraform }}
 
         # Set whatever additional acceptance test env vars here. You can
