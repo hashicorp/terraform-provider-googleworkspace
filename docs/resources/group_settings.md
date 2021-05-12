@@ -44,7 +44,6 @@ resource "googleworkspace_group_settings" "sales-settings" {
 - **custom_reply_to** (String) An email address used when replying to a message if the `reply_to` property is set to `REPLY_TO_CUSTOM`. This address is defined by an account administrator. When the group's `reply_to` property is set to `REPLY_TO_CUSTOM`, the `custom_reply_to` property holds a custom email address used when replying to a message, the `custom_reply_to` property must have a text value or an error is returned.
 - **default_message_deny_notification_text** (String) When a message is rejected, this is text for the rejection notification sent to the message's author. By default, this property is empty and has no value in the API's response body. The maximum notification text size is 10,000 characters. Requires `send_message_deny_notification` property to be true.
 - **enable_collaborative_inbox** (Boolean) Specifies whether a collaborative inbox will remain turned on for the group. Defaults to `false`.
-- **id** (String) The ID of this resource.
 - **include_custom_footer** (Boolean) Whether to include custom footer. Defaults to `false`.
 - **include_in_global_address_list** (Boolean) Enables the group to be included in the Global Address List. If true, the group is included in the Global Address List. If false, it is not included in the Global Address List. Defaults to `true`.
 - **is_archived** (Boolean) Allows the Group contents to be archived. If true, archive messages sent to the group. If false, Do not keep an archive of messages sent to this group. If false, previously archived messages remain in the archive. Defaults to `false`.
@@ -69,6 +68,7 @@ resource "googleworkspace_group_settings" "sales-settings" {
 
 - **custom_roles_enabled_for_settings_to_be_merged** (Boolean) Specifies whether the group has a custom role that's included in one of the settings being merged.
 - **description** (String) Description of the group. The maximum group description is no more than 300 characters.
+- **id** (String) The ID of this resource.
 - **name** (String) Name of the group, which has a maximum size of 75 characters.
 
 ## Import

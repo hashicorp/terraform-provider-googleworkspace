@@ -34,11 +34,11 @@ resource "googleworkspace_schema" "birthday" {
 ### Optional
 
 - **display_name** (String) Display name for the schema.
-- **id** (String) The ID of this resource.
 
 ### Read-Only
 
 - **etag** (String) ETag of the resource.
+- **id** (String) The ID of this resource.
 - **schema_id** (String) The unique identifier of the schema.
 
 <a id="nestedblock--fields"></a>

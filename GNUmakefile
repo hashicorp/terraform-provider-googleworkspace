@@ -3,7 +3,7 @@ TEST?=$$(go list ./...)
 
 default: build
 
-build: fmtcheck generate
+build: fmtcheck
 	go install
 
 fmt:
@@ -15,7 +15,7 @@ fmtcheck:
 	@echo "==> Checking source code against gofmt..."
 	@sh -c "'$(CURDIR)/scripts/gofmtcheck.sh'"
 
-generate:
+generate: build
 	go generate  ./...
 
 lint:
@@ -26,7 +26,7 @@ sweep:
 	@echo "WARNING: This will destroy infrastructure. Use only in development accounts."
 	go test ./internal/provider -v -sweep=$(SWEEP) -sweep-run=$(SWEEPARGS) -timeout 60m
 
-test: fmtcheck generate
+test: fmtcheck
 	go test $(TESTARGS) -timeout=30s $(TEST)
 
 # Run acceptance tests

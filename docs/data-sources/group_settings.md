@@ -29,10 +29,6 @@ output "who_can_join_sales" {
 
 - **email** (String) The group's email address.
 
-### Optional
-
-- **id** (String) The ID of this resource.
-
 ### Read-Only
 
 - **allow_external_members** (Boolean) Identifies whether members external to your organization can join the group. If true, Google Workspace users external to your organization can become members of this group. If false, users not belonging to the organization are not allowed to become members of this group.
@@ -44,6 +40,7 @@ output "who_can_join_sales" {
 - **default_message_deny_notification_text** (String) When a message is rejected, this is text for the rejection notification sent to the message's author. By default, this property is empty and has no value in the API's response body. The maximum notification text size is 10,000 characters. Requires `send_message_deny_notification` property to be true.
 - **description** (String) Description of the group. The maximum group description is no more than 300 characters.
 - **enable_collaborative_inbox** (Boolean) Specifies whether a collaborative inbox will remain turned on for the group.
+- **id** (String) The ID of this resource.
 - **include_custom_footer** (Boolean) Whether to include custom footer.
 - **include_in_global_address_list** (Boolean) Enables the group to be included in the Global Address List. If true, the group is included in the Global Address List. If false, it is not included in the Global Address List.
 - **is_archived** (Boolean) Allows the Group contents to be archived. If true, archive messages sent to the group. If false, Do not keep an archive of messages sent to this group. If false, previously archived messages remain in the archive.

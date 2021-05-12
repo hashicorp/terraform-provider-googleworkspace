@@ -1174,7 +1174,6 @@ func resourceUserRead(ctx context.Context, d *schema.ResourceData, meta interfac
 		}
 	}
 
-	d.Set("id", user.Id)
 	d.Set("primary_email", user.PrimaryEmail)
 	// password and hash_function are not returned in the response, so set them to what we defined in the config
 	d.Set("password", d.Get("password"))

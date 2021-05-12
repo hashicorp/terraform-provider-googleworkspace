@@ -59,6 +59,13 @@ func resourceDomain() *schema.Resource {
 				Required:    true,
 				ForceNew:    true,
 			},
+			// Adding a computed id simply to override the `optional` id that gets added in the SDK
+			// that will then display improperly in the docs
+			"id": {
+				Description: "The ID of this resource.",
+				Type:        schema.TypeString,
+				Computed:    true,
+			},
 		},
 	}
 }

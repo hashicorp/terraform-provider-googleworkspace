@@ -233,7 +233,6 @@ func resourceGroupRead(ctx context.Context, d *schema.ResourceData, meta interfa
 		return diag.FromErr(err)
 	}
 
-	d.Set("id", group.Id)
 	d.Set("email", group.Email)
 	d.Set("name", group.Name)
 	d.Set("description", group.Description)

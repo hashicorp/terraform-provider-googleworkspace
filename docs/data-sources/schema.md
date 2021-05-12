@@ -27,7 +27,6 @@ output "schema_display_name" {
 
 ### Optional
 
-- **id** (String) The ID of this resource.
 - **schema_id** (String) The unique identifier of the schema.
 - **schema_name** (String) The schema's name.
 
@@ -36,6 +35,7 @@ output "schema_display_name" {
 - **display_name** (String) Display name for the schema.
 - **etag** (String) ETag of the resource.
 - **fields** (List of Object) A list of fields in the schema. (see [below for nested schema](#nestedatt--fields))
+- **id** (String) The ID of this resource.
 
 <a id="nestedatt--fields"></a>
 ### Nested Schema for `fields`
