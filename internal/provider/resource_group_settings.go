@@ -309,6 +309,13 @@ func resourceGroupSettings() *schema.Resource {
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"ANYONE_CAN_DISCOVER",
 					"ALL_IN_DOMAIN_CAN_DISCOVER", "ALL_MEMBERS_CAN_DISCOVER"}, true)),
 			},
+			// Adding a computed id simply to override the `optional` id that gets added in the SDK
+			// that will then display improperly in the docs
+			"id": {
+				Description: "The ID of this resource.",
+				Type:        schema.TypeString,
+				Computed:    true,
+			},
 		},
 	}
 }
