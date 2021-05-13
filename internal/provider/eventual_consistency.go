@@ -37,7 +37,7 @@ func (cc *consistencyCheck) reachedConsistency(numInserts int) bool {
 	maxConsistent := int(cc.timeout.Minutes()) * 6 / 2
 
 	return (cc.currConsistent == numConsistent && len(cc.previousEtags) >= numInserts) ||
-		cc.currConsistent == maxConsistent
+		cc.currConsistent >= maxConsistent
 }
 
 func (cc *consistencyCheck) handleFirstRun(etag string) error {
@@ -70,15 +70,15 @@ func (cc *consistencyCheck) checkChangedEtags(numInserts int, etag string) error
 }
 
 func (cc *consistencyCheck) handleConsistency(etag string) {
-	if !cc.isConsistentWithLastEtag(etag) && !cc.inPreviousEtags(etag) {
-		// A new Etag! Working our way toward our new etags:numInserts ratio
-		cc.currConsistent = 0
-		cc.previousEtags = append(cc.previousEtags, etag)
-	}
-
 	if cc.isConsistentWithLastEtag(etag) {
 		// We have a consistent tag, but haven't hit our ration of etags:numInserts, we're counting these just
 		// in case we need to check maxConsistent (see reachedConsistency code)
 		cc.currConsistent += 1
+	}
+
+	if !cc.isConsistentWithLastEtag(etag) && !cc.inPreviousEtags(etag) {
+		// A new Etag! Working our way toward our new etags:numInserts ratio
+		cc.currConsistent = 0
+		cc.previousEtags = append(cc.previousEtags, etag)
 	}
 }
