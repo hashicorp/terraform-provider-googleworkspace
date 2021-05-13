@@ -14,7 +14,7 @@ We aim to make the Google Workspace Provider a good steward of Go practices. See
 
 ### Running Tests
 
-Configuring tests is similar to configuring the provider; see the [Provider Configuration Reference](https://registry.terraform.io/providers/hashicorp/googleworkspace/latest/docs/index) for more details. The following environment variables must be set in order to run tests:
+Configuring tests is similar to configuring the provider; see the [Provider Configuration Reference](https://registry.terraform.io/providers/hashicorp/googleworkspace/latest/docs) for more details. The following environment variables must be set in order to run tests:
 
 ```
 GOOGLEWORKSPACE_CUSTOMER_ID
