@@ -103,7 +103,7 @@ func resourceUser() *schema.Resource {
 
 		Timeouts: &schema.ResourceTimeout{
 			Create: schema.DefaultTimeout(5 * time.Minute),
-			Update: schema.DefaultTimeout(10 * time.Minute),
+			Update: schema.DefaultTimeout(5 * time.Minute),
 		},
 
 		Importer: &schema.ResourceImporter{
@@ -1037,6 +1037,11 @@ func resourceUserCreate(ctx context.Context, d *schema.ResourceData, meta interf
 	if err != nil {
 		return diag.FromErr(err)
 	}
+
+	// The etag changes with each insert, so we want to monitor how many changes we should see
+	// when we're checking for eventual consistency
+	numInserts := 1
+
 	d.SetId(user.Id)
 
 	aliases := d.Get("aliases.#").(int)
@@ -1056,6 +1061,7 @@ func resourceUserCreate(ctx context.Context, d *schema.ResourceData, meta interf
 			if err != nil {
 				return diag.FromErr(err)
 			}
+			numInserts += 1
 		}
 	}
 
@@ -1068,19 +1074,20 @@ func resourceUserCreate(ctx context.Context, d *schema.ResourceData, meta interf
 		if err != nil {
 			return diag.FromErr(err)
 		}
+		numInserts += 1
 	}
 
 	// INSERT will respond with the User that will be created, however, it is eventually consistent
 	// After INSERT, the etag is updated along with the User (and any aliases),
 	// once we get a consistent etag, we can feel confident that our User is also consistent
-	previousEtag := ""
-	numConsistent := 3
-	currConsistent := numConsistent
-	changed := false
+	cc := consistencyCheck{
+		resourceType: "user",
+		timeout:      d.Timeout(schema.TimeoutCreate),
+	}
 	err = retryTimeDuration(ctx, d.Timeout(schema.TimeoutCreate), func() error {
 		var retryErr error
 
-		if currConsistent == 0 {
+		if cc.reachedConsistency(numInserts) {
 			return nil
 		}
 
@@ -1089,40 +1096,22 @@ func resourceUserCreate(ctx context.Context, d *schema.ResourceData, meta interf
 			return retryErr
 		}
 
-		// This is our first time polling, set the previousEtag and return an error, it's not consistent yet
-		if previousEtag == "" {
-			previousEtag = newUser.Etag
-			return fmt.Errorf("timed out while waiting for user to be inserted (%d/%d consistent etags)", currConsistent, numConsistent)
+		// This is our first time polling, set the previousEtag and return an error,
+		// it's likely not consistent yet
+		err := cc.handleFirstRun(newUser.Etag)
+		if err != nil {
+			return err
 		}
 
-		// If we've already seen the change, previousEtag has the value we want to match
-		if changed {
-			if previousEtag == newUser.Etag {
-				// We got another consistent tag
-				currConsistent = currConsistent - 1
-			} else {
-				// because there are potentially multiple calls to INSERT ALIAS, we will
-				// likely get multiple new etags, we need to reset here.
-				// We won't set previousEtag to the new Etag here.
-				// Setting it to "" will be one extra retry (caught above) and setting it to the newUser.Etag will make
-				// it look like its still never changed (changed == false and previousEtag == newUser.Etag) if the next
-				// retry ends up being consistent with this one
-				currConsistent = numConsistent
-				changed = false
-			}
-
-			return fmt.Errorf("timed out while waiting for user to be inserted (%d/%d consistent etags)", currConsistent, numConsistent)
+		err = cc.checkChangedEtags(numInserts, newUser.Etag)
+		if err != nil {
+			return err
 		}
 
-		// Since changed = false, this will be the new etag we want to be consistent with
-		if previousEtag != newUser.Etag {
-			currConsistent = currConsistent - 1
-			changed = true
-		}
+		cc.handleConsistency(newUser.Etag)
 
-		previousEtag = newUser.Etag
-
-		return fmt.Errorf("timed out while waiting for user to be inserted (%d/%d consistent etags)", currConsistent, numConsistent)
+		// We're waiting to hit our ratio of new etags:numInserts
+		return fmt.Errorf("timed out while waiting for %s to be inserted", cc.resourceType)
 	})
 
 	if err != nil {
@@ -1388,13 +1377,7 @@ func resourceUserUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 		}
 	}
 
-	if &userObj != new(directory.User) {
-		_, err := usersService.Update(d.Id(), &userObj).Do()
-		if err != nil {
-			return diag.FromErr(err)
-		}
-	}
-
+	numInserts := 0
 	if d.HasChange("aliases") {
 		old, new := d.GetChange("aliases")
 		oldAliases := listOfInterfacestoStrings(old.([]interface{}))
@@ -1431,6 +1414,7 @@ func resourceUserUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 			if err != nil {
 				return diag.FromErr(err)
 			}
+			numInserts += 1
 		}
 	}
 
@@ -1444,19 +1428,28 @@ func resourceUserUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 		if err != nil {
 			return diag.FromErr(err)
 		}
+		numInserts += 1
+	}
+
+	if &userObj != new(directory.User) {
+		_, err := usersService.Update(d.Id(), &userObj).Do()
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		numInserts += 1
 	}
 
 	// UPDATE will respond with the updated User, however, it is eventually consistent
 	// After UPDATE, the etag is updated along with the User (and any aliases),
 	// once we get a consistent etag, we can feel confident that our User is also consistent
-	previousEtag := ""
-	numConsistent := 3
-	currConsistent := numConsistent
-	changed := false
+	cc := consistencyCheck{
+		resourceType: "user",
+		timeout:      d.Timeout(schema.TimeoutUpdate),
+	}
 	err := retryTimeDuration(ctx, d.Timeout(schema.TimeoutUpdate), func() error {
 		var retryErr error
 
-		if currConsistent == 0 {
+		if cc.reachedConsistency(numInserts) {
 			return nil
 		}
 
@@ -1465,40 +1458,22 @@ func resourceUserUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 			return retryErr
 		}
 
-		// This is our first time polling, set the previousEtag and return an error, it's not consistent yet
-		if previousEtag == "" {
-			previousEtag = newUser.Etag
-			return fmt.Errorf("timed out while waiting for user to be updated (%d/%d consistent etags)", currConsistent, numConsistent)
+		// This is our first time polling, set the previousEtag and return an error,
+		// it's likely not consistent yet
+		err := cc.handleFirstRun(newUser.Etag)
+		if err != nil {
+			return err
 		}
 
-		// If we've already seen the change, previousEtag has the value we want to match
-		if changed {
-			if previousEtag == newUser.Etag {
-				// We got another consistent tag
-				currConsistent = currConsistent - 1
-			} else {
-				// because there are potentially multiple calls to INSERT ALIAS, we will
-				// likely get multiple new etags, we need to reset here.
-				// We won't set previousEtag to the new Etag here.
-				// Setting it to "" will be one extra retry (caught above) and setting it to the newUser.Etag will make
-				// it look like its still never changed (changed == false and previousEtag == newUser.Etag) if the next
-				// retry ends up being consistent with this one
-				currConsistent = numConsistent
-				changed = false
-			}
-
-			return fmt.Errorf("timed out while waiting for user to be update (%d/%d consistent etags)", currConsistent, numConsistent)
+		err = cc.checkChangedEtags(numInserts, newUser.Etag)
+		if err != nil {
+			return err
 		}
 
-		// Since changed = false, this will be the new etag we want to be consistent with
-		if previousEtag != newUser.Etag {
-			currConsistent = currConsistent - 1
-			changed = true
-		}
+		cc.handleConsistency(newUser.Etag)
 
-		previousEtag = newUser.Etag
-
-		return fmt.Errorf("timed out while waiting for user to be updated (%d/%d consistent etags)", currConsistent, numConsistent)
+		// We're waiting to hit our ratio of new etags:numInserts
+		return fmt.Errorf("timed out while waiting for %s to be updated", cc.resourceType)
 	})
 
 	if err != nil {

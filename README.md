@@ -4,7 +4,7 @@
 </a>
 
 ![Status: Tech Preview](https://img.shields.io/badge/status-experimental-EAAA32) [![Releases](https://img.shields.io/github/release/hashicorp/terraform-provider-googleworkspace.svg)](https://github.com/hashicorp/terraform-provider-googleworkspace/releases)
-[![LICENSE](https://img.shields.io/github/license/hashicorp/terraform-provider-googleworkspace.svg)](https://github.com/hashicorp/terraform-provider-googleworkspace/blob/main/LICENSE)
+[![LICENSE](https://img.shields.io/github/license/hashicorp/terraform-provider-googleworkspace.svg)](https://github.com/hashicorp/terraform-provider-googleworkspace/blob/main/LICENSE)![Unit tests](https://github.com/hashicorp/terraform-provider-googleworkspace/workflows/Unit%20tests/badge.svg)
 
 This Google Workspace provider for Terraform allows you to manage domains, users, and groups in your Google Workspace.
 
@@ -17,7 +17,7 @@ This provider plugin is maintained by the Terraform team at [HashiCorp](https://
 ## Requirements
 
 -	[Terraform](https://www.terraform.io/downloads.html) >= 0.13.x
--	[Go](https://golang.org/doc/install) >= 1.15
+-	[Go](https://golang.org/doc/install) >= 1.16
 
 ## Upgrading the provider
 

@@ -1,0 +1,42 @@
+name: Unit tests
+
+on:
+  push:
+    paths:
+      - '**.go'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '**.go'
+jobs:
+  unit_tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2.3.4
+      - name: Set up Go
+        uses: actions/setup-go@v2.1.3
+        with:
+          go-version: '1.16'
+        id: go
+      - name: Go mod verify
+        run: go mod verify
+
+      - name: Get credentials
+        id: vault
+        uses: hashicorp/vault-action@v2.2.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.ROLE_ID }}
+          secretId: ${{ secrets.SECRET_ID }}
+          tlsSkipVerify: true
+          exportEnv: false
+          namespace: admin/tpgw
+          secrets: |
+                gcp/key/tf-acctest private_key_data
+      - name: Run unit tests
+        run:
+          export GOOGLEWORKSPACE_CREDENTIALS=$(echo -n ${{ steps.vault.outputs.private_key_data }} | base64 --decode)
+          make test
