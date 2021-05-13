@@ -6,7 +6,7 @@ The following are certain Google Workspace Provider-specific things to be aware 
 
 ## Go
 
-See the [test.yml](https://github.com/hashicorp/terraform-provider-googleworkspace/blob/master/.github/workflows/test.yml#L69) file for which version of Go to use while developing the provider. You can manage it automatically using [`goenv`](https://github.com/syndbg/goenv).
+See the [test.yml](https://github.com/hashicorp/terraform-provider-googleworkspace/blob/main/.github/workflows/test.yml#L69) file for which version of Go to use while developing the provider. You can manage it automatically using [`goenv`](https://github.com/syndbg/goenv).
 
 We aim to make the Google Workspace Provider a good steward of Go practices. See https://github.com/golang/go/wiki/CodeReviewComments for common Go mistakes that you should attempt to avoid.
 
@@ -14,7 +14,7 @@ We aim to make the Google Workspace Provider a good steward of Go practices. See
 
 ### Running Tests
 
-Configuring tests is similar to configuring the provider; see the [Provider Configuration Reference](https://registry.terraform.io/providers/hashicorp/googleworkspace/latest/docs/guides/provider_reference#configuration-reference) for more details. The following environment variables must be set in order to run tests:
+Configuring tests is similar to configuring the provider; see the [Provider Configuration Reference](https://registry.terraform.io/providers/hashicorp/googleworkspace/latest/docs) for more details. The following environment variables must be set in order to run tests:
 
 ```
 GOOGLEWORKSPACE_CUSTOMER_ID
@@ -106,5 +106,5 @@ If multiple versions are available in a plugin directory (for example after `ter
 ## Reviewing / Merging Code
 
 When reviewing/merging code, roughly follow the guidelines set in the
-[Maintainer's Etiquette](https://github.com/hashicorp/terraform/blob/master/docs/maintainer-etiquette.md)
+[Maintainer's Etiquette](https://github.com/hashicorp/terraform/blob/main/docs/maintainer-etiquette.md)
 guide.
