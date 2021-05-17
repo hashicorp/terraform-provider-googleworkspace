@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -21,6 +22,12 @@ func resourceSchema() *schema.Resource {
 		ReadContext:   resourceSchemaRead,
 		UpdateContext: resourceSchemaUpdate,
 		DeleteContext: resourceSchemaDelete,
+
+		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(1 * time.Minute),
+			Update: schema.DefaultTimeout(1 * time.Minute),
+			Delete: schema.DefaultTimeout(1 * time.Minute),
+		},
 
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
@@ -174,13 +181,18 @@ func resourceSchemaCreate(ctx context.Context, d *schema.ResourceData, meta inte
 		DisplayName: d.Get("display_name").(string),
 	}
 
-	schema, err := schemasService.Insert(client.Customer, &schemaObj).Do()
+	err := retryTimeDuration(ctx, d.Timeout(schema.TimeoutCreate), func() error {
+		definedSchema, retryErr := schemasService.Insert(client.Customer, &schemaObj).Do()
+		if retryErr != nil {
+			return retryErr
+		}
+
+		d.SetId(definedSchema.SchemaId)
+		return nil
+	})
 	if err != nil {
 		return diag.FromErr(err)
 	}
-
-	// Use the schema name as the ID, as it should be unique
-	d.SetId(schema.SchemaId)
 
 	log.Printf("[DEBUG] Finished creating Schema %q: %#v", d.Id(), schemaName)
 
@@ -268,7 +280,16 @@ func resourceSchemaUpdate(ctx context.Context, d *schema.ResourceData, meta inte
 
 	if &schemaObj != new(directory.Schema) {
 		schemaObj.SchemaId = d.Id()
-		_, err := schemasService.Update(client.Customer, d.Id(), &schemaObj).Do()
+
+		err := retryTimeDuration(ctx, d.Timeout(schema.TimeoutUpdate), func() error {
+			definedSchema, retryErr := schemasService.Update(client.Customer, d.Id(), &schemaObj).Do()
+			if retryErr != nil {
+				return retryErr
+			}
+
+			d.SetId(definedSchema.SchemaId)
+			return nil
+		})
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -298,7 +319,14 @@ func resourceSchemaDelete(ctx context.Context, d *schema.ResourceData, meta inte
 		return diags
 	}
 
-	err := schemasService.Delete(client.Customer, d.Id()).Do()
+	err := retryTimeDuration(ctx, d.Timeout(schema.TimeoutDelete), func() error {
+		retryErr := schemasService.Delete(client.Customer, d.Id()).Do()
+		if retryErr != nil {
+			return retryErr
+		}
+
+		return nil
+	})
 	if err != nil {
 		return handleNotFoundError(err, d, schemaName)
 	}

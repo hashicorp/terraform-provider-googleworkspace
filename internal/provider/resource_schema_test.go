@@ -9,6 +9,8 @@ import (
 )
 
 func TestAccResourceSchema_basic(t *testing.T) {
+	t.Parallel()
+
 	schemaName := fmt.Sprintf("tf-test-%s", acctest.RandString(10))
 
 	resource.Test(t, resource.TestCase{
@@ -28,6 +30,8 @@ func TestAccResourceSchema_basic(t *testing.T) {
 }
 
 func TestAccResourceSchema_full(t *testing.T) {
+	t.Parallel()
+
 	schemaName := fmt.Sprintf("tf-test-%s", acctest.RandString(10))
 
 	resource.Test(t, resource.TestCase{

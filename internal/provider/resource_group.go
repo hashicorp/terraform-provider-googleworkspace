@@ -24,8 +24,8 @@ func resourceGroup() *schema.Resource {
 		DeleteContext: resourceGroupDelete,
 
 		Timeouts: &schema.ResourceTimeout{
-			Create: schema.DefaultTimeout(5 * time.Minute),
-			Update: schema.DefaultTimeout(5 * time.Minute),
+			Create: schema.DefaultTimeout(2 * time.Minute),
+			Update: schema.DefaultTimeout(2 * time.Minute),
 		},
 
 		Importer: &schema.ResourceImporter{

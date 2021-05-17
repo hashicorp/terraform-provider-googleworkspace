@@ -34,6 +34,7 @@ resource "googleworkspace_schema" "birthday" {
 ### Optional
 
 - **display_name** (String) Display name for the schema.
+- **timeouts** (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
 
 ### Read-Only
 
@@ -69,6 +70,17 @@ Optional:
 
 - **max_value** (Number) Maximum value of this field. This is meant to be indicativerather than enforced. Values outside this range will still be indexed,but search may not be as performant.
 - **min_value** (Number) Minimum value of this field. This is meant to be indicativerather than enforced. Values outside this range will still be indexed,but search may not be as performant.
+
+
+
+<a id="nestedblock--timeouts"></a>
+### Nested Schema for `timeouts`
+
+Optional:
+
+- **create** (String)
+- **delete** (String)
+- **update** (String)
 
 ## Import
 
