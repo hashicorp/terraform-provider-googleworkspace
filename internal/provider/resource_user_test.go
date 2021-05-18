@@ -42,6 +42,8 @@ func TestAccResourceUser_basic(t *testing.T) {
 }
 
 func TestAccResourceUser_full(t *testing.T) {
+	t.Parallel()
+
 	domainName := os.Getenv("GOOGLEWORKSPACE_DOMAIN")
 
 	if domainName == "" {
@@ -173,6 +175,8 @@ func TestAccResourceUser_gone(t *testing.T) {
 }
 
 func TestAccResourceUser_customSchemas(t *testing.T) {
+	t.Parallel()
+
 	domainName := os.Getenv("GOOGLEWORKSPACE_DOMAIN")
 
 	if domainName == "" {
