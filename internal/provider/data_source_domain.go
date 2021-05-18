@@ -19,5 +19,6 @@ func dataSourceDomain() *schema.Resource {
 }
 
 func dataSourceDomainRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	d.SetId(d.Get("domain_name").(string))
 	return resourceDomainRead(ctx, d, meta)
 }
