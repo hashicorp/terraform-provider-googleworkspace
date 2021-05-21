@@ -1,7 +1,7 @@
 # This GitHub action runs your tests for each commit push and/or PR. Optionally
 # you can turn it on using a cron schedule for regular testing.
 #
-name: Tests
+name: Acceptance Tests
 on:
 #  Commenting out for now, since the Service Account with Vault can only create 10 secret keys
 #  at a time. If this runs twice (on push, when it's already PR'ed) that's 8 secret keys.
