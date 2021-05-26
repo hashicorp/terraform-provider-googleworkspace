@@ -31,6 +31,8 @@ resource "googleworkspace_domain" "my-domain" {
 
 data "googleworkspace_domain" "my-domain" {
   domain_name = googleworkspace_domain.my-domain.domain_name
+
+  depends_on = [googleworkspace_domain.my-domain]
 }
 `, domainName)
 }
