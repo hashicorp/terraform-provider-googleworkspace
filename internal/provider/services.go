@@ -94,6 +94,23 @@ func GetMembersService(directoryService *directory.Service) (*directory.MembersS
 	return membersService, diags
 }
 
+func GetOrgUnitsService(directoryService *directory.Service) (*directory.OrgunitsService, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	log.Printf("[INFO] Instantiating Google Admin OrgUnits service")
+	ousService := directoryService.Orgunits
+	if ousService == nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "OrgUnits Service could not be created.",
+		})
+
+		return nil, diags
+	}
+
+	return ousService, diags
+}
+
 func GetSchemasService(directoryService *directory.Service) (*directory.SchemasService, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
