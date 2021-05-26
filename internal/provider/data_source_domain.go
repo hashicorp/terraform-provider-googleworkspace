@@ -8,13 +8,16 @@ import (
 )
 
 func dataSourceDomain() *schema.Resource {
+	dsSchema := datasourceSchemaFromResourceSchema(resourceDomain().Schema)
+	addRequiredFieldsToSchema(dsSchema, "domain_name")
+
 	return &schema.Resource{
 		// This description is used by the documentation generator and the language server.
 		Description: "Domain data source in the Terraform Googleworkspace provider.",
 
 		ReadContext: dataSourceDomainRead,
 
-		Schema: resourceDomain().Schema,
+		Schema: dsSchema,
 	}
 }
 
