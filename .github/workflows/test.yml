@@ -7,9 +7,10 @@ on:
 #  at a time. If this runs twice (on push, when it's already PR'ed) that's 8 secret keys.
 #  TODO (mbang): re-evaluate ttl on tokens
 
+#  pull_request:
+#    paths-ignore:
+#      - 'README.md'
   push:
-    branches:
-      - main
     paths-ignore:
       - 'README.md'
   # For systems with an upstream API that could drift unexpectedly (like most SaaS systems, etc.),
@@ -27,13 +28,13 @@ jobs:
     steps:
 
     - name: Set up Go
-      uses: actions/setup-go@37335c7bb261b353407cff977110895fa0b4f7d8
+      uses: actions/setup-go@v2.1.3
       with:
         go-version: '1.15'
       id: go
 
     - name: Check out code into the Go module directory
-      uses: actions/checkout@v5a4ac9002d0be2fb38bd78e4b4dbde5606d7042f
+      uses: actions/checkout@v2.3.4
 
     - name: Get dependencies
       run: |
@@ -62,13 +63,13 @@ jobs:
           - '0.15.1'
     steps:
     - name: Set up Go
-      uses: actions/setup-go@37335c7bb261b353407cff977110895fa0b4f7d8
+      uses: actions/setup-go@v2.1.3
       with:
         go-version: '1.16'
       id: go
 
     - name: Check out code into the Go module directory
-      uses: actions/checkout@v5a4ac9002d0be2fb38bd78e4b4dbde5606d7042f
+      uses: actions/checkout@v2.3.3
 
     - name: Get dependencies
       run: |
@@ -76,7 +77,7 @@ jobs:
 
     - name: Get credentials
       id: vault
-      uses: hashicorp/vault-action@0723fd73487d69ce18331684dafdaafa180a5ea1
+      uses: hashicorp/vault-action@v2.2.0
       with:
         url: ${{ secrets.VAULT_ADDR }}
         method: approle
