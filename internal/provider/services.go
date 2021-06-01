@@ -111,6 +111,40 @@ func GetOrgUnitsService(directoryService *directory.Service) (*directory.Orgunit
 	return ousService, diags
 }
 
+func GetRoleAssignmentsService(directoryService *directory.Service) (*directory.RoleAssignmentsService, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	log.Printf("[INFO] Instantiating Google Admin RoleAssignments service")
+	roleAssignmentsService := directoryService.RoleAssignments
+	if roleAssignmentsService == nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "RoleAssignments Service could not be created.",
+		})
+
+		return nil, diags
+	}
+
+	return roleAssignmentsService, diags
+}
+
+func GetRolesService(directoryService *directory.Service) (*directory.RolesService, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	log.Printf("[INFO] Instantiating Google Admin Roles service")
+	rolesService := directoryService.Roles
+	if rolesService == nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Roles Service could not be created.",
+		})
+
+		return nil, diags
+	}
+
+	return rolesService, diags
+}
+
 func GetSchemasService(directoryService *directory.Service) (*directory.SchemasService, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
