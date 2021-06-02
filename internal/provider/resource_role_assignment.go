@@ -127,7 +127,7 @@ func resourceRolesAssignmentCreate(ctx context.Context, d *schema.ResourceData, 
 		return diag.FromErr(err)
 	}
 
-	d.SetId(strconv.FormatInt(ra.RoleAssignmentId, 0))
+	d.SetId(strconv.FormatInt(ra.RoleAssignmentId, 10))
 
 	log.Printf("[DEBUG] Finished creating RoleAssignment user:%s, role:%s", assignedTo, roleId)
 
@@ -174,8 +174,7 @@ func resourceRoleAssignmentDelete(ctx context.Context, d *schema.ResourceData, m
 
 	client := meta.(*apiClient)
 
-	domainName := d.Get("domain_name").(string)
-	log.Printf("[DEBUG] Deleting Domain %q: %#v", d.Id(), domainName)
+	log.Printf("[DEBUG] Deleting RoleAssignment %q", d.Id())
 
 	directoryService, diags := client.NewDirectoryService()
 	if diags.HasError() {
@@ -192,7 +191,7 @@ func resourceRoleAssignmentDelete(ctx context.Context, d *schema.ResourceData, m
 		return handleNotFoundError(err, d, d.Id())
 	}
 
-	log.Printf("[DEBUG] Finished deleting Domain %q", d.Id())
+	log.Printf("[DEBUG] Finished deleting RoleAssignment %q", d.Id())
 
 	return diags
 }

@@ -115,11 +115,11 @@ func dataSourceRoleRead(ctx context.Context, d *schema.ResourceData, meta interf
 	d.Set("etag", role.Etag)
 
 	privileges := make([]interface{}, len(role.RolePrivileges))
-	for _, priv := range role.RolePrivileges {
-		privileges = append(privileges, map[string]interface{}{
+	for i, priv := range role.RolePrivileges {
+		privileges[i] = map[string]interface{}{
 			"service_id": priv.ServiceId,
 			"name":       priv.PrivilegeName,
-		})
+		}
 	}
 	if err := d.Set("privileges", privileges); err != nil {
 		return diag.FromErr(err)

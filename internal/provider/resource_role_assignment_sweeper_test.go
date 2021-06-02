@@ -9,7 +9,7 @@ import (
 )
 
 func init() {
-	resource.AddTestSweepers("Domain", &resource.Sweeper{
+	resource.AddTestSweepers("RoleAssignment", &resource.Sweeper{
 		Name: "RoleAssignment",
 		F:    testSweepRoleAssignment,
 	})
