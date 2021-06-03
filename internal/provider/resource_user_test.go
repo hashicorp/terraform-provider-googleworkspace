@@ -452,19 +452,6 @@ resource "googleworkspace_user" "my-new-user" {
     language_code = "en"
   }
 
-  posix_accounts {
-    account_id = "dwightschrute"
-    gecos = "dwightschrute,1,5551230987,5551237890"
-    gid = "1001"
-    home_directory = "/home/dwightschrute"
-    operating_system_type = "linux"
-    primary = true
-    shell = "/bin/bash"
-    system_id = "5"
-    uid = "67543"
-    username = "dwightschrute"
-  }
-
   ssh_public_keys {
     key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPM4pxpbPpjuBocS6qlW0BHRYgH5xmv/yVrANZR9lc1N"
   }
