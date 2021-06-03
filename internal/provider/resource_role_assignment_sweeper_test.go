@@ -34,13 +34,13 @@ func testSweepRoleAssignment(region string) error {
 
 	raService, diags := GetRoleAssignmentsService(directoryService)
 	if diags.HasError() {
-		log.Printf("[INFO][SWEEPER_LOG] Error getting domains service: %s", diags[0].Summary)
+		log.Printf("[INFO][SWEEPER_LOG] Error getting role assignments service: %s", diags[0].Summary)
 		return fmt.Errorf(diags[0].Summary)
 	}
 
 	roleAssignments, err := raService.List(client.Customer).Do()
 	if err != nil {
-		log.Printf("[INFO][SWEEPER_LOG] Error getting domain list: %s", err)
+		log.Printf("[INFO][SWEEPER_LOG] Error getting role assignments list: %s", err)
 		return err
 	}
 
@@ -55,7 +55,7 @@ func testSweepRoleAssignment(region string) error {
 	for _, ra := range roleAssignments.Items {
 		err := raService.Delete(client.Customer, strconv.FormatInt(ra.RoleAssignmentId, 10)).Do()
 		if err != nil {
-			log.Printf("[INFO][SWEEPER_LOG] Error deleting domain: %v", ra.RoleAssignmentId)
+			log.Printf("[INFO][SWEEPER_LOG] Error deleting role assignment: %v", ra.RoleAssignmentId)
 		} else {
 			log.Printf("[INFO][SWEEPER_LOG] Sent delete request for %s resource: %v", resourceName, ra.RoleAssignmentId)
 		}

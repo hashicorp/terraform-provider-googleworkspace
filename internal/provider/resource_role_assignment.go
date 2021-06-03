@@ -5,10 +5,8 @@ import (
 	"log"
 	"strconv"
 
-	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	directory "google.golang.org/api/admin/directory/v1"
 )
 
@@ -35,11 +33,6 @@ func resourceRoleAssignment() *schema.Resource {
 				Required:    true,
 				ForceNew:    true,
 			},
-			"kind": {
-				Description: "The type of the API resource. This is always admin#directory#roleAssignment.",
-				Type:        schema.TypeString,
-				Computed:    true,
-			},
 			"etag": {
 				Description: "ETag of the resource.",
 				Type:        schema.TypeString,
@@ -51,6 +44,7 @@ func resourceRoleAssignment() *schema.Resource {
 				Required:    true,
 				ForceNew:    true,
 			},
+			/* TODO: ORG_UNIT scope not working at this time
 			"scope_type": {
 				Description:      "The scope in which this role is assigned.",
 				Type:             schema.TypeString,
@@ -63,11 +57,6 @@ func resourceRoleAssignment() *schema.Resource {
 				Type:        schema.TypeString,
 				Optional:    true,
 				ForceNew:    true,
-			},
-			/* do we implement beta features?
-			"condition": {
-				Type: schema.TypeString,
-				Optional: true,
 			},
 			*/
 		},
@@ -100,26 +89,7 @@ func resourceRolesAssignmentCreate(ctx context.Context, d *schema.ResourceData, 
 	ra := &directory.RoleAssignment{
 		AssignedTo: assignedTo,
 		RoleId:     roleIdInt64,
-		ScopeType:  d.Get("scope_type").(string),
-		OrgUnitId:  d.Get("org_unit_id").(string),
-	}
-	if ra.ScopeType == "ORG_UNIT" && ra.OrgUnitId == "" {
-		diags = append(diags, diag.Diagnostic{
-			Severity:      diag.Error,
-			Summary:       "org_unit_id must be set",
-			Detail:        "if scope_type is set to ORG_UNIT, org_unit_id must be set",
-			AttributePath: cty.IndexStringPath("org_unit_id"),
-		})
-		return diags
-	}
-	if ra.ScopeType != "ORG_UNIT" && ra.OrgUnitId != "" {
-		diags = append(diags, diag.Diagnostic{
-			Severity:      diag.Error,
-			Summary:       "org_unit_id must not be set",
-			Detail:        "if scope_type is not set to ORG_UNIT, org_unit_id must not be set",
-			AttributePath: cty.IndexStringPath("org_unit_id"),
-		})
-		return diags
+		ScopeType:  "CUSTOMER", // hardcoded until ORG_UNIT scope is sorted out
 	}
 
 	ra, err = roleAssignmentsService.Insert(client.Customer, ra).Do()
@@ -158,11 +128,8 @@ func resourceRoleAssignmentRead(ctx context.Context, d *schema.ResourceData, met
 
 	d.SetId(strconv.FormatInt(ra.RoleAssignmentId, 10))
 	d.Set("role_id", strconv.FormatInt(ra.RoleId, 10))
-	d.Set("kind", ra.Kind)
 	d.Set("etag", ra.Etag)
 	d.Set("assigned_to", ra.AssignedTo)
-	d.Set("scope_type", ra.ScopeType)
-	d.Set("org_unit_id", ra.OrgUnitId)
 
 	log.Printf("[DEBUG] Finished getting RoleAssignment %q", d.Id())
 

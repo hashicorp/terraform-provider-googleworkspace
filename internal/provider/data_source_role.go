@@ -62,11 +62,6 @@ func dataSourceRole() *schema.Resource {
 				Type:        schema.TypeBool,
 				Computed:    true,
 			},
-			"kind": {
-				Description: "The type of the API resource. This is always admin#directory#role.",
-				Type:        schema.TypeString,
-				Computed:    true,
-			},
 			"etag": {
 				Description: "ETag of the resource.",
 				Type:        schema.TypeString,
@@ -111,7 +106,6 @@ func dataSourceRoleRead(ctx context.Context, d *schema.ResourceData, meta interf
 	d.Set("description", role.RoleDescription)
 	d.Set("is_system_role", role.IsSystemRole)
 	d.Set("is_super_admin_role", role.IsSuperAdminRole)
-	d.Set("kind", role.Kind)
 	d.Set("etag", role.Etag)
 
 	privileges := make([]interface{}, len(role.RolePrivileges))
