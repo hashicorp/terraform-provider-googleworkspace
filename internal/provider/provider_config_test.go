@@ -2,6 +2,7 @@ package googleworkspace
 
 import (
 	"context"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -50,7 +51,11 @@ func TestConfigLoadAndValidate_credsFromFile(t *testing.T) {
 	}
 }
 
-func TestConfigLoadAndValidate_credsFromEnv(t *testing.T) {
+func TestAccConfigLoadAndValidate_credsFromEnv(t *testing.T) {
+	if os.Getenv("TF_ACC") == "" {
+		t.Skip(fmt.Sprintf("Network access not allowed; use TF_ACC=1 to enable"))
+	}
+
 	testAccPreCheck(t)
 
 	creds := getTestCredsFromEnv()
