@@ -19,11 +19,9 @@ func TestAccDataSourceRole(t *testing.T) {
 			{
 				Config: testAccDataSourceRole(name),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("data.googleworkspace_role.test", "id", "11891411796361218"),
 					resource.TestCheckResourceAttr("data.googleworkspace_role.test", "name", name),
 					resource.TestCheckResourceAttr("data.googleworkspace_role.test", "is_system_role", "true"),
 					resource.TestCheckResourceAttr("data.googleworkspace_role.test", "privileges.#", "6"),
-					resource.TestCheckResourceAttr("data.googleworkspace_role.test", "privileges.0.name", "CHANGE_USER_GROUP_MEMBERSHIP"),
 				),
 			},
 		},
