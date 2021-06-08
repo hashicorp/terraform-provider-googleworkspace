@@ -82,7 +82,7 @@ func resourceRolesAssignmentCreate(ctx context.Context, d *schema.ResourceData, 
 		return diags
 	}
 
-	roleIdInt64, err := strconv.ParseInt(roleId, 10, 0)
+	roleIdInt64, err := strconv.ParseInt(roleId, 10, 64)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -123,7 +123,10 @@ func resourceRoleAssignmentRead(ctx context.Context, d *schema.ResourceData, met
 
 	ra, err := roleAssignmentsService.Get(client.Customer, d.Id()).Do()
 	if err != nil {
-		return diag.FromErr(err)
+		return handleNotFoundError(err, d, d.Id())
+	}
+	if ra == nil {
+		return diag.Errorf("No RoleAssignment was returned for %s.", d.Id())
 	}
 
 	d.SetId(strconv.FormatInt(ra.RoleAssignmentId, 10))
