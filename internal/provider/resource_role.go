@@ -52,7 +52,7 @@ func resourceRole() *schema.Resource {
 							Required:    true,
 							Type:        schema.TypeString,
 						},
-						"name": {
+						"privilege_name": {
 							Description: "The name of the privilege.",
 							Required:    true,
 							Type:        schema.TypeString,
@@ -199,7 +199,7 @@ func getRole(d *schema.ResourceData) *directory.Role {
 	for _, pMap := range privileges.List() {
 		priv := pMap.(map[string]interface{})
 		role.RolePrivileges = append(role.RolePrivileges, &directory.RoleRolePrivileges{
-			PrivilegeName: priv["name"].(string),
+			PrivilegeName: priv["privilege_name"].(string),
 			ServiceId:     priv["service_id"].(string),
 		})
 	}
@@ -224,8 +224,8 @@ func setRole(d *schema.ResourceData, role *directory.Role) diag.Diagnostics {
 	privileges := make([]interface{}, len(role.RolePrivileges))
 	for i, priv := range role.RolePrivileges {
 		privileges[i] = map[string]interface{}{
-			"service_id": priv.ServiceId,
-			"name":       priv.PrivilegeName,
+			"service_id":     priv.ServiceId,
+			"privilege_name": priv.PrivilegeName,
 		}
 	}
 	if err := d.Set("privileges", privileges); err != nil {

@@ -8,18 +8,49 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
-func TestAccResourceRole_full(t *testing.T) {
+func TestAccResourceRole_basic(t *testing.T) {
 	t.Parallel()
+
+	data := map[string]interface{}{
+		"name":        fmt.Sprintf("tf-test-%s", acctest.RandString(10)),
+		"description": "test",
+	}
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: providerFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccRole_basic(map[string]interface{}{
-					"name":        fmt.Sprintf("tf-test-%s", acctest.RandString(10)),
-					"description": "test",
-				}),
+				Config: testAccRole_basic(data),
+			},
+			{
+				ResourceName:      "googleworkspace_role.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+func TestAccResourceRole_full(t *testing.T) {
+	t.Parallel()
+
+	data := map[string]interface{}{
+		"name":        fmt.Sprintf("tf-test-%s", acctest.RandString(10)),
+		"description": "test",
+	}
+
+	data2 := map[string]interface{}{
+		"name":        fmt.Sprintf("tf-test-%s", acctest.RandString(10)),
+		"description": "test",
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: providerFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccRole_basic(data),
 			},
 			{
 				ResourceName:      "googleworkspace_role.test",
@@ -27,10 +58,7 @@ func TestAccResourceRole_full(t *testing.T) {
 				ImportStateVerify: true,
 			},
 			{
-				Config: testAccRole_update(map[string]interface{}{
-					"name":        fmt.Sprintf("tf-test-%s", acctest.RandString(10)),
-					"description": "test",
-				}),
+				Config: testAccRole_update(data2),
 			},
 			{
 				ResourceName:      "googleworkspace_role.test",
@@ -49,12 +77,12 @@ resource "googleworkspace_role" "test" {
  
   privileges {
     service_id = "02w5ecyt3pkeyqi"
-    name = "MANAGE_PLAY_FOR_WORK_STORE"
+    privilege_name = "MANAGE_PLAY_FOR_WORK_STORE"
   }
 
   privileges {
 	service_id = "02w5ecyt3pkeyqi"
-    name = "MANAGE_ENTERPRISE_PRIVATE_APPS"
+    privilege_name = "MANAGE_ENTERPRISE_PRIVATE_APPS"
   }
 }
 `, data)
@@ -68,17 +96,17 @@ resource "googleworkspace_role" "test" {
  
   privileges {
     service_id = "02w5ecyt3pkeyqi"
-    name = "MANAGE_PLAY_FOR_WORK_STORE"
+    privilege_name = "MANAGE_PLAY_FOR_WORK_STORE"
   }
 
   privileges {
 	service_id = "02w5ecyt3pkeyqi"
-    name = "MANAGE_ENTERPRISE_PRIVATE_APPS"
+    privilege_name = "MANAGE_ENTERPRISE_PRIVATE_APPS"
   }
 
   privileges {
 	service_id = "02w5ecyt3pkeyqi"
-	name = "MANAGE_EXTERNALLY_HOSTED_APK_UPLOAD_IN_PLAY"
+	privilege_name = "MANAGE_EXTERNALLY_HOSTED_APK_UPLOAD_IN_PLAY"
   }
 }
 `, data)
