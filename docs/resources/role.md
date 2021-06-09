@@ -3,12 +3,12 @@
 page_title: "googleworkspace_role Resource - terraform-provider-googleworkspace"
 subcategory: ""
 description: |-
-  Roles resource in the Terraform Googleworkspace provider.
+  Role resource in the Terraform Googleworkspace provider.
 ---
 
 # googleworkspace_role (Resource)
 
-Roles resource in the Terraform Googleworkspace provider.
+Role resource in the Terraform Googleworkspace provider.
 
 ## Example Usage
 

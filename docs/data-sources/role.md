@@ -3,12 +3,12 @@
 page_title: "googleworkspace_role Data Source - terraform-provider-googleworkspace"
 subcategory: ""
 description: |-
-  Roles data source in the Terraform Googleworkspace provider.
+  Role data source in the Terraform Googleworkspace provider.
 ---
 
 # googleworkspace_role (Data Source)
 
-Roles data source in the Terraform Googleworkspace provider.
+Role data source in the Terraform Googleworkspace provider.
 
 ## Example Usage
 

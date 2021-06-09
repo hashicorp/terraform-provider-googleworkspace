@@ -14,7 +14,7 @@ import (
 
 func resourceRole() *schema.Resource {
 	return &schema.Resource{
-		Description: "Roles resource in the Terraform Googleworkspace provider.",
+		Description: "Role resource in the Terraform Googleworkspace provider.",
 
 		CreateContext: resourceRoleCreate,
 		ReadContext:   resourceRoleRead,

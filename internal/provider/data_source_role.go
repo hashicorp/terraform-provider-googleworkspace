@@ -15,7 +15,7 @@ func dataSourceRole() *schema.Resource {
 	addRequiredFieldsToSchema(rSchema, "name")
 
 	return &schema.Resource{
-		Description: "Roles data source in the Terraform Googleworkspace provider.",
+		Description: "Role data source in the Terraform Googleworkspace provider.",
 
 		ReadContext: dataSourceRoleRead,
 
