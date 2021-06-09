@@ -11,17 +11,12 @@ import (
 func TestAccResourceRole_basic(t *testing.T) {
 	t.Parallel()
 
-	data := map[string]interface{}{
-		"name":        fmt.Sprintf("tf-test-%s", acctest.RandString(10)),
-		"description": "test",
-	}
-
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: providerFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccRole_basic(data),
+				Config: testAccRole_basic(fmt.Sprintf("tf-test-%s", acctest.RandString(10)), "test"),
 			},
 			{
 				ResourceName:      "googleworkspace_role.test",
@@ -35,22 +30,12 @@ func TestAccResourceRole_basic(t *testing.T) {
 func TestAccResourceRole_full(t *testing.T) {
 	t.Parallel()
 
-	data := map[string]interface{}{
-		"name":        fmt.Sprintf("tf-test-%s", acctest.RandString(10)),
-		"description": "test",
-	}
-
-	data2 := map[string]interface{}{
-		"name":        fmt.Sprintf("tf-test-%s", acctest.RandString(10)),
-		"description": "test",
-	}
-
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: providerFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccRole_basic(data),
+				Config: testAccRole_basic(fmt.Sprintf("tf-test-%s", acctest.RandString(10)), "test"),
 			},
 			{
 				ResourceName:      "googleworkspace_role.test",
@@ -58,7 +43,7 @@ func TestAccResourceRole_full(t *testing.T) {
 				ImportStateVerify: true,
 			},
 			{
-				Config: testAccRole_update(data2),
+				Config: testAccRole_update(fmt.Sprintf("tf-test-%s", acctest.RandString(10)), "update"),
 			},
 			{
 				ResourceName:      "googleworkspace_role.test",
@@ -69,11 +54,11 @@ func TestAccResourceRole_full(t *testing.T) {
 	})
 }
 
-func testAccRole_basic(data map[string]interface{}) string {
-	return Nprintf(`
+func testAccRole_basic(name, description string) string {
+	return fmt.Sprintf(`
 resource "googleworkspace_role" "test" {
-  name = "%{name}"
-  description = "%{description}"
+  name = "%s"
+  description = "%s"
  
   privileges {
     service_id = "02w5ecyt3pkeyqi"
@@ -81,18 +66,18 @@ resource "googleworkspace_role" "test" {
   }
 
   privileges {
-	service_id = "02w5ecyt3pkeyqi"
+    service_id = "02w5ecyt3pkeyqi"
     privilege_name = "MANAGE_ENTERPRISE_PRIVATE_APPS"
   }
 }
-`, data)
+`, name, description)
 }
 
-func testAccRole_update(data map[string]interface{}) string {
-	return Nprintf(`
+func testAccRole_update(name, description string) string {
+	return fmt.Sprintf(`
 resource "googleworkspace_role" "test" {
-  name = "%{name}"
-  description = "%{description}"
+  name = "%s"
+  description = "%s"
  
   privileges {
     service_id = "02w5ecyt3pkeyqi"
@@ -100,14 +85,14 @@ resource "googleworkspace_role" "test" {
   }
 
   privileges {
-	service_id = "02w5ecyt3pkeyqi"
+    service_id = "02w5ecyt3pkeyqi"
     privilege_name = "MANAGE_ENTERPRISE_PRIVATE_APPS"
   }
 
   privileges {
-	service_id = "02w5ecyt3pkeyqi"
-	privilege_name = "MANAGE_EXTERNALLY_HOSTED_APK_UPLOAD_IN_PLAY"
+    service_id = "02w5ecyt3pkeyqi"
+    privilege_name = "MANAGE_EXTERNALLY_HOSTED_APK_UPLOAD_IN_PLAY"
   }
 }
-`, data)
+`, name, description)
 }
