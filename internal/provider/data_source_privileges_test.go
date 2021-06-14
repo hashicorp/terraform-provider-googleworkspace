@@ -9,7 +9,7 @@ import (
 	directory "google.golang.org/api/admin/directory/v1"
 )
 
-func TestAccDataSourcePrivileges(t *testing.T) {
+func TestAccDataSourcePrivileges_basic(t *testing.T) {
 	t.Parallel()
 
 	resource.Test(t, resource.TestCase{
@@ -20,7 +20,7 @@ func TestAccDataSourcePrivileges(t *testing.T) {
 				Config: testAccDataSourcePrivileges(),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("data.googleworkspace_privileges.test", "etag"),
-					resource.TestCheckResourceAttr("data.googleworkspace_privileges.test", "items.#", "1"),
+					resource.TestCheckResourceAttr("data.googleworkspace_privileges.test", "items.#", "104"),
 				),
 			},
 		},
