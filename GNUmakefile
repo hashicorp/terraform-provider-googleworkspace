@@ -32,4 +32,4 @@ test: fmtcheck
 # Run acceptance tests
 .PHONY: testacc
 testacc: fmtcheck
-	TF_ACC=1 TF_SCHEMA_PANIC_ON_ERROR=1 go test -count=1 $(TEST) -v $(TESTARGS) -timeout 120m -ldflags="-X=github.com/hashicorp/terraform-provider-googleworkspace/version.ProviderVersion=acc"
+	TF_ACC=1 go test -count=1 $(TEST) -v $(TESTARGS) -timeout 120m
