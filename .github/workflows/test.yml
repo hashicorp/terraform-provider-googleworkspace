@@ -102,7 +102,7 @@ jobs:
         go test ./internal/provider -v -sweep=us-central1 -sweep-run= -timeout 60m
 
     - name: TF acceptance tests
-      timeout-minutes: 120m
+      timeout-minutes: 120
       env:
         TF_ACC: "1"
         TF_LOG: "TRACE"
