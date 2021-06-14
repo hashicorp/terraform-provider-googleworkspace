@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	directory "google.golang.org/api/admin/directory/v1"
+	"google.golang.org/api/googleapi"
 )
 
 func resourceGroup() *schema.Resource {
@@ -167,26 +168,13 @@ func resourceGroupCreate(ctx context.Context, d *schema.ResourceData, meta inter
 			return nil
 		}
 
-		newGroup, retryErr := groupsService.Get(d.Id()).Do()
-		if retryErr != nil {
-			return retryErr
+		newGroup, retryErr := groupsService.Get(d.Id()).IfNoneMatch(cc.lastEtag).Do()
+		if googleapi.IsNotModified(retryErr) {
+			cc.currConsistent += 1
+		} else {
+			cc.handleNewEtag(newGroup.Etag)
 		}
 
-		// This is our first time polling, set the previousEtag and return an error,
-		// it's likely not consistent yet
-		err := cc.handleFirstRun(newGroup.Etag)
-		if err != nil {
-			return err
-		}
-
-		err = cc.checkChangedEtags(numInserts, newGroup.Etag)
-		if err != nil {
-			return err
-		}
-
-		cc.handleConsistency(newGroup.Etag)
-
-		// We're waiting to hit our ratio of new etags:numInserts
 		return fmt.Errorf("timed out while waiting for %s to be inserted", cc.resourceType)
 	})
 
@@ -332,26 +320,13 @@ func resourceGroupUpdate(ctx context.Context, d *schema.ResourceData, meta inter
 			return nil
 		}
 
-		newGroup, retryErr := groupsService.Get(d.Id()).Do()
-		if retryErr != nil {
-			return retryErr
+		newGroup, retryErr := groupsService.Get(d.Id()).IfNoneMatch(cc.lastEtag).Do()
+		if googleapi.IsNotModified(retryErr) {
+			cc.currConsistent += 1
+		} else {
+			cc.handleNewEtag(newGroup.Etag)
 		}
 
-		// This is our first time polling, set the previousEtag and return an error,
-		// it's likely not consistent yet
-		err := cc.handleFirstRun(newGroup.Etag)
-		if err != nil {
-			return err
-		}
-
-		err = cc.checkChangedEtags(numInserts, newGroup.Etag)
-		if err != nil {
-			return err
-		}
-
-		cc.handleConsistency(newGroup.Etag)
-
-		// We're waiting to hit our ratio of new etags:numInserts
 		return fmt.Errorf("timed out while waiting for %s to be updated", cc.resourceType)
 	})
 

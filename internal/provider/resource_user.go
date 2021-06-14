@@ -1091,26 +1091,13 @@ func resourceUserCreate(ctx context.Context, d *schema.ResourceData, meta interf
 			return nil
 		}
 
-		newUser, retryErr := usersService.Get(d.Id()).Do()
-		if retryErr != nil {
-			return retryErr
+		newUser, retryErr := usersService.Get(d.Id()).IfNoneMatch(cc.lastEtag).Do()
+		if googleapi.IsNotModified(retryErr) {
+			cc.currConsistent += 1
+		} else {
+			cc.handleNewEtag(newUser.Etag)
 		}
 
-		// This is our first time polling, set the previousEtag and return an error,
-		// it's likely not consistent yet
-		err := cc.handleFirstRun(newUser.Etag)
-		if err != nil {
-			return err
-		}
-
-		err = cc.checkChangedEtags(numInserts, newUser.Etag)
-		if err != nil {
-			return err
-		}
-
-		cc.handleConsistency(newUser.Etag)
-
-		// We're waiting to hit our ratio of new etags:numInserts
 		return fmt.Errorf("timed out while waiting for %s to be inserted", cc.resourceType)
 	})
 
@@ -1398,6 +1385,7 @@ func resourceUserUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 			if err != nil {
 				return diag.FromErr(err)
 			}
+			numInserts += 1
 		}
 
 		// Insert all new aliases that weren't previously in state
@@ -1453,26 +1441,13 @@ func resourceUserUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 			return nil
 		}
 
-		newUser, retryErr := usersService.Get(d.Id()).Do()
-		if retryErr != nil {
-			return retryErr
+		newUser, retryErr := usersService.Get(d.Id()).IfNoneMatch(cc.lastEtag).Do()
+		if googleapi.IsNotModified(retryErr) {
+			cc.currConsistent += 1
+		} else {
+			cc.handleNewEtag(newUser.Etag)
 		}
 
-		// This is our first time polling, set the previousEtag and return an error,
-		// it's likely not consistent yet
-		err := cc.handleFirstRun(newUser.Etag)
-		if err != nil {
-			return err
-		}
-
-		err = cc.checkChangedEtags(numInserts, newUser.Etag)
-		if err != nil {
-			return err
-		}
-
-		cc.handleConsistency(newUser.Etag)
-
-		// We're waiting to hit our ratio of new etags:numInserts
 		return fmt.Errorf("timed out while waiting for %s to be updated", cc.resourceType)
 	})
 
