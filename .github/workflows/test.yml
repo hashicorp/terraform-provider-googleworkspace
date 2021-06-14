@@ -102,10 +102,10 @@ jobs:
         go test ./internal/provider -v -sweep=us-central1 -sweep-run= -timeout 60m
 
     - name: TF acceptance tests
-      timeout-minutes: 10
+      timeout-minutes: 120m
       env:
         TF_ACC: "1"
-        TF_LOG: "DEBUG"
+        TF_LOG: "TRACE"
         TF_ACC_TERRAFORM_VERSION: ${{ matrix.terraform }}
 
         # Set whatever additional acceptance test env vars here. You can
