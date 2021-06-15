@@ -1,4 +1,4 @@
-data "googleworkspace_privileges" "privleges" {}
+data "googleworkspace_privileges" "privileges" {}
 
 # filter using native Terraform syntax
 locals {

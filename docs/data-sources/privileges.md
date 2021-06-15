@@ -13,7 +13,7 @@ Privileges data source in the Terraform Googleworkspace provider.
 ## Example Usage
 
 ```terraform
-data "googleworkspace_privileges" "privleges" {}
+data "googleworkspace_privileges" "privileges" {}
 
 # filter using native Terraform syntax
 locals {
