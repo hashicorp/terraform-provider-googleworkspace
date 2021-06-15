@@ -221,6 +221,11 @@ resource "googleworkspace_group" "my-group" {
 resource "googleworkspace_group_settings" "my-group-settings" {
   email = googleworkspace_group.my-group.email
 
+  timeouts {
+    create = "10m"
+    update = "10m"
+  }
+
   is_archived = true
 }
 `, testGroupVals)
@@ -248,6 +253,11 @@ resource "googleworkspace_group" "my-group" {
 
 resource "googleworkspace_group_settings" "my-group-settings" {
   email = googleworkspace_group.my-group.email
+
+  timeouts {
+    create = "10m"
+    update = "10m"
+  }
 
   is_archived = true
   archive_only = true

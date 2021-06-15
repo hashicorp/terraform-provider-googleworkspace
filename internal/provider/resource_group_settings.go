@@ -2,8 +2,11 @@ package googleworkspace
 
 import (
 	"context"
+	"fmt"
 	"log"
+	"reflect"
 	"strconv"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -21,6 +24,11 @@ func resourceGroupSettings() *schema.Resource {
 		ReadContext:   resourceGroupSettingsRead,
 		UpdateContext: resourceGroupSettingsUpdate,
 		DeleteContext: resourceGroupSettingsDelete,
+
+		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(5 * time.Minute),
+			Update: schema.DefaultTimeout(5 * time.Minute),
+		},
 
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
@@ -383,6 +391,15 @@ func resourceGroupSettingsCreate(ctx context.Context, d *schema.ResourceData, me
 
 	d.SetId(groupSettings.Email)
 
+	err = retryTimeDuration(ctx, d.Timeout(schema.TimeoutCreate), func() error {
+		newGroupSettings, _ := groupsService.Get(d.Id()).Do()
+		if reflect.DeepEqual(groupSettings, newGroupSettings) {
+			return nil
+		}
+
+		return fmt.Errorf("timed out while waiting for group settings to be updated")
+	})
+
 	log.Printf("[DEBUG] Finished creating Group Settings %q: %#v", d.Id(), email)
 
 	return resourceGroupSettingsRead(ctx, d, meta)
@@ -642,6 +659,15 @@ func resourceGroupSettingsUpdate(ctx context.Context, d *schema.ResourceData, me
 	}
 
 	d.SetId(groupSettings.Email)
+
+	err = retryTimeDuration(ctx, d.Timeout(schema.TimeoutUpdate), func() error {
+		newGroupSettings, _ := groupsService.Get(d.Id()).Do()
+		if reflect.DeepEqual(groupSettings, newGroupSettings) {
+			return nil
+		}
+
+		return fmt.Errorf("timed out while waiting for group settings to be updated")
+	})
 
 	log.Printf("[DEBUG] Finished updating Group Settings %q: %#v", d.Id(), email)
 
