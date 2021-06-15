@@ -53,6 +53,7 @@ resource "googleworkspace_group_settings" "sales-settings" {
 - **reply_to** (String) Specifies who receives the default reply. Possible values are: `REPLY_TO_CUSTOM`: For replies to messages, use the group's custom email address. When set to `REPLY_TO_CUSTOM`, the `custom_reply_to` property holds the custom email address used when replying to a message, the customReplyTo property must have a value. Otherwise an error is returned. `REPLY_TO_SENDER`: The reply sent to author of message. `REPLY_TO_LIST`: This reply message is sent to the group. `REPLY_TO_OWNER`: The reply is sent to the owner(s) of the group. This does not include the group's managers. `REPLY_TO_IGNORE`: Group users individually decide where the message reply is sent. `REPLY_TO_MANAGERS`: This reply message is sent to the group's managers, which includes all managers and the group owner. Defaults to `REPLY_TO_IGNORE`.
 - **send_message_deny_notification** (Boolean) Allows a member to be notified if the member's message to the group is denied by the group owner. If true, when a message is rejected, send the deny message notification to the message author. The `default_message_deny_notification_text` property is dependent on the `send_message_deny_notification` property being true. If false, when a message is rejected, no notification is sent. Defaults to `false`.
 - **spam_moderation_level** (String) Specifies moderation levels for messages detected as spam. Possible values are: `ALLOW`: Post the message to the group. `MODERATE`: Send the message to the moderation queue. This is the default. `SILENTLY_MODERATE`: Send the message to the moderation queue, but do not send notification to moderators. `REJECT`: Immediately reject the message. Defaults to `MODERATE`.
+- **timeouts** (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
 - **who_can_assist_content** (String) Specifies who can moderate metadata. Possible values are: `ALL_MEMBERS`, `OWNERS_AND_MANAGERS`, `MANAGERS_ONLY`, `OWNERS_ONLY`, `NONE` Defaults to `NONE`.
 - **who_can_contact_owner** (String) Permission to contact owner of the group via web UI. Possible values are: `ALL_IN_DOMAIN_CAN_CONTACT`, `ALL_MANAGERS_CAN_CONTACT`, `ALL_MEMBERS_CAN_CONTACT`, `ANYONE_CAN_CONTACT` Defaults to `ANYONE_CAN_CONTACT`.
 - **who_can_discover_group** (String) Specifies the set of users for whom this group is discoverable. Possible values are: `ANYONE_CAN_DISCOVER`, `ALL_IN_DOMAIN_CAN_DISCOVER`, `ALL_MEMBERS_CAN_DISCOVER` Defaults to `ALL_IN_DOMAIN_CAN_DISCOVER`.
@@ -70,6 +71,14 @@ resource "googleworkspace_group_settings" "sales-settings" {
 - **description** (String) Description of the group. The maximum group description is no more than 300 characters.
 - **id** (String) The ID of this resource.
 - **name** (String) Name of the group, which has a maximum size of 75 characters.
+
+<a id="nestedblock--timeouts"></a>
+### Nested Schema for `timeouts`
+
+Optional:
+
+- **create** (String)
+- **update** (String)
 
 ## Import
 
