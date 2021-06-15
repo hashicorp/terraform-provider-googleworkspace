@@ -119,7 +119,7 @@ jobs:
 
       run: |
         export GOOGLEWORKSPACE_CREDENTIALS=$(echo -n ${{ steps.vault.outputs.private_key_data }} | base64 --decode)
-        go test -v -cover ./internal/provider/
+        go test -v -cover ./internal/provider/ -timeout 120m
 
     - name: Post-sweep lingering resources
       timeout-minutes: 10

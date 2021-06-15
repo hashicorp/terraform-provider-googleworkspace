@@ -252,6 +252,11 @@ resource "googleworkspace_user" "my-new-user" {
     given_name = "Dwight"
   }
 
+  timeouts {
+    create = "10m"
+    update = "10m"
+  }
+
   aliases = ["%{userEmail}-assistant_to_regional_manager@%{domainName}", "%{userEmail}-regional_manager@%{domainName}"]
 
   emails {
@@ -404,6 +409,11 @@ resource "googleworkspace_user" "my-new-user" {
     given_name = "Dwight K"
   }
 
+  timeouts {
+    create = "10m"
+    update = "10m"
+  }
+
   aliases = ["%{userEmail}-assist_to_regional_manager@%{domainName}"]
 
   emails {
@@ -529,6 +539,10 @@ resource "googleworkspace_user" "my-new-user" {
   name {
     family_name = "Scott"
     given_name = "Michael"
+  }
+
+  timeouts {
+    update = "10m"
   }
 
   suspended = true
