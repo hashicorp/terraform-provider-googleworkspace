@@ -48,7 +48,7 @@ func resourceRoleAssignment() *schema.Resource {
 				ForceNew:    true,
 			},
 			"scope_type": {
-				Description:      "The scope in which this role is assigned.",
+				Description:      "The scope in which this role is assigned. Valid values are 'CUSTOMER' or 'ORG_UNIT'",
 				Type:             schema.TypeString,
 				Optional:         true,
 				Default:          "CUSTOMER",

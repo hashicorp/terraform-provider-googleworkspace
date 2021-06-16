@@ -80,7 +80,7 @@ resource "googleworkspace_role_assignment" "org-unit-scope" {
 ### Optional
 
 - **org_unit_id** (String) If the role is restricted to an organization unit, this contains the ID for the organization unit the exercise of this role is restricted to.
-- **scope_type** (String) The scope in which this role is assigned. Defaults to `CUSTOMER`.
+- **scope_type** (String) The scope in which this role is assigned. Valid values are 'CUSTOMER' or 'ORG_UNIT' Defaults to `CUSTOMER`.
 
 ### Read-Only
 
