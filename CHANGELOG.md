@@ -8,6 +8,7 @@ FEATURES:
 
 * **New Datasource:**   `googleworkspace_org_unit` [GH-63]
 * **New Datasource:**   `googleworkspace_role` [GH-66]
+* **New Datasource:**   `googleworkspace_privileges` [GH-82]
 
 ## 0.1.0 (June 03, 2021)
 
