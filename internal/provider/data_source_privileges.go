@@ -48,7 +48,7 @@ func dataSourcePrivileges() *schema.Resource {
 							Computed:    true,
 						},
 						"service_name": {
-							Description: "The name of the service this privilege is for.",
+							Description: "The name of the service this privilege is for. Please note this field is empty for many privileges and may not be a reliable field to attempt to filter on",
 							Type:        schema.TypeString,
 							Computed:    true,
 						},
