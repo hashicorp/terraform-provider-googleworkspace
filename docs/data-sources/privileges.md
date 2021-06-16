@@ -54,7 +54,7 @@ resource "googleworkspace_role" "read-only" {
 ### Read-Only
 
 - **etag** (String) ETag of the resource.
-- **items** (List of Object) A list of Privilege resources. (see [below for nested schema](#nestedatt--items))
+- **items** (List of Object) A list of Privilege resources. The API returns a tree-like structure with parent-child privileges, the provider flattens this list. (see [below for nested schema](#nestedatt--items))
 
 <a id="nestedatt--items"></a>
 ### Nested Schema for `items`

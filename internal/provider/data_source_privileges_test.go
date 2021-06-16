@@ -34,7 +34,7 @@ data "googleworkspace_privileges" "test" {
 `)
 }
 
-func TestAccDataSourcePrivileges_flattenAndPrune(t *testing.T) {
+func TestDataSourcePrivileges_flattenAndPrune(t *testing.T) {
 	t.Parallel()
 
 	input := []*directory.Privilege{

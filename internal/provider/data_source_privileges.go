@@ -22,7 +22,7 @@ func dataSourcePrivileges() *schema.Resource {
 				Computed:    true,
 			},
 			"items": {
-				Description: "A list of Privilege resources.",
+				Description: "A list of Privilege resources. The API returns a tree-like structure with parent-child privileges, the provider flattens this list.",
 				Type:        schema.TypeList,
 				Computed:    true,
 				Elem: &schema.Resource{
