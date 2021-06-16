@@ -1,9 +1,18 @@
 data "googleworkspace_privileges" "privileges" {}
 
+# filter using native Terraform syntax
 locals {
+  org_scopable_privileges = [
+    for priv in data.googleworkspace_privileges.privileges.items : priv
+    if priv.is_org_unit_scopable
+  ]
   read_only_privileges = [
     for priv in data.googleworkspace_privileges.privileges.items : priv
     if length(regexall("READ", priv.privilege_name)) > 0
+  ]
+  privileges_by_service_name = [
+    for priv in data.googleworkspace_privileges.privileges.items : priv
+    if priv.service_name == "gmail"
   ]
 }
 

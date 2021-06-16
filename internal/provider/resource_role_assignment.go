@@ -4,9 +4,12 @@ import (
 	"context"
 	"log"
 	"strconv"
+	"strings"
 
+	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	directory "google.golang.org/api/admin/directory/v1"
 )
 
@@ -44,12 +47,12 @@ func resourceRoleAssignment() *schema.Resource {
 				Required:    true,
 				ForceNew:    true,
 			},
-			/* TODO: ORG_UNIT scope not working at this time
 			"scope_type": {
-				Description:      "The scope in which this role is assigned.",
+				Description:      "The scope in which this role is assigned. Valid values are 'CUSTOMER' or 'ORG_UNIT'",
 				Type:             schema.TypeString,
-				Required:         true,
-				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"CUSTOMER", "ORG_UNIT"}, false)),
+				Optional:         true,
+				Default:          "CUSTOMER",
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"CUSTOMER", "ORG_UNIT"}, true)),
 				ForceNew:         true,
 			},
 			"org_unit_id": {
@@ -57,8 +60,11 @@ func resourceRoleAssignment() *schema.Resource {
 				Type:        schema.TypeString,
 				Optional:    true,
 				ForceNew:    true,
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					// for some reason the Google API returns org unit ids with a "id:" prefix
+					return strings.TrimPrefix(old, "id:") == strings.TrimPrefix(new, "id:")
+				},
 			},
-			*/
 		},
 	}
 }
@@ -86,10 +92,26 @@ func resourceRolesAssignmentCreate(ctx context.Context, d *schema.ResourceData, 
 	if err != nil {
 		return diag.FromErr(err)
 	}
+
+	scopeType := strings.ToUpper(d.Get("scope_type").(string))
+	orgUnitId := d.Get("org_unit_id").(string)
+	// for some reason the Google API returns org unit ids with a "id:" prefix
+	orgUnitId = strings.TrimPrefix(orgUnitId, "id:")
+	if scopeType == "ORG_UNIT" && orgUnitId == "" {
+		diags = append(diags, diag.Diagnostic{
+			Severity:      diag.Error,
+			Summary:       "Attribute cannot be empty",
+			Detail:        "if 'scope_type' is set to ORG_UNIT then 'org_unit_id' must be set",
+			AttributePath: cty.IndexStringPath("org_unit_id"),
+		})
+		return diags
+	}
+
 	ra := &directory.RoleAssignment{
 		AssignedTo: assignedTo,
 		RoleId:     roleIdInt64,
-		ScopeType:  "CUSTOMER", // hardcoded until ORG_UNIT scope is sorted out
+		ScopeType:  scopeType,
+		OrgUnitId:  orgUnitId,
 	}
 
 	ra, err = roleAssignmentsService.Insert(client.Customer, ra).Do()
@@ -133,6 +155,9 @@ func resourceRoleAssignmentRead(ctx context.Context, d *schema.ResourceData, met
 	d.Set("role_id", strconv.FormatInt(ra.RoleId, 10))
 	d.Set("etag", ra.Etag)
 	d.Set("assigned_to", ra.AssignedTo)
+	d.Set("scope_type", ra.ScopeType)
+	// for some reason the Google API returns org unit ids with a "id:" prefix
+	d.Set("org_unit_id", strings.TrimPrefix(ra.OrgUnitId, "id:"))
 
 	log.Printf("[DEBUG] Finished getting RoleAssignment %q", d.Id())
 

@@ -91,6 +91,7 @@ func New(version string) func() *schema.Provider {
 				"googleworkspace_group_member":   dataSourceGroupMember(),
 				"googleworkspace_group_settings": dataSourceGroupSettings(),
 				"googleworkspace_org_unit":       dataSourceOrgUnit(),
+				"googleworkspace_privileges":     dataSourcePrivileges(),
 				"googleworkspace_role":           dataSourceRole(),
 				"googleworkspace_schema":         dataSourceSchema(),
 				"googleworkspace_user":           dataSourceUser(),

@@ -111,6 +111,23 @@ func GetOrgUnitsService(directoryService *directory.Service) (*directory.Orgunit
 	return ousService, diags
 }
 
+func GetPrivilegesService(directoryService *directory.Service) (*directory.PrivilegesService, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	log.Printf("[INFO] Instantiating Google Admin Privileges service")
+	privilegesService := directoryService.Privileges
+	if privilegesService == nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Privileges Service could not be created.",
+		})
+
+		return nil, diags
+	}
+
+	return privilegesService, diags
+}
+
 func GetRoleAssignmentsService(directoryService *directory.Service) (*directory.RoleAssignmentsService, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
