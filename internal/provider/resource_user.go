@@ -1094,6 +1094,8 @@ func resourceUserCreate(ctx context.Context, d *schema.ResourceData, meta interf
 		newUser, retryErr := usersService.Get(d.Id()).IfNoneMatch(cc.lastEtag).Do()
 		if googleapi.IsNotModified(retryErr) {
 			cc.currConsistent += 1
+		} else if retryErr != nil {
+			return fmt.Errorf("unexpected error during retries of %s: %s", cc.resourceType, retryErr)
 		} else {
 			cc.handleNewEtag(newUser.Etag)
 		}
@@ -1444,6 +1446,8 @@ func resourceUserUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 		newUser, retryErr := usersService.Get(d.Id()).IfNoneMatch(cc.lastEtag).Do()
 		if googleapi.IsNotModified(retryErr) {
 			cc.currConsistent += 1
+		} else if retryErr != nil {
+			return fmt.Errorf("unexpected error during retries of %s: %s", cc.resourceType, retryErr)
 		} else {
 			cc.handleNewEtag(newUser.Etag)
 		}
