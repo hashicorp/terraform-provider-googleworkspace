@@ -392,7 +392,10 @@ func resourceGroupSettingsCreate(ctx context.Context, d *schema.ResourceData, me
 	d.SetId(groupSettings.Email)
 
 	err = retryTimeDuration(ctx, d.Timeout(schema.TimeoutCreate), func() error {
-		newGroupSettings, _ := groupsService.Get(d.Id()).Do()
+		newGroupSettings, retryErr := groupsService.Get(d.Id()).Do()
+		if retryErr != nil {
+			return fmt.Errorf("unexpected error during retries of group settings: %s", retryErr)
+		}
 		if reflect.DeepEqual(groupSettings, newGroupSettings) {
 			return nil
 		}
@@ -661,7 +664,10 @@ func resourceGroupSettingsUpdate(ctx context.Context, d *schema.ResourceData, me
 	d.SetId(groupSettings.Email)
 
 	err = retryTimeDuration(ctx, d.Timeout(schema.TimeoutUpdate), func() error {
-		newGroupSettings, _ := groupsService.Get(d.Id()).Do()
+		newGroupSettings, retryErr := groupsService.Get(d.Id()).Do()
+		if retryErr != nil {
+			return fmt.Errorf("unexpected error during retries of group settings: %s", retryErr)
+		}
 		if reflect.DeepEqual(groupSettings, newGroupSettings) {
 			return nil
 		}
