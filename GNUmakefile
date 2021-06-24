@@ -27,7 +27,7 @@ sweep:
 	go test ./internal/provider -v -sweep=$(SWEEP) -sweep-run=$(SWEEPARGS) -timeout 60m
 
 test: fmtcheck
-	go test $(TESTARGS) -timeout=30s $(TEST)
+	go test -count=1 $(TESTARGS) -timeout=30s $(TEST)
 
 # Run acceptance tests
 .PHONY: testacc
