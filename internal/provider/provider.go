@@ -54,6 +54,7 @@ func New(version string) func() *schema.Provider {
 					DefaultFunc: schema.MultiEnvDefaultFunc([]string{
 						"GOOGLEWORKSPACE_CREDENTIALS",
 						"GOOGLEWORKSPACE_CLOUD_KEYFILE_JSON",
+						"GOOGLE_CREDENTIALS",
 					}, nil),
 					ValidateDiagFunc: validateCredentials,
 				},
