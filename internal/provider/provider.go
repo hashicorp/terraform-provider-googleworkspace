@@ -88,6 +88,7 @@ func New(version string) func() *schema.Provider {
 				},
 			},
 			DataSourcesMap: map[string]*schema.Resource{
+				"googleworkspace_chrome_policy_schema":  dataSourceChromePolicySchema(),
 				"googleworkspace_chrome_policy_schemas": dataSourceChromePolicySchemas(),
 				"googleworkspace_domain":                dataSourceDomain(),
 				"googleworkspace_domain_alias":          dataSourceDomainAlias(),

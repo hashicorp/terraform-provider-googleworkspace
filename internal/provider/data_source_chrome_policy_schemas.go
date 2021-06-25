@@ -46,6 +46,9 @@ func dataSourceChromePolicySchemasRead(ctx context.Context, d *schema.ResourceDa
 	}
 
 	chromePolicySchemasService, diags := GetChromePolicySchemasService(chromePolicyService)
+	if diags.HasError() {
+		return diags
+	}
 
 	req := chromePolicySchemasService.List("customers/" + client.Customer)
 

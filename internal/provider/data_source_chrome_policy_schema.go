@@ -179,6 +179,9 @@ func dataSourceChromePolicySchemaRead(ctx context.Context, d *schema.ResourceDat
 	}
 
 	chromePolicySchemasService, diags := GetChromePolicySchemasService(chromePolicyService)
+	if diags.HasError() {
+		return diags
+	}
 
 	policySchema, err := chromePolicySchemasService.Get(fmt.Sprintf("customers/%s/policySchemas/%s", client.Customer, d.Get("schema_name").(string))).Do()
 	if err != nil {
