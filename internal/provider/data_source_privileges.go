@@ -13,7 +13,7 @@ func dataSourcePrivileges() *schema.Resource {
 	return &schema.Resource{
 		Description: "Privileges data source in the Terraform Googleworkspace provider.",
 
-		ReadContext: dataSourcePrivilegeRead,
+		ReadContext: dataSourcePrivilegesRead,
 
 		Schema: map[string]*schema.Schema{
 			"etag": {
@@ -59,7 +59,7 @@ func dataSourcePrivileges() *schema.Resource {
 	}
 }
 
-func dataSourcePrivilegeRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func dataSourcePrivilegesRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*apiClient)
 
 	directoryService, diags := client.NewDirectoryService()
