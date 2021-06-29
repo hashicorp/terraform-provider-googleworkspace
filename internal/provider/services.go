@@ -27,6 +27,23 @@ func GetDomainAliasesService(directoryService *directory.Service) (*directory.Do
 	return domainAliasesService, diags
 }
 
+func GetChromePoliciesService(chromePolicyService *chromepolicy.Service) (*chromepolicy.CustomersPoliciesService, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	log.Printf("[INFO] Instantiating Google Admin Chrome Policies service")
+	customersService := chromePolicyService.Customers
+	if customersService == nil || customersService.Policies == nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Chrome Policies Service could not be created.",
+		})
+
+		return nil, diags
+	}
+
+	return customersService.Policies, diags
+}
+
 func GetChromePolicySchemasService(chromePolicyService *chromepolicy.Service) (*chromepolicy.CustomersPolicySchemasService, diag.Diagnostics) {
 	var diags diag.Diagnostics
 

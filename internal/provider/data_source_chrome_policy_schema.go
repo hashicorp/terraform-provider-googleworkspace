@@ -2,6 +2,7 @@ package googleworkspace
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -52,7 +53,6 @@ func dataSourceChromePolicySchema() *schema.Resource {
 			"definition": {
 				Description: "Schema definition using proto descriptor.",
 				Type:        schema.TypeList,
-				MaxItems:    1,
 				Computed:    true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -66,19 +66,38 @@ func dataSourceChromePolicySchema() *schema.Resource {
 							Type:        schema.TypeString,
 							Computed:    true,
 						},
-						// TODO: this field nests recursively
-						// "message_type": {
-						// 	Description: "All top-level definitions in this file.",
-						// 	Type:        schema.TypeList,
-						// 	Computed:    true,
-						// 	Elem: &schema.Resource{
-						// 		Schema: map[string]*schema.Schema{},
-						// 	},
-						// },
+						"message_type": {
+							Description: "All top-level definitions in this file, represented as a JSON string",
+							Type:        schema.TypeString,
+							Computed:    true,
+						},
 						"enum_type": {
 							Type:     schema.TypeList,
 							Computed: true,
-							Elem:     enumDescriptorProto(),
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"name": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+									"value": {
+										Type:     schema.TypeList,
+										Computed: true,
+										Elem: &schema.Resource{
+											Schema: map[string]*schema.Schema{
+												"name": {
+													Type:     schema.TypeString,
+													Computed: true,
+												},
+												"number": {
+													Type:     schema.TypeInt,
+													Computed: true,
+												},
+											},
+										},
+									},
+								},
+							},
 						},
 						"syntax": {
 							Description: "The syntax of the proto file. The supported values are 'proto' and 'proto3'.",
@@ -88,15 +107,11 @@ func dataSourceChromePolicySchema() *schema.Resource {
 					},
 				},
 			},
-			// TODO: this field nests recursively
-			// "field_descriptions": {
-			// 	Description: "Detailed description of each field that is part of the schema.",
-			// 	Type:        schema.TypeList,
-			// 	Computed:    true,
-			// 	Elem: &schema.Resource{
-			// 		Schema: map[string]*schema.Schema{},
-			// 	},
-			// },
+			"field_descriptions": {
+				Description: "Detailed description of each field that is part of the schema, represented as a JSON string.",
+				Type:        schema.TypeString,
+				Computed:    true,
+			},
 			"access_restrictions": {
 				Description: "Specific access restrictions related to this policy.",
 				Type:        schema.TypeList,
@@ -143,33 +158,6 @@ func dataSourceChromePolicySchema() *schema.Resource {
 	}
 }
 
-func enumDescriptorProto() *schema.Resource {
-	return &schema.Resource{
-		Schema: map[string]*schema.Schema{
-			"name": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-			"value": {
-				Type:     schema.TypeList,
-				Computed: true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"name": {
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						"number": {
-							Type:     schema.TypeInt,
-							Computed: true,
-						},
-					},
-				},
-			},
-		},
-	}
-}
-
 func dataSourceChromePolicySchemaRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*apiClient)
 
@@ -198,6 +186,11 @@ func dataSourceChromePolicySchemaRead(ctx context.Context, d *schema.ResourceDat
 	if err := d.Set("definition", flattenDefinition(policySchema.Definition)); err != nil {
 		return diag.FromErr(err)
 	}
+
+	// this attribute contains recursive types, so we store it as json
+	fieldDescriptions, _ := json.MarshalIndent(policySchema.FieldDescriptions, "", "  ")
+	d.Set("field_descriptions", string(fieldDescriptions))
+
 	if err := d.Set("access_restrictions", policySchema.AccessRestrictions); err != nil {
 		return diag.FromErr(err)
 	}
@@ -253,6 +246,9 @@ func flattenDefinition(d *chromepolicy.Proto2FileDescriptorProto) []interface{} 
 	obj["package"] = d.Package
 	obj["syntax"] = d.Syntax
 	obj["enum_type"] = flattenEnumType(d.EnumType)
+	// this attribute contains recursive types, so we store it as json
+	msgType, _ := json.MarshalIndent(d.MessageType, "", "  ")
+	obj["message_type"] = string(msgType)
 
 	result[0] = obj
 	return result
