@@ -56,17 +56,20 @@ func resourceRoleAssignment() *schema.Resource {
 				ForceNew:         true,
 			},
 			"org_unit_id": {
-				Description: "If the role is restricted to an organization unit, this contains the ID for the organization unit the exercise of this role is restricted to.",
-				Type:        schema.TypeString,
-				Optional:    true,
-				ForceNew:    true,
-				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-					// for some reason the Google API returns org unit ids with a "id:" prefix
-					return strings.TrimPrefix(old, "id:") == strings.TrimPrefix(new, "id:")
-				},
+				Description:      "If the role is restricted to an organization unit, this contains the ID for the organization unit the exercise of this role is restricted to.",
+				Type:             schema.TypeString,
+				Optional:         true,
+				ForceNew:         true,
+				DiffSuppressFunc: orgUnitIdSuppressFunc,
 			},
 		},
 	}
+}
+
+// for some reason the Google API returns org unit ids with a "id:" prefix
+// some resources won't accept this prefix when specifying an org unit id
+func orgUnitIdSuppressFunc(k, old, new string, d *schema.ResourceData) bool {
+	return strings.TrimPrefix(old, "id:") == strings.TrimPrefix(new, "id:")
 }
 
 func resourceRolesAssignmentCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -156,8 +159,7 @@ func resourceRoleAssignmentRead(ctx context.Context, d *schema.ResourceData, met
 	d.Set("etag", ra.Etag)
 	d.Set("assigned_to", ra.AssignedTo)
 	d.Set("scope_type", ra.ScopeType)
-	// for some reason the Google API returns org unit ids with a "id:" prefix
-	d.Set("org_unit_id", strings.TrimPrefix(ra.OrgUnitId, "id:"))
+	d.Set("org_unit_id", ra.OrgUnitId)
 
 	log.Printf("[DEBUG] Finished getting RoleAssignment %q", d.Id())
 
