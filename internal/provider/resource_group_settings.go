@@ -403,6 +403,10 @@ func resourceGroupSettingsCreate(ctx context.Context, d *schema.ResourceData, me
 		return fmt.Errorf("timed out while waiting for group settings to be updated")
 	})
 
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
 	log.Printf("[DEBUG] Finished creating Group Settings %q: %#v", d.Id(), email)
 
 	return resourceGroupSettingsRead(ctx, d, meta)
@@ -674,6 +678,10 @@ func resourceGroupSettingsUpdate(ctx context.Context, d *schema.ResourceData, me
 
 		return fmt.Errorf("timed out while waiting for group settings to be updated")
 	})
+
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	log.Printf("[DEBUG] Finished updating Group Settings %q: %#v", d.Id(), email)
 
