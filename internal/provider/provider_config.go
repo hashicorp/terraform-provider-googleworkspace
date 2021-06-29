@@ -61,7 +61,7 @@ func (c *apiClient) loadAndValidate(ctx context.Context) diag.Diagnostics {
 		// 1. OAUTH2 TRANSPORT/CLIENT - sets up proper auth headers
 		client := jwtConfig.Client(cleanCtx)
 
-		// 2. Logging Transport - ensure we log HTTP requests to GCP APIs.
+		// 2. Logging Transport - ensure we log HTTP requests to admin APIs.
 		loggingTransport := logging.NewTransport("Google Workspace", client.Transport)
 
 		// Set final transport value.
