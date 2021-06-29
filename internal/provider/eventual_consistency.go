@@ -1,7 +1,6 @@
 package googleworkspace
 
 import (
-	"fmt"
 	"time"
 )
 
@@ -33,9 +32,8 @@ func (cc *consistencyCheck) reachedConsistency(numInserts int) bool {
 		cc.currConsistent >= maxConsistent
 }
 
-func (cc *consistencyCheck) handleNewEtag(etag string) error {
+func (cc *consistencyCheck) handleNewEtag(etag string) {
 	cc.currConsistent = 0
 	cc.lastEtag = etag
 	cc.etagChanges += 1
-	return fmt.Errorf("timed out while waiting for %s to be inserted (%d/%d consistent etags)", cc.resourceType, cc.currConsistent, numConsistent)
 }
