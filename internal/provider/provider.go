@@ -102,6 +102,7 @@ func New(version string) func() *schema.Provider {
 				"googleworkspace_user":                  dataSourceUser(),
 			},
 			ResourcesMap: map[string]*schema.Resource{
+				"googleworkspace_chrome_policy":   resourceChromePolicy(),
 				"googleworkspace_domain":          resourceDomain(),
 				"googleworkspace_domain_alias":    resourceDomainAlias(),
 				"googleworkspace_group":           resourceGroup(),
