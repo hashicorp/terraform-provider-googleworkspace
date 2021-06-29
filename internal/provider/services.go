@@ -10,23 +10,6 @@ import (
 	"google.golang.org/api/groupssettings/v1"
 )
 
-func GetDomainAliasesService(directoryService *directory.Service) (*directory.DomainAliasesService, diag.Diagnostics) {
-	var diags diag.Diagnostics
-
-	log.Printf("[INFO] Instantiating Google Admin Domain Aliases service")
-	domainAliasesService := directoryService.DomainAliases
-	if domainAliasesService == nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Domain Aliases Service could not be created.",
-		})
-
-		return nil, diags
-	}
-
-	return domainAliasesService, diags
-}
-
 func GetChromePoliciesService(chromePolicyService *chromepolicy.Service) (*chromepolicy.CustomersPoliciesService, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
@@ -59,6 +42,23 @@ func GetChromePolicySchemasService(chromePolicyService *chromepolicy.Service) (*
 	}
 
 	return customersService.PolicySchemas, diags
+}
+
+func GetDomainAliasesService(directoryService *directory.Service) (*directory.DomainAliasesService, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	log.Printf("[INFO] Instantiating Google Admin Domain Aliases service")
+	domainAliasesService := directoryService.DomainAliases
+	if domainAliasesService == nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Domain Aliases Service could not be created.",
+		})
+
+		return nil, diags
+	}
+
+	return domainAliasesService, diags
 }
 
 func GetDomainsService(directoryService *directory.Service) (*directory.DomainsService, diag.Diagnostics) {
