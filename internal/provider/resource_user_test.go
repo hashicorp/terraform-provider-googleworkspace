@@ -253,8 +253,8 @@ resource "googleworkspace_user" "my-new-user" {
   }
 
   timeouts {
-    create = "10m"
-    update = "10m"
+    create = "15m"
+    update = "15m"
   }
 
   aliases = ["%{userEmail}-assistant_to_regional_manager@%{domainName}", "%{userEmail}-regional_manager@%{domainName}"]
@@ -410,8 +410,8 @@ resource "googleworkspace_user" "my-new-user" {
   }
 
   timeouts {
-    create = "10m"
-    update = "10m"
+    create = "15m"
+    update = "15m"
   }
 
   aliases = ["%{userEmail}-assist_to_regional_manager@%{domainName}"]

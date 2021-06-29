@@ -79,7 +79,7 @@ jobs:
 
     - name: Get credentials
       id: vault
-      uses: hashicorp/vault-action@0723fd73487d69ce18331684dafdaafa180a5ea1
+      uses: hashicorp/vault-action@v2.3.0
       with:
         url: ${{ secrets.VAULT_ADDR }}
         method: approle
@@ -105,7 +105,7 @@ jobs:
       timeout-minutes: 120
       env:
         TF_ACC: "1"
-        TF_LOG: "TRACE"
+        TF_LOG: "DEBUG"
         TF_ACC_TERRAFORM_VERSION: ${{ matrix.terraform }}
 
         # Set whatever additional acceptance test env vars here. You can
