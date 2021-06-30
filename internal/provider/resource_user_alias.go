@@ -36,13 +36,18 @@ func resourceUserAlias() *schema.Resource {
 				Required:    true,
 				ForceNew:    true,
 			},
+			"etag": {
+				Description: "ETag of the resource.",
+				Type:        schema.TypeString,
+				Computed:    true,
+			},
 		},
 	}
 }
 
 func resourceUserAliasCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var diags diag.Diagnostics
-	
+
 	client := meta.(*apiClient)
 
 	directoryService, diags := client.NewDirectoryService()
@@ -56,9 +61,9 @@ func resourceUserAliasCreate(ctx context.Context, d *schema.ResourceData, meta i
 	}
 
 	aliasesService, diags := GetUserAliasService(usersService)
-		if diags.HasError() {
-			return diags
-		}
+	if diags.HasError() {
+		return diags
+	}
 
 	userId := d.Get("user_id").(string)
 	setAlias := d.Get("alias").(string)
@@ -72,11 +77,11 @@ func resourceUserAliasCreate(ctx context.Context, d *schema.ResourceData, meta i
 	}
 
 	bOff := backoff.NewExponentialBackOff()
-	bOff.MaxElapsedTime = time.Duration(config.TimeoutMinutes) * time.Minute
+	bOff.MaxElapsedTime = d.Timeout(schema.TimeoutUpdate)
 	bOff.InitialInterval = time.Second
 
 	err = backoff.Retry(func() error {
-		resp, err := config.directory.Users.Aliases.List(userId).Do()
+		resp, err := aliasesService.List(userId).Do()
 		if err != nil {
 			return backoff.Permanent(fmt.Errorf("[ERROR] could not retrieve aliases for user (%s): %v", userId, err))
 		}
@@ -90,7 +95,7 @@ func resourceUserAliasCreate(ctx context.Context, d *schema.ResourceData, meta i
 	}, bOff)
 
 	d.SetId(fmt.Sprintf("%s/%s", resp.PrimaryEmail, resp.Alias))
-	return resourceUserAliasRead(d, meta)
+	return resourceUserAliasRead(ctx, d, meta)
 }
 
 func resourceUserAliasRead(d *schema.ResourceData, meta interface{}) error {
