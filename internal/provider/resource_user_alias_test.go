@@ -55,7 +55,7 @@ func testAccUserAlias_basic(testAliasVars map[string]interface{}) string {
 
 	resource "googleworkspace_user_alias" "test" {
 		primary_email = googleworkspace_user.test.primary_email
-		alias = "%{aliasEmail}@%{domainName}"
+		alias = "%{alias}@%{domainName}"
 	}
 	`, testAliasVars)
 }
