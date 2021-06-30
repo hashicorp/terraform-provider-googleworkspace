@@ -109,6 +109,7 @@ func New(version string) func() *schema.Provider {
 				"googleworkspace_role_assignment": resourceRoleAssignment(),
 				"googleworkspace_schema":          resourceSchema(),
 				"googleworkspace_user":            resourceUser(),
+				"googleworkspace_user_alias":      resourceUserAlias(),
 			},
 		}
 
