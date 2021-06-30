@@ -16,12 +16,17 @@ import (
 
 func resourceUserAlias() *schema.Resource {
 	return &schema.Resource{
+		Description:   "User Alias resources manages individual aliases for the given Google workspace account.",
 		CreateContext: resourceUserAliasCreate,
 		ReadContext:   resourceUserAliasRead,
 		UpdateContext: nil,
 		DeleteContext: resourceUserAliasDelete,
 		Importer: &schema.ResourceImporter{
 			State: resourceUserAliasImport,
+		},
+		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(5 * time.Minute),
+			Update: schema.DefaultTimeout(5 * time.Minute),
 		},
 		Schema: map[string]*schema.Schema{
 			"user_id": {
@@ -71,7 +76,7 @@ func resourceUserAliasCreate(ctx context.Context, d *schema.ResourceData, meta i
 	alias := &admin.Alias{
 		Alias: setAlias,
 	}
-	resp, err := aliasesService.Insert(userId, alias).Do()
+	_, err := aliasesService.Insert(userId, alias).Do()
 	if err != nil {
 		return diag.FromErr(fmt.Errorf("[ERROR] failed to add alias for user (%s): %v", userId, err))
 	}
@@ -90,23 +95,43 @@ func resourceUserAliasCreate(ctx context.Context, d *schema.ResourceData, meta i
 		if ok {
 			return nil
 		}
-		return fmt.Errorf(fmt.Sprintf("[WARN] no matching alias (%s) found for user (%s).", setAlias, userId))
+		return fmt.Errorf("[WARN] no matching alias (%s) found for user (%s).", setAlias, userId)
 
 	}, bOff)
 
-	d.SetId(fmt.Sprintf("%s/%s", resp.PrimaryEmail, resp.Alias))
+	d.SetId(fmt.Sprintf("%s/%s", alias.PrimaryEmail, alias.Alias))
+	d.Set("user_id", alias.PrimaryEmail)
+	d.Set("alias", alias.Alias)
+	d.Set("etag", alias.Etag)
 	return resourceUserAliasRead(ctx, d, meta)
 }
 
-func resourceUserAliasRead(d *schema.ResourceData, meta interface{}) error {
-	config := meta.(*Config)
+func resourceUserAliasRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	client := meta.(*apiClient)
+
+	directoryService, diags := client.NewDirectoryService()
+	if diags.HasError() {
+		return diags
+	}
+
+	usersService, diags := GetUsersService(directoryService)
+	if diags.HasError() {
+		return diags
+	}
+
+	aliasesService, diags := GetUserAliasService(usersService)
+	if diags.HasError() {
+		return diags
+	}
 
 	userId := d.Get("user_id").(string)
 	expectedAlias := d.Get("alias").(string)
 
-	resp, err := config.directory.Users.Aliases.List(userId).Do()
+	resp, err := aliasesService.List(userId).Do()
 	if err != nil {
-		return fmt.Errorf("[ERROR] could not retrieve aliases for user (%s): %v", userId, err)
+		return diag.FromErr(fmt.Errorf("[ERROR] could not retrieve aliases for user (%s): %v", userId, err))
 	}
 
 	alias, ok := doesAliasExist(resp, expectedAlias)
@@ -115,21 +140,39 @@ func resourceUserAliasRead(d *schema.ResourceData, meta interface{}) error {
 		d.SetId("")
 		return nil
 	}
-	d.SetId(fmt.Sprintf("%s/%s", userId, alias))
-	d.Set("user_id", userId)
-	d.Set("alias", alias)
+	d.SetId(fmt.Sprintf("%s/%s", alias.PrimaryEmail, alias.Alias))
+	d.Set("user_id", alias.PrimaryEmail)
+	d.Set("alias", alias.Alias)
+	d.Set("etag", alias.Etag)
 	return nil
 }
 
-func resourceUserAliasDelete(d *schema.ResourceData, meta interface{}) error {
-	config := meta.(*Config)
+func resourceUserAliasDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	client := meta.(*apiClient)
+
+	directoryService, diags := client.NewDirectoryService()
+	if diags.HasError() {
+		return diags
+	}
+
+	usersService, diags := GetUsersService(directoryService)
+	if diags.HasError() {
+		return diags
+	}
+
+	aliasesService, diags := GetUserAliasService(usersService)
+	if diags.HasError() {
+		return diags
+	}
 
 	userId := d.Get("user_id").(string)
 	alias := d.Get("alias").(string)
 
-	err := config.directory.Users.Aliases.Delete(userId, alias).Do()
+	err := aliasesService.Delete(userId, alias).Do()
 	if err != nil {
-		return fmt.Errorf("[ERROR] unable to remove alias (%s) from user (%s): %v", alias, userId, err)
+		return diag.FromErr(fmt.Errorf("[ERROR] unable to remove alias (%s) from user (%s): %v", alias, userId, err))
 	}
 
 	d.SetId("")
@@ -137,12 +180,29 @@ func resourceUserAliasDelete(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceUserAliasImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-	config := meta.(*Config)
+	var diags diag.Diagnostics
+
+	client := meta.(*apiClient)
+
+	directoryService, diags := client.NewDirectoryService()
+	if diags.HasError() {
+		return nil, fmt.Errorf("[ERROR] Unable to init client: %s", diags[0].Summary)
+	}
+
+	usersService, diags := GetUsersService(directoryService)
+	if diags.HasError() {
+		return nil, fmt.Errorf("[ERROR] Unable to init client: %s", diags[0].Summary)
+	}
+
+	aliasesService, diags := GetUserAliasService(usersService)
+	if diags.HasError() {
+		return nil, fmt.Errorf("[ERROR] Unable to init client: %s", diags[0].Summary)
+	}
 
 	userId := strings.Split(d.Id(), "/")[0]
 	expectedAlias := strings.Split(d.Id(), "/")[1]
 
-	resp, err := config.directory.Users.Aliases.List(userId).Do()
+	resp, err := aliasesService.List(userId).Do()
 	if err != nil {
 		return nil, fmt.Errorf("[ERROR] could not retrieve aliases for user (%s): %v", userId, err)
 	}
@@ -151,26 +211,31 @@ func resourceUserAliasImport(d *schema.ResourceData, meta interface{}) ([]*schem
 	if !ok {
 		return nil, fmt.Errorf("[ERROR] no matching alias (%s) found for user (%s).", expectedAlias, userId)
 	}
-	d.SetId(fmt.Sprintf("%s/%s", userId, alias))
-	d.Set("user_id", userId)
-	d.Set("alias", alias)
+	d.SetId(fmt.Sprintf("%s/%s", alias.PrimaryEmail, alias.Alias))
+	d.Set("user_id", alias.PrimaryEmail)
+	d.Set("alias", alias.Alias)
 
 	return []*schema.ResourceData{d}, nil
 }
 
-func doesAliasExist(aliasesResp *admin.Aliases, expectedAlias string) (string, bool) {
+func doesAliasExist(aliasesResp *admin.Aliases, expectedAlias string) (*admin.Alias, bool) {
 	for _, aliasInt := range aliasesResp.Aliases {
 		alias, ok := aliasInt.(map[string]interface{})
 		if ok {
-			value := alias["alias"].(string)
 			if expectedAlias == alias["alias"].(string) {
-				return value, true
+				return &admin.Alias{
+					Alias:        alias["alias"].(string),
+					Etag:         alias["etag"].(string),
+					Id:           alias["id"].(string),
+					Kind:         alias["kind"].(string),
+					PrimaryEmail: alias["primaryemail"].(string),
+				}, true
 			}
 		}
 		if !ok {
 			log.Println(fmt.Sprintf("[ERROR] alias format in response did not match sdk struct, this indicates a probelm with provider or sdk handling: %v", reflect.TypeOf(aliasInt)))
-			return "", false
+			return &admin.Alias{}, false
 		}
 	}
-	return "", false
+	return &admin.Alias{}, false
 }
