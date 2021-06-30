@@ -41,11 +41,6 @@ func resourceUserAlias() *schema.Resource {
 				Required:    true,
 				ForceNew:    true,
 			},
-			"etag": {
-				Description: "ETag of the resource.",
-				Type:        schema.TypeString,
-				Computed:    true,
-			},
 		},
 	}
 }
@@ -102,7 +97,6 @@ func resourceUserAliasCreate(ctx context.Context, d *schema.ResourceData, meta i
 	d.SetId(fmt.Sprintf("%s/%s", alias.PrimaryEmail, alias.Alias))
 	d.Set("primary_email", alias.PrimaryEmail)
 	d.Set("alias", alias.Alias)
-	d.Set("etag", alias.Etag)
 	return resourceUserAliasRead(ctx, d, meta)
 }
 
@@ -143,7 +137,6 @@ func resourceUserAliasRead(ctx context.Context, d *schema.ResourceData, meta int
 	d.SetId(fmt.Sprintf("%s/%s", alias.PrimaryEmail, alias.Alias))
 	d.Set("primary_email", alias.PrimaryEmail)
 	d.Set("alias", alias.Alias)
-	d.Set("etag", alias.Etag)
 	return nil
 }
 
@@ -225,10 +218,9 @@ func doesAliasExist(aliasesResp *admin.Aliases, expectedAlias string) (*admin.Al
 			if expectedAlias == safeInterfaceToString(alias["alias"]) {
 				return &admin.Alias{
 					Alias:        safeInterfaceToString(alias["alias"]),
-					Etag:         safeInterfaceToString(alias["etag"]),
 					Id:           safeInterfaceToString(alias["id"]),
 					Kind:         safeInterfaceToString(alias["kind"]),
-					PrimaryEmail: safeInterfaceToString(alias["primaryemail"]),
+					PrimaryEmail: safeInterfaceToString(alias["primary_email"]),
 				}, true
 			}
 		}
