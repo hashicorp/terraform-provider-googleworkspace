@@ -38,7 +38,6 @@ func TestAccResourceUserAlias_basic(t *testing.T) {
 				ResourceName:            "googleworkspace_user_alias.test",
 				ImportState:             true,
 				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"password"},
 			},
 		},
 	})
