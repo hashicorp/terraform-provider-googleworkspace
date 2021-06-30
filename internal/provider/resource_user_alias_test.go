@@ -47,6 +47,10 @@ func testAccUserAlias_basic(testAliasVars map[string]interface{}) string {
 			family_name = "User"
 			given_name = "Test"
 		}
+
+		lifecycle {
+			ignore_changes = [aliases]
+		  }
 	}
 
 	resource "googleworkspace_user_alias" "test" {
