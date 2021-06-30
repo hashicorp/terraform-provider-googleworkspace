@@ -29,9 +29,9 @@ func resourceUserAlias() *schema.Resource {
 			Update: schema.DefaultTimeout(5 * time.Minute),
 		},
 		Schema: map[string]*schema.Schema{
-			"user_id": {
+			"primary_email": {
 				Type:        schema.TypeString,
-				Description: "ID (userKey) of the user the alias should be applied to.",
+				Description: "Primary Email (userKey) of the user the alias should be applied to.",
 				Required:    true,
 				ForceNew:    true,
 			},
@@ -70,15 +70,15 @@ func resourceUserAliasCreate(ctx context.Context, d *schema.ResourceData, meta i
 		return diags
 	}
 
-	userId := d.Get("user_id").(string)
+	primaryEmail := d.Get("primary_email").(string)
 	setAlias := d.Get("alias").(string)
 
 	alias := &admin.Alias{
 		Alias: setAlias,
 	}
-	_, err := aliasesService.Insert(userId, alias).Do()
+	_, err := aliasesService.Insert(primaryEmail, alias).Do()
 	if err != nil {
-		return diag.Errorf("[ERROR] failed to add alias for user (%s): %v", userId, err)
+		return diag.Errorf("[ERROR] failed to add alias for user (%s): %v", primaryEmail, err)
 	}
 
 	bOff := backoff.NewExponentialBackOff()
@@ -86,21 +86,21 @@ func resourceUserAliasCreate(ctx context.Context, d *schema.ResourceData, meta i
 	bOff.InitialInterval = time.Second
 
 	err = backoff.Retry(func() error {
-		resp, err := aliasesService.List(userId).Do()
+		resp, err := aliasesService.List(primaryEmail).Do()
 		if err != nil {
-			return backoff.Permanent(fmt.Errorf("[ERROR] could not retrieve aliases for user (%s): %v", userId, err))
+			return backoff.Permanent(fmt.Errorf("[ERROR] could not retrieve aliases for user (%s): %v", primaryEmail, err))
 		}
 
 		_, ok := doesAliasExist(resp, setAlias)
 		if ok {
 			return nil
 		}
-		return fmt.Errorf("[WARN] no matching alias (%s) found for user (%s).", setAlias, userId)
+		return fmt.Errorf("[WARN] no matching alias (%s) found for user (%s).", setAlias, primaryEmail)
 
 	}, bOff)
 
 	d.SetId(fmt.Sprintf("%s/%s", alias.PrimaryEmail, alias.Alias))
-	d.Set("user_id", alias.PrimaryEmail)
+	d.Set("primary_email", alias.PrimaryEmail)
 	d.Set("alias", alias.Alias)
 	d.Set("etag", alias.Etag)
 	return resourceUserAliasRead(ctx, d, meta)
@@ -126,22 +126,22 @@ func resourceUserAliasRead(ctx context.Context, d *schema.ResourceData, meta int
 		return diags
 	}
 
-	userId := d.Get("user_id").(string)
+	primaryEmail := d.Get("primary_email").(string)
 	expectedAlias := d.Get("alias").(string)
 
-	resp, err := aliasesService.List(userId).Do()
+	resp, err := aliasesService.List(primaryEmail).Do()
 	if err != nil {
-		return diag.Errorf("[ERROR] could not retrieve aliases for user (%s): %v", userId, err)
+		return diag.Errorf("[ERROR] could not retrieve aliases for user (%s): %v", primaryEmail, err)
 	}
 
 	alias, ok := doesAliasExist(resp, expectedAlias)
 	if !ok {
-		log.Println(fmt.Sprintf("[WARN] no matching alias (%s) found for user (%s).", expectedAlias, userId))
+		log.Println(fmt.Sprintf("[WARN] no matching alias (%s) found for user (%s).", expectedAlias, primaryEmail))
 		d.SetId("")
 		return nil
 	}
 	d.SetId(fmt.Sprintf("%s/%s", alias.PrimaryEmail, alias.Alias))
-	d.Set("user_id", alias.PrimaryEmail)
+	d.Set("primary_email", alias.PrimaryEmail)
 	d.Set("alias", alias.Alias)
 	d.Set("etag", alias.Etag)
 	return nil
@@ -167,12 +167,12 @@ func resourceUserAliasDelete(ctx context.Context, d *schema.ResourceData, meta i
 		return diags
 	}
 
-	userId := d.Get("user_id").(string)
+	primaryEmail := d.Get("primary_email").(string)
 	alias := d.Get("alias").(string)
 
-	err := aliasesService.Delete(userId, alias).Do()
+	err := aliasesService.Delete(primaryEmail, alias).Do()
 	if err != nil {
-		return diag.Errorf("[ERROR] unable to remove alias (%s) from user (%s): %v", alias, userId, err)
+		return diag.Errorf("[ERROR] unable to remove alias (%s) from user (%s): %v", alias, primaryEmail, err)
 	}
 
 	d.SetId("")
@@ -199,20 +199,20 @@ func resourceUserAliasImport(d *schema.ResourceData, meta interface{}) ([]*schem
 		return nil, fmt.Errorf("[ERROR] Unable to init client: %s", diags[0].Summary)
 	}
 
-	userId := strings.Split(d.Id(), "/")[0]
+	primaryEmail := strings.Split(d.Id(), "/")[0]
 	expectedAlias := strings.Split(d.Id(), "/")[1]
 
-	resp, err := aliasesService.List(userId).Do()
+	resp, err := aliasesService.List(primaryEmail).Do()
 	if err != nil {
-		return nil, fmt.Errorf("[ERROR] could not retrieve aliases for user (%s): %v", userId, err)
+		return nil, fmt.Errorf("[ERROR] could not retrieve aliases for user (%s): %v", primaryEmail, err)
 	}
 
 	alias, ok := doesAliasExist(resp, expectedAlias)
 	if !ok {
-		return nil, fmt.Errorf("[ERROR] no matching alias (%s) found for user (%s).", expectedAlias, userId)
+		return nil, fmt.Errorf("[ERROR] no matching alias (%s) found for user (%s).", expectedAlias, primaryEmail)
 	}
 	d.SetId(fmt.Sprintf("%s/%s", alias.PrimaryEmail, alias.Alias))
-	d.Set("user_id", alias.PrimaryEmail)
+	d.Set("primary_email", alias.PrimaryEmail)
 	d.Set("alias", alias.Alias)
 
 	return []*schema.ResourceData{d}, nil
