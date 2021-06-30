@@ -76,7 +76,7 @@ func resourceUserAliasCreate(ctx context.Context, d *schema.ResourceData, meta i
 	alias := &admin.Alias{
 		Alias: setAlias,
 	}
-	_, err := aliasesService.Insert(primaryEmail, alias).Do()
+	alias, err := aliasesService.Insert(primaryEmail, alias).Do()
 	if err != nil {
 		return diag.Errorf("[ERROR] failed to add alias for user (%s): %v", primaryEmail, err)
 	}
@@ -99,10 +99,9 @@ func resourceUserAliasCreate(ctx context.Context, d *schema.ResourceData, meta i
 
 	}, bOff)
 
-	d.SetId(fmt.Sprintf("%s/%s", alias.PrimaryEmail, alias.Alias))
-	d.Set("primary_email", alias.PrimaryEmail)
+	d.SetId(fmt.Sprintf("%s/%s", primaryEmail, alias.Alias))
+	d.Set("primary_email", primaryEmail)
 	d.Set("alias", alias.Alias)
-	d.Set("etag", alias.Etag)
 	return resourceUserAliasRead(ctx, d, meta)
 }
 
