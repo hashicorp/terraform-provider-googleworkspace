@@ -78,7 +78,7 @@ func resourceUserAliasCreate(ctx context.Context, d *schema.ResourceData, meta i
 	}
 	_, err := aliasesService.Insert(userId, alias).Do()
 	if err != nil {
-		return diag.FromErr(fmt.Errorf("[ERROR] failed to add alias for user (%s): %v", userId, err))
+		return diag.Errorf("[ERROR] failed to add alias for user (%s): %v", userId, err)
 	}
 
 	bOff := backoff.NewExponentialBackOff()
@@ -131,7 +131,7 @@ func resourceUserAliasRead(ctx context.Context, d *schema.ResourceData, meta int
 
 	resp, err := aliasesService.List(userId).Do()
 	if err != nil {
-		return diag.FromErr(fmt.Errorf("[ERROR] could not retrieve aliases for user (%s): %v", userId, err))
+		return diag.Errorf("[ERROR] could not retrieve aliases for user (%s): %v", userId, err)
 	}
 
 	alias, ok := doesAliasExist(resp, expectedAlias)
@@ -172,7 +172,7 @@ func resourceUserAliasDelete(ctx context.Context, d *schema.ResourceData, meta i
 
 	err := aliasesService.Delete(userId, alias).Do()
 	if err != nil {
-		return diag.FromErr(fmt.Errorf("[ERROR] unable to remove alias (%s) from user (%s): %v", alias, userId, err))
+		return diag.Errorf("[ERROR] unable to remove alias (%s) from user (%s): %v", alias, userId, err)
 	}
 
 	d.SetId("")
