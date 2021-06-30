@@ -18,10 +18,13 @@ func TestAccResourceUserAlias_basic(t *testing.T) {
 		t.Skip("GOOGLEWORKSPACE_DOMAIN needs to be set to run this test")
 	}
 
-	testUserVals := map[string]interface{}{
+	testId := acctest.RandString(10)
+
+	testAliasVals := map[string]interface{}{
 		"domainName": domainName,
-		"userEmail":  fmt.Sprintf("tf-test-%s", acctest.RandString(10)),
-		"password":   acctest.RandString(10),
+		"userEmail":  fmt.Sprintf("tf-test-%s", testId),
+		"alias":      fmt.Sprintf("tf-test-alias-%s", testId),
+		"password":   acctest.RandString(16),
 	}
 
 	resource.Test(t, resource.TestCase{
@@ -29,14 +32,26 @@ func TestAccResourceUserAlias_basic(t *testing.T) {
 		ProviderFactories: providerFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccResourceUser_basic(testUserVals),
-			},
-			{
-				ResourceName:            "googleworkspace_user.my-new-user",
-				ImportState:             true,
-				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"password"},
+				Config: testAccUserAlias_basic(testAliasVals),
 			},
 		},
 	})
+}
+
+func testAccUserAlias_basic(testAliasVars map[string]interface{}) string {
+	return Nprintf(`
+	resource "googleworkspace_user" "test" {
+		primary_email = "%{userEmail}@%{domainName}"
+		password = "%{password}"
+		name {
+			family_name = "User"
+			given_name = "Test"
+		}
+	}
+
+	resource "googleworkspace_user_alias" "test" {
+		primary_email = "%{userEmail}@%{domainName}"
+		alias = "%{aliasEmail}@%{domainName}"
+	}
+	`, testAliasVars)
 }
