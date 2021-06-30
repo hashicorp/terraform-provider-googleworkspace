@@ -222,13 +222,13 @@ func doesAliasExist(aliasesResp *admin.Aliases, expectedAlias string) (*admin.Al
 	for _, aliasInt := range aliasesResp.Aliases {
 		alias, ok := aliasInt.(map[string]interface{})
 		if ok {
-			if expectedAlias == alias["alias"].(string) {
+			if expectedAlias == safeInterfaceToString(alias["alias"]) {
 				return &admin.Alias{
-					Alias:        alias["alias"].(string),
-					Etag:         alias["etag"].(string),
-					Id:           alias["id"].(string),
-					Kind:         alias["kind"].(string),
-					PrimaryEmail: alias["primaryemail"].(string),
+					Alias:        safeInterfaceToString(alias["alias"]),
+					Etag:         safeInterfaceToString(alias["etag"]),
+					Id:           safeInterfaceToString(alias["id"]),
+					Kind:         safeInterfaceToString(alias["kind"]),
+					PrimaryEmail: safeInterfaceToString(alias["primaryemail"]),
 				}, true
 			}
 		}
