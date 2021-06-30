@@ -3,12 +3,12 @@
 page_title: "googleworkspace_user_alias Resource - terraform-provider-googleworkspace"
 subcategory: ""
 description: |-
-  User Alias resources manages individual aliases for the given Google workspace account.
+  User alias resource manages individual aliases for the given Google workspace account.
 ---
 
 # googleworkspace_user_alias (Resource)
 
-User Alias resources manages individual aliases for the given Google workspace account.
+User alias resource manages individual aliases for the given Google workspace account.
 
 ## Example Usage
 
@@ -42,7 +42,6 @@ resource "googleworkspace_user_alias" "dwight" {
 Optional:
 
 - **create** (String)
-- **update** (String)
 
 ## Import
 

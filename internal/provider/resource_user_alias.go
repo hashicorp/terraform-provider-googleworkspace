@@ -16,7 +16,7 @@ import (
 
 func resourceUserAlias() *schema.Resource {
 	return &schema.Resource{
-		Description:   "User Alias resources manages individual aliases for the given Google workspace account.",
+		Description:   "User alias resource manages individual aliases for the given Google workspace account.",
 		CreateContext: resourceUserAliasCreate,
 		ReadContext:   resourceUserAliasRead,
 		UpdateContext: nil,
@@ -26,7 +26,6 @@ func resourceUserAlias() *schema.Resource {
 		},
 		Timeouts: &schema.ResourceTimeout{
 			Create: schema.DefaultTimeout(5 * time.Minute),
-			Update: schema.DefaultTimeout(5 * time.Minute),
 		},
 		Schema: map[string]*schema.Schema{
 			"primary_email": {
@@ -81,8 +80,12 @@ func resourceUserAliasCreate(ctx context.Context, d *schema.ResourceData, meta i
 		return diag.Errorf("[ERROR] failed to add alias for user (%s): %v", primaryEmail, err)
 	}
 
+	// Using a different backoff style due to the fact the top level ETag is not a consistent value for individual aliases. In theory it will change when multiple
+	// instances of this resource are used with the same primary email. The workaround is to wait until the list aliases call returns the actual alias created by the
+	// specific instance of the module. Since there is no real update lifecycle for this type of thing, the ETag really is just there for self validation nothing changed,
+	// in practice it should not matter too much.
 	bOff := backoff.NewExponentialBackOff()
-	bOff.MaxElapsedTime = d.Timeout(schema.TimeoutUpdate)
+	bOff.MaxElapsedTime = d.Timeout(schema.TimeoutCreate)
 	bOff.InitialInterval = time.Second
 
 	err = backoff.Retry(func() error {
