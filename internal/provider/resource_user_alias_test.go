@@ -35,9 +35,9 @@ func TestAccResourceUserAlias_basic(t *testing.T) {
 				Config: testAccUserAlias_basic(testAliasVals),
 			},
 			{
-				ResourceName:            "googleworkspace_user_alias.test",
-				ImportState:             true,
-				ImportStateVerify:       true,
+				ResourceName:      "googleworkspace_user_alias.test",
+				ImportState:       true,
+				ImportStateVerify: true,
 			},
 		},
 	})
