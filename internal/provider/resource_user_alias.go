@@ -228,7 +228,7 @@ func doesAliasExist(aliasesResp *admin.Aliases, expectedAlias string) (*admin.Al
 					Etag:         safeInterfaceToString(alias["etag"]),
 					Id:           safeInterfaceToString(alias["id"]),
 					Kind:         safeInterfaceToString(alias["kind"]),
-					PrimaryEmail: safeInterfaceToString(alias["primaryemail"]),
+					PrimaryEmail: safeInterfaceToString(alias["primaryEmail"]),
 				}, true
 			}
 		}
