@@ -197,7 +197,6 @@ func sortListOfInterfaces(v []interface{}) []string {
 	return newVal
 }
 
-
 // Safe interface to string convert does a check for null to return an empty string, otherwise performs a cast
 
 func safeInterfaceToString(item interface{}) string {
