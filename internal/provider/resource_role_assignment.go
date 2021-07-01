@@ -56,11 +56,11 @@ func resourceRoleAssignment() *schema.Resource {
 				ForceNew:         true,
 			},
 			"org_unit_id": {
-				Description: "If the role is restricted to an organization unit, this contains the ID for the organization unit the exercise of this role is restricted to.",
-				Type:        schema.TypeString,
-				Optional:    true,
-				ForceNew:    true,
-				StateFunc:   stripOrgUnitId,
+				Description:      "If the role is restricted to an organization unit, this contains the ID for the organization unit the exercise of this role is restricted to.",
+				Type:             schema.TypeString,
+				Optional:         true,
+				ForceNew:         true,
+				DiffSuppressFunc: diffSuppressOrgUnitId,
 			},
 		},
 	}
@@ -68,9 +68,8 @@ func resourceRoleAssignment() *schema.Resource {
 
 // for some reason the Google API returns org unit ids with a "id:" prefix
 // some resources won't accept this prefix when specifying an org unit id
-func stripOrgUnitId(value interface{}) string {
-	str := value.(string)
-	return strings.TrimPrefix(str, "id:")
+func diffSuppressOrgUnitId(k, old, new string, d *schema.ResourceData) bool {
+	return strings.TrimPrefix(old, "id:") == strings.TrimPrefix(new, "id:")
 }
 
 func resourceRolesAssignmentCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -98,7 +97,7 @@ func resourceRolesAssignmentCreate(ctx context.Context, d *schema.ResourceData, 
 	}
 
 	scopeType := strings.ToUpper(d.Get("scope_type").(string))
-	orgUnitId := d.Get("org_unit_id").(string)
+	orgUnitId := strings.TrimPrefix(d.Get("org_unit_id").(string), "id:")
 	if scopeType == "ORG_UNIT" && orgUnitId == "" {
 		diags = append(diags, diag.Diagnostic{
 			Severity:      diag.Error,
