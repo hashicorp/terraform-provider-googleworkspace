@@ -38,7 +38,9 @@ resource "googleworkspace_chrome_policy" "test" {
   org_unit_id = googleworkspace_org_unit.test.id
   policies {
     schema_name = "chrome.users.MaxConnectionsPerProxy"
-	schema_values = jsonencode({"maxConnectionsPerProxy"=%d})
+    schema_values = {
+      maxConnectionsPerProxy = jsonencode(%d)
+    }
   }
 }
 `, ouName, conns)

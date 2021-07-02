@@ -117,7 +117,7 @@ func dataSourceChromePolicySchema() *schema.Resource {
 				Type:        schema.TypeList,
 				Computed:    true,
 				Elem: &schema.Schema{
-					Type: schema.TypeList,
+					Type: schema.TypeString,
 				},
 			},
 			"notices": {
