@@ -50,9 +50,9 @@ we have changed the environment variable names and removed the optional
 `timeout_minutes` and `update_existing`.
 
 The names of the environment variables changed slightly. See the table below 
-for any changes you would need to make to your environment variables. Note: 
-`GOOGLE_CREDENTIALS` was added as an option in version `0.2.0` of the Google 
-Workspace provider.
+for any changes you would need to make to your environment variables
+
+~> Note: `GOOGLE_CREDENTIALS` was added as an option in version `0.2.0` of the Google Workspace provider.
 
 |                         | GSuite Provider                                                                                               | Google Workspace Provider                                                                                    |
 |-------------------------|---------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------|
@@ -141,10 +141,8 @@ resource "googleworkspace_group_member" "testing_team_members" {
 
 ## Resource: `googleworkspace_group_member`
 
-There are a few minor changes to `googleworkspace_group_member`. First, the attribute `group` changed from accepting 
-a group's `email` to a group's `group_id`. It also allows a couple more fields to be set, namely, `delivery_settings` 
-and `type`, and also has the read-only fields `id` and `member_id`, while the read-only field, `kind`, is no longer 
-available.
+There are a few minor changes to `googleworkspace_group_member`. The attribute `group` changed from accepting
+a group's `email` to a group's `group_id`. Also the read-only field, `kind`, is no longer available.
 
 The read-only field `id` is the string that will be used in order to import a group member and is of the format 
 `groups/<group_id>/members/<member_id>` where `member_id` (in this case) is the id of the customer, group or user.
