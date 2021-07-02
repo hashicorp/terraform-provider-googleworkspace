@@ -55,7 +55,7 @@ Then commit the changes to `go.mod` and `go.sum`.
 
 ## Using The provider
 
-See the [Google Workspace Provider documentation](https://registry.terraform.io/docs/providers/googleworkspace/index.html) to get started using the
+See the [Google Workspace Provider documentation](https://registry.terraform.io/providers/hashicorp/googleworkspace/latest/docs) to get started using the
 Google Workspace provider.
 
 ## Developing the Provider
