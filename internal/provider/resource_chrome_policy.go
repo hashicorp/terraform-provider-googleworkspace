@@ -4,14 +4,16 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
-	"google.golang.org/api/chromepolicy/v1"
 	"log"
 	"reflect"
 	"strconv"
 	"strings"
+	"time"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+	"google.golang.org/api/chromepolicy/v1"
 )
 
 func resourceChromePolicy() *schema.Resource {
@@ -35,8 +37,6 @@ func resourceChromePolicy() *schema.Resource {
 				Description: "Policies to set for the org unit",
 				Type:        schema.TypeList,
 				Required:    true,
-				// TODO: will need diffsuppressfunc
-				// DiffSuppressFunc: nil,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"schema_name": {
@@ -94,26 +94,20 @@ func resourceChromePolicyCreate(ctx context.Context, d *schema.ResourceData, met
 		return diags
 	}
 
-	keys, diags := expandChromePoliciesUpdateMask(d.Get("policies").([]interface{}))
-	if diags.HasError() {
-		return diags
-	}
-
 	var modifyRequests []*chromepolicy.GoogleChromePolicyV1ModifyOrgUnitPolicyRequest
-
 	for _, p := range policies {
-		// the object could in theory nest infinitely, but I'm assuming Google only
-		// considers the "top level" as the fields to be set, especially since the
-		// fields are qualified with dot notation. ex: chrome.printers.AllowUsers
-		// One would think the structure should be flat, nested values are expressed
-		// through the dot notation
-
-		updateMask := strings.Join(keys, ",")
-
+		var keys []string
+		var schemaValues map[string]interface{}
+		if err := json.Unmarshal(p.Value, &schemaValues); err != nil {
+			return diag.FromErr(err)
+		}
+		for key := range schemaValues {
+			keys = append(keys, key)
+		}
 		modifyRequests = append(modifyRequests, &chromepolicy.GoogleChromePolicyV1ModifyOrgUnitPolicyRequest{
 			PolicyTargetKey: policyTargetKey,
 			PolicyValue:     p,
-			UpdateMask:      updateMask,
+			UpdateMask:      strings.Join(keys, ","),
 		})
 	}
 
@@ -151,7 +145,7 @@ func resourceChromePolicyUpdate(ctx context.Context, d *schema.ResourceData, met
 	old, _ := d.GetChange("policies")
 
 	var requests []*chromepolicy.GoogleChromePolicyV1InheritOrgUnitPolicyRequest
-	for _, p := range old.(*schema.Set).List() {
+	for _, p := range old.([]interface{}) {
 		policy := p.(map[string]interface{})
 		schemaName := policy["schema_name"].(string)
 
@@ -161,7 +155,7 @@ func resourceChromePolicyUpdate(ctx context.Context, d *schema.ResourceData, met
 		})
 	}
 
-	_, err := chromePoliciesService.Orgunits.BatchInherit(client.Customer, &chromepolicy.GoogleChromePolicyV1BatchInheritOrgUnitPoliciesRequest{Requests: requests}).Do()
+	_, err := chromePoliciesService.Orgunits.BatchInherit(fmt.Sprintf("customers/%s", client.Customer), &chromepolicy.GoogleChromePolicyV1BatchInheritOrgUnitPoliciesRequest{Requests: requests}).Do()
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -197,11 +191,20 @@ func resourceChromePolicyRead(ctx context.Context, d *schema.ResourceData, meta 
 	for _, p := range d.Get("policies").([]interface{}) {
 		policy := p.(map[string]interface{})
 		schemaName := policy["schema_name"].(string)
-		// we will resolve each individual policySchema by fully qualified name, so the responses should be a single result
-		resp, err := chromePoliciesService.Resolve(fmt.Sprintf("customers/%s", client.Customer), &chromepolicy.GoogleChromePolicyV1ResolveRequest{
-			PolicySchemaFilter: schemaName,
-			PolicyTargetKey:    policyTargetKey,
-		}).Do()
+
+		var resp *chromepolicy.GoogleChromePolicyV1ResolveResponse
+		// the resolve endpoint does not like being called in quick succession
+		err := retryTimeDuration(ctx, time.Minute, func() error {
+			var retryErr error
+
+			// we will resolve each individual policySchema by fully qualified name, so the responses should be a single result
+			resp, retryErr = chromePoliciesService.Resolve(fmt.Sprintf("customers/%s", client.Customer), &chromepolicy.GoogleChromePolicyV1ResolveRequest{
+				PolicySchemaFilter: schemaName,
+				PolicyTargetKey:    policyTargetKey,
+			}).Do()
+
+			return retryErr
+		})
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -289,9 +292,6 @@ func validateChromePolicies(d *schema.ResourceData, client *apiClient) diag.Diag
 		schemaName := policy.(map[string]interface{})["schema_name"].(string)
 
 		schemaDef, err := chromePolicySchemasService.Get(fmt.Sprintf("customers/%s/policySchemas/%s", client.Customer, schemaName)).Do()
-		if err != nil {
-			return diag.FromErr(err)
-		}
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -477,29 +477,6 @@ func expandChromePoliciesValues(policies []interface{}) ([]*chromepolicy.GoogleC
 		}
 
 		result = append(result, &policyObj)
-	}
-
-	return result, diags
-}
-
-func expandChromePoliciesUpdateMask(policies []interface{}) ([]string, diag.Diagnostics) {
-	var diags diag.Diagnostics
-	result := []string{}
-
-	for _, p := range policies {
-		policy := p.(map[string]interface{})
-
-		schemaValues := policy["schema_values"].(map[string]interface{})
-
-		for k, v := range schemaValues {
-			var polVal interface{}
-			err := json.Unmarshal([]byte(v.(string)), &polVal)
-			if err != nil {
-				return nil, diag.FromErr(err)
-			}
-
-			result = append(result, k)
-		}
 	}
 
 	return result, diags
