@@ -1,5 +1,5 @@
 resource "googleworkspace_org_unit" "example" {
-  name = "%s"
+  name                 = "example"
   parent_org_unit_path = "/"
 }
 
