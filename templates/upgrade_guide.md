@@ -152,6 +152,9 @@ The read-only field `id` is the string that will be used in order to import a gr
 The biggest change to this resource is that `description` of the group cannot be changed on `googleworkspace_group_settings`.
 Changes to a group's `description` must be done on the `googleworkspace_group` resource.
 
+Also, in an attempt to remove fields that are deprecated in the API, we chose to not include `who_can_approve_members` on
+this resource, instead the functionality is merged into `who_can_moderate_members`.
+
 Another notable change here is that `is_archived` can be set to `true` or `false` rather than being read-only.
 
 While `kind` is no longer a read-only property, `custom_roles_enabled_for_settings_to_be_merged` is available.
