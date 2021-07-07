@@ -3,8 +3,18 @@
 FEATURES:
 
 * **New Resource:** `googleworkspace_chrome_policy` [GH-97]
+* **New Resource:** `googleworkspace_domain_alias` ([#92](https://github.com/hashicorp/terraform-provider-googleworkspace/issues/92))
 
 * **New Datasource:**   `googleworkspace_chrome_policy_schema` [GH-97]
+* **New Datasource:**   `googleworkspace_domain_alias` ([#92](https://github.com/hashicorp/terraform-provider-googleworkspace/issues/92))
+
+IMPROVEMENTS:
+
+* provider: added support for using the `GOOGLE_CREDENTIALS` environment variable for authentication ([#87](https://github.com/hashicorp/terraform-provider-googleworkspace/issues/87))
+
+BUG FIXES:
+
+* all: added logging of the http requests/responses ([#93](https://github.com/hashicorp/terraform-provider-googleworkspace/issues/93))
 
 ## 0.2.0 (June 21, 2021)
 
