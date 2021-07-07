@@ -299,7 +299,7 @@ func validateChromePolicies(d *schema.ResourceData, client *apiClient) diag.Diag
 			return diag.FromErr(err)
 		}
 
-		if schemaDef == nil {
+		if schemaDef == nil || schemaDef.Definition == nil || schemaDef.Definition.MessageType == nil {
 			return append(diags, diag.Diagnostic{
 				Summary:  fmt.Sprintf("schema definition (%s) is empty", schemaName),
 				Severity: diag.Error,
@@ -330,6 +330,14 @@ func validateChromePolicies(d *schema.ResourceData, client *apiClient) diag.Diag
 			}
 
 			for _, schemaField := range schemaFieldMap[polKey] {
+
+				if schemaField == nil {
+					return append(diags, diag.Diagnostic{
+						Summary:  fmt.Sprintf("field type is not defined for field name (%s)", polKey),
+						Severity: diag.Warning,
+					})
+				}
+
 				validType := validatePolicyFieldValueType(schemaField.Type, polVal)
 				if !validType {
 					return append(diags, diag.Diagnostic{
