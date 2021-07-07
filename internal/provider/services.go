@@ -6,8 +6,43 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 
 	directory "google.golang.org/api/admin/directory/v1"
+	"google.golang.org/api/chromepolicy/v1"
 	"google.golang.org/api/groupssettings/v1"
 )
+
+func GetChromePoliciesService(chromePolicyService *chromepolicy.Service) (*chromepolicy.CustomersPoliciesService, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	log.Printf("[INFO] Instantiating Google Admin Chrome Policies service")
+	customersService := chromePolicyService.Customers
+	if customersService == nil || customersService.Policies == nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Chrome Policies Service could not be created.",
+		})
+
+		return nil, diags
+	}
+
+	return customersService.Policies, diags
+}
+
+func GetChromePolicySchemasService(chromePolicyService *chromepolicy.Service) (*chromepolicy.CustomersPolicySchemasService, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	log.Printf("[INFO] Instantiating Google Admin Chrome Policy Schemas service")
+	customersService := chromePolicyService.Customers
+	if customersService == nil || customersService.PolicySchemas == nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Chrome Policy Schemas Service could not be created.",
+		})
+
+		return nil, diags
+	}
+
+	return customersService.PolicySchemas, diags
+}
 
 func GetDomainAliasesService(directoryService *directory.Service) (*directory.DomainAliasesService, diag.Diagnostics) {
 	var diags diag.Diagnostics

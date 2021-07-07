@@ -26,6 +26,10 @@ func retryTimeDuration(ctx context.Context, duration time.Duration, retryFunc fu
 			return resource.RetryableError(err)
 		}
 
+		if IsRateLimitExceeded(err) {
+			return resource.RetryableError(err)
+		}
+
 		return resource.NonRetryableError(err)
 	})
 }
@@ -47,6 +51,20 @@ func IsTemporarilyUnavailable(err error) bool {
 	}
 
 	if gerr.Code == 503 {
+		log.Printf("[DEBUG] Dismissed an error as retryable based on error code: %s", err)
+		return true
+	}
+	return false
+
+}
+
+func IsRateLimitExceeded(err error) bool {
+	gerr, ok := err.(*googleapi.Error)
+	if !ok {
+		return false
+	}
+
+	if gerr.Code == 429 {
 		log.Printf("[DEBUG] Dismissed an error as retryable based on error code: %s", err)
 		return true
 	}

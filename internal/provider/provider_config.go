@@ -11,6 +11,7 @@ import (
 
 	"golang.org/x/oauth2"
 	googleoauth "golang.org/x/oauth2/google"
+	"google.golang.org/api/chromepolicy/v1"
 	"google.golang.org/api/option"
 
 	directory "google.golang.org/api/admin/directory/v1"
@@ -71,6 +72,28 @@ func (c *apiClient) loadAndValidate(ctx context.Context) diag.Diagnostics {
 	}
 
 	return diags
+}
+
+func (c *apiClient) NewChromePolicyService() (*chromepolicy.Service, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	log.Printf("[INFO] Instantiating Google Admin Chrome Policy service")
+
+	chromePolicyService, err := chromepolicy.NewService(context.Background(), option.WithHTTPClient(c.client))
+	if err != nil {
+		return nil, diag.FromErr(err)
+	}
+
+	if chromePolicyService == nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Directory Service could not be created.",
+		})
+
+		return nil, diags
+	}
+
+	return chromePolicyService, diags
 }
 
 func (c *apiClient) NewDirectoryService() (*directory.Service, diag.Diagnostics) {

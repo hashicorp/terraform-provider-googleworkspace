@@ -14,6 +14,7 @@ import (
 )
 
 var DefaultClientScopes = []string{
+	"https://www.googleapis.com/auth/chrome.management.policy",
 	"https://www.googleapis.com/auth/cloud-platform",
 	"https://www.googleapis.com/auth/admin.directory.customer",
 	"https://www.googleapis.com/auth/admin.directory.domain",
@@ -87,18 +88,20 @@ func New(version string) func() *schema.Provider {
 				},
 			},
 			DataSourcesMap: map[string]*schema.Resource{
-				"googleworkspace_domain":         dataSourceDomain(),
-				"googleworkspace_domain_alias":   dataSourceDomainAlias(),
-				"googleworkspace_group":          dataSourceGroup(),
-				"googleworkspace_group_member":   dataSourceGroupMember(),
-				"googleworkspace_group_settings": dataSourceGroupSettings(),
-				"googleworkspace_org_unit":       dataSourceOrgUnit(),
-				"googleworkspace_privileges":     dataSourcePrivileges(),
-				"googleworkspace_role":           dataSourceRole(),
-				"googleworkspace_schema":         dataSourceSchema(),
-				"googleworkspace_user":           dataSourceUser(),
+				"googleworkspace_chrome_policy_schema": dataSourceChromePolicySchema(),
+				"googleworkspace_domain":               dataSourceDomain(),
+				"googleworkspace_domain_alias":         dataSourceDomainAlias(),
+				"googleworkspace_group":                dataSourceGroup(),
+				"googleworkspace_group_member":         dataSourceGroupMember(),
+				"googleworkspace_group_settings":       dataSourceGroupSettings(),
+				"googleworkspace_org_unit":             dataSourceOrgUnit(),
+				"googleworkspace_privileges":           dataSourcePrivileges(),
+				"googleworkspace_role":                 dataSourceRole(),
+				"googleworkspace_schema":               dataSourceSchema(),
+				"googleworkspace_user":                 dataSourceUser(),
 			},
 			ResourcesMap: map[string]*schema.Resource{
+				"googleworkspace_chrome_policy":   resourceChromePolicy(),
 				"googleworkspace_domain":          resourceDomain(),
 				"googleworkspace_domain_alias":    resourceDomainAlias(),
 				"googleworkspace_group":           resourceGroup(),
