@@ -1,11 +1,11 @@
-## 0.3.0 (Unreleased)
+## 0.3.0 (July 07, 2021)
 
 FEATURES:
 
-* **New Resource:** `googleworkspace_chrome_policy` [GH-97]
+* **New Resource:** `googleworkspace_chrome_policy` ([#97](https://github.com/hashicorp/terraform-provider-googleworkspace/issues/97))
 * **New Resource:** `googleworkspace_domain_alias` ([#92](https://github.com/hashicorp/terraform-provider-googleworkspace/issues/92))
 
-* **New Datasource:**   `googleworkspace_chrome_policy_schema` [GH-97]
+* **New Datasource:**   `googleworkspace_chrome_policy_schema` ([#97](https://github.com/hashicorp/terraform-provider-googleworkspace/issues/97))
 * **New Datasource:**   `googleworkspace_domain_alias` ([#92](https://github.com/hashicorp/terraform-provider-googleworkspace/issues/92))
 
 IMPROVEMENTS:
