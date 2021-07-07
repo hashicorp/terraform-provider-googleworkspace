@@ -162,6 +162,9 @@ func resourceChromePolicyUpdate(ctx context.Context, d *schema.ResourceData, met
 
 	// run create
 	diags = resourceChromePolicyCreate(ctx, d, meta)
+	if diags.HasError() {
+		return diags
+	}
 
 	log.Printf("[DEBUG] Finished Updating Chrome Policy for org:%s", d.Id())
 
