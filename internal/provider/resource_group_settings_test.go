@@ -172,6 +172,11 @@ resource "googleworkspace_group_settings" "my-group-settings" {
   who_can_moderate_content = "NONE"
   who_can_assist_content = "OWNERS_ONLY"
   who_can_discover_group = "ALL_MEMBERS_CAN_DISCOVER"
+
+  timeouts {
+    create = "10m"
+    update = "10m"
+  }
 }
 `, testGroupVals)
 }
@@ -208,6 +213,11 @@ resource "googleworkspace_group_settings" "my-group-settings" {
   who_can_moderate_content = "ALL_MEMBERS"
   who_can_assist_content = "OWNERS_AND_MANAGERS"
   who_can_discover_group = "ANYONE_CAN_DISCOVER"
+
+  timeouts {
+    create = "10m"
+    update = "10m"
+  }
 }
 `, testGroupVals)
 }
