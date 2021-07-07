@@ -504,6 +504,13 @@ func flattenChromePolicies(policiesObj []*chromepolicy.GoogleChromePolicyV1Polic
 			return nil, diag.FromErr(err)
 		}
 
+		if schemaDef == nil || schemaDef.Definition == nil || schemaDef.Definition.MessageType == nil {
+			return nil, append(diags, diag.Diagnostic{
+				Summary:  fmt.Sprintf("schema definition (%s) is not defined", polObj.PolicySchema),
+				Severity: diag.Warning,
+			})
+		}
+
 		schemaFieldMap := map[string][]*chromepolicy.Proto2FieldDescriptorProto{}
 		for _, schemaField := range schemaDef.Definition.MessageType {
 			for _, schemaNestedField := range schemaField.Field {
@@ -528,6 +535,14 @@ func flattenChromePolicies(policiesObj []*chromepolicy.GoogleChromePolicyV1Polic
 			}
 
 			for _, schemaField := range schemaFieldMap[k] {
+
+				if schemaField == nil {
+					return nil, append(diags, diag.Diagnostic{
+						Summary:  fmt.Sprintf("field type is not defined for field name (%s)", k),
+						Severity: diag.Warning,
+					})
+				}
+
 				val, err := convertPolicyFieldValueType(schemaField.Type, v)
 				if err != nil {
 					return nil, diag.FromErr(err)
