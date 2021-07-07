@@ -1,3 +1,11 @@
+## 0.3.0 (Unreleased)
+
+FEATURES:
+
+* **New Resource:** `googleworkspace_chrome_policy` [GH-97]
+
+* **New Datasource:**   `googleworkspace_chrome_policy_schema` [GH-97]
+
 ## 0.2.0 (June 21, 2021)
 
 FEATURES:
