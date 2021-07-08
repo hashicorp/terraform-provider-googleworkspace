@@ -14,8 +14,8 @@ User alias resource manages individual aliases for the given Google workspace ac
 
 ```terraform
 resource "googleworkspace_user_alias" "dwight" {
-  user_id = "dwight.schrute@example.com"
-  alias   = "assistant_to_regional_manager@example.com"
+  primary_email = "dwight.schrute@example.com"
+  alias         = "assistant_to_regional_manager@example.com"
 }
 ```
 
@@ -29,12 +29,12 @@ resource "googleworkspace_user_alias" "dwight" {
 
 ### Optional
 
-- **id** (String) The ID of this resource.
 - **timeouts** (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
 
 ### Read-Only
 
 - **etag** (String) ETag of the resource.
+- **id** (String) The ID of this resource.
 
 <a id="nestedblock--timeouts"></a>
 ### Nested Schema for `timeouts`

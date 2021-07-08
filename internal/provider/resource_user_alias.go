@@ -19,7 +19,6 @@ func resourceUserAlias() *schema.Resource {
 		Description:   "User alias resource manages individual aliases for the given Google workspace account.",
 		CreateContext: resourceUserAliasCreate,
 		ReadContext:   resourceUserAliasRead,
-		UpdateContext: nil,
 		DeleteContext: resourceUserAliasDelete,
 		Importer: &schema.ResourceImporter{
 			State: resourceUserAliasImport,
@@ -42,6 +41,13 @@ func resourceUserAlias() *schema.Resource {
 			},
 			"etag": {
 				Description: "ETag of the resource.",
+				Type:        schema.TypeString,
+				Computed:    true,
+			},
+			// Adding a computed id simply to override the `optional` id that gets added in the SDK
+			// that will then display improperly in the docs
+			"id": {
+				Description: "The ID of this resource.",
 				Type:        schema.TypeString,
 				Computed:    true,
 			},
@@ -182,40 +188,12 @@ func resourceUserAliasDelete(ctx context.Context, d *schema.ResourceData, meta i
 }
 
 func resourceUserAliasImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-	var diags diag.Diagnostics
-
-	client := meta.(*apiClient)
-
-	directoryService, diags := client.NewDirectoryService()
-	if diags.HasError() {
-		return nil, fmt.Errorf("[ERROR] Unable to init client: %s", diags[0].Summary)
-	}
-
-	usersService, diags := GetUsersService(directoryService)
-	if diags.HasError() {
-		return nil, fmt.Errorf("[ERROR] Unable to init client: %s", diags[0].Summary)
-	}
-
-	aliasesService, diags := GetUserAliasService(usersService)
-	if diags.HasError() {
-		return nil, fmt.Errorf("[ERROR] Unable to init client: %s", diags[0].Summary)
-	}
-
 	primaryEmail := strings.Split(d.Id(), "/")[0]
 	expectedAlias := strings.Split(d.Id(), "/")[1]
 
-	resp, err := aliasesService.List(primaryEmail).Do()
-	if err != nil {
-		return nil, fmt.Errorf("[ERROR] could not retrieve aliases for user (%s): %v", primaryEmail, err)
-	}
-
-	alias, ok := doesAliasExist(resp, expectedAlias)
-	if !ok {
-		return nil, fmt.Errorf("[ERROR] no matching alias (%s) found for user (%s).", expectedAlias, primaryEmail)
-	}
-	d.SetId(fmt.Sprintf("%s/%s", alias.PrimaryEmail, alias.Alias))
-	d.Set("primary_email", alias.PrimaryEmail)
-	d.Set("alias", alias.Alias)
+	d.SetId(fmt.Sprintf("%s/%s", primaryEmail, expectedAlias))
+	d.Set("primary_email", primaryEmail)
+	d.Set("alias", expectedAlias)
 
 	return []*schema.ResourceData{d}, nil
 }
