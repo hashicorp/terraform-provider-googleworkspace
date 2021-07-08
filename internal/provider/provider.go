@@ -83,7 +83,7 @@ func New(version string) func() *schema.Provider {
 						"[Authorize requests](https://developers.google.com/admin-sdk/directory/v1/guides/authorizing)). " +
 						"This can be set using the `GOOGLEWORKSPACE_OAUTH_SCOPES` environment variable by passing the scopes as a list of strings, " +
 						"for example: `GOOGLEWORKSPACE_OAUTH_SCOPES=\"https://www.googleapis.com/auth/admin.directory.group,https://www.googleapis.com/auth/admin.directory.user\"`.",
-					Type:     schema.TypeSet,
+					Type:     schema.TypeList,
 					Optional: true,
 					DefaultFunc: func() (interface{}, error) {
 						if v := os.Getenv("GOOGLEWORKSPACE_OAUTH_SCOPES"); v != "" {
@@ -162,12 +162,11 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 		}
 
 		// Get scopes
-		scopes := d.Get("oauth_scopes").(*schema.Set)
-		scopesList := scopes.List()
-		if len(scopesList) > 0 {
-			config.ClientScopes = make([]string, len(scopesList))
+		scopes := d.Get("oauth_scopes").([]interface{})
+		if len(scopes) > 0 {
+			config.ClientScopes = make([]string, len(scopes))
 		}
-		for i, scope := range scopesList {
+		for i, scope := range scopes {
 			config.ClientScopes[i] = scope.(string)
 		}
 
