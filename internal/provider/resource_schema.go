@@ -397,25 +397,32 @@ func flattenFields(fieldObjs []*directory.SchemaFieldSpec) interface{} {
 			"field_type":            fieldObj.FieldType,
 			"multi_valued":          fieldObj.MultiValued,
 			"etag":                  fieldObj.Etag,
-			"indexed":               *fieldObj.Indexed,
+			"indexed":               flattenNestedSchemaIndexed(fieldObj.Indexed),
 			"display_name":          fieldObj.DisplayName,
 			"read_access_type":      fieldObj.ReadAccessType,
-			"numeric_indexing_spec": flattenNestedNumericIndexingSpec(fieldObj.NumericIndexingSpec),
+			"numeric_indexing_spec": flattenNestedSchemaNumericIndexingSpec(fieldObj.NumericIndexingSpec),
 		})
 	}
 
 	return fields
 }
 
-func flattenNestedNumericIndexingSpec(numericIndexingSpecObj *directory.SchemaFieldSpecNumericIndexingSpec) interface{} {
-	numericIndexingSpec := []map[string]interface{}{}
-
-	if numericIndexingSpecObj != nil {
-		numericIndexingSpec = append(numericIndexingSpec, map[string]interface{}{
-			"min_value": numericIndexingSpecObj.MinValue,
-			"max_value": numericIndexingSpecObj.MaxValue,
-		})
+func flattenNestedSchemaIndexed(indexed *bool) interface{} {
+	if indexed == nil {
+		return nil
 	}
 
-	return numericIndexingSpec
+	return indexed
+}
+
+func flattenNestedSchemaNumericIndexingSpec(numericIndexingSpecObj *directory.SchemaFieldSpecNumericIndexingSpec) interface{} {
+	if numericIndexingSpecObj == nil {
+		return nil
+	}
+	return []map[string]interface{}{
+		{
+			"min_value": numericIndexingSpecObj.MinValue,
+			"max_value": numericIndexingSpecObj.MaxValue,
+		},
+	}
 }
