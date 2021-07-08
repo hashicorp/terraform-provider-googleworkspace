@@ -83,7 +83,20 @@ func New(version string) func() *schema.Provider {
 						"[Authorize requests](https://developers.google.com/admin-sdk/directory/v1/guides/authorizing))",
 					Type:     schema.TypeList,
 					Optional: true,
-					Elem:     &schema.Schema{Type: schema.TypeString},
+					DefaultFunc: func() (interface{}, error) {
+						if v := os.Getenv("GOOGLEWORKSPACE_OAUTH_SCOPES"); v != "" {
+							scopes := strings.Split(v, ",")
+							if len(scopes) > 0 {
+								return scopes, nil
+							} else {
+								return nil, fmt.Errorf("[WARN]: GOOGLEWORKSPACE_OAUTH_SCOPES environment variable did not return a list of object as expected")
+
+							}
+						} else {
+							return nil, nil
+						}
+					},
+					Elem: &schema.Schema{Type: schema.TypeString},
 				},
 			},
 			DataSourcesMap: map[string]*schema.Resource{
