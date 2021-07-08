@@ -80,7 +80,9 @@ func New(version string) func() *schema.Provider {
 
 				"oauth_scopes": {
 					Description: "The list of the scopes required for your application (for a list of possible scopes, see " +
-						"[Authorize requests](https://developers.google.com/admin-sdk/directory/v1/guides/authorizing))",
+						"[Authorize requests](https://developers.google.com/admin-sdk/directory/v1/guides/authorizing)). " +
+						"This can be set using the `GOOGLEWORKSPACE_OAUTH_SCOPES` environment variable by passing the scopes as a list of strings, " +
+						"for example: `GOOGLEWORKSPACE_OAUTH_SCOPES=\"https://www.googleapis.com/auth/admin.directory.group,https://www.googleapis.com/auth/admin.directory.user\"`.",
 					Type:     schema.TypeSet,
 					Optional: true,
 					DefaultFunc: func() (interface{}, error) {
