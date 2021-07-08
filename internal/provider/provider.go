@@ -81,7 +81,7 @@ func New(version string) func() *schema.Provider {
 				"oauth_scopes": {
 					Description: "The list of the scopes required for your application (for a list of possible scopes, see " +
 						"[Authorize requests](https://developers.google.com/admin-sdk/directory/v1/guides/authorizing))",
-					Type:     schema.TypeList,
+					Type:     schema.TypeSet,
 					Optional: true,
 					DefaultFunc: func() (interface{}, error) {
 						if v := os.Getenv("GOOGLEWORKSPACE_OAUTH_SCOPES"); v != "" {
@@ -90,11 +90,11 @@ func New(version string) func() *schema.Provider {
 								scopes := listOfStringsToInterfaces(scopes)
 								return scopes, nil
 							} else {
-								return nil, fmt.Errorf("[WARN]: GOOGLEWORKSPACE_OAUTH_SCOPES environment variable did not return a list of object as expected")
+								return make([]interface{}, 0), fmt.Errorf("[WARN]: GOOGLEWORKSPACE_OAUTH_SCOPES environment variable did not return a list of object as expected")
 
 							}
 						} else {
-							return nil, nil
+							return make([]interface{}, 0), nil
 						}
 					},
 					Elem: &schema.Schema{Type: schema.TypeString},
