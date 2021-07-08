@@ -87,6 +87,7 @@ func New(version string) func() *schema.Provider {
 						if v := os.Getenv("GOOGLEWORKSPACE_OAUTH_SCOPES"); v != "" {
 							scopes := strings.Split(v, ",")
 							if len(scopes) > 0 {
+								scopes := listOfStringsToInterfaces(scopes)
 								return scopes, nil
 							} else {
 								return nil, fmt.Errorf("[WARN]: GOOGLEWORKSPACE_OAUTH_SCOPES environment variable did not return a list of object as expected")
