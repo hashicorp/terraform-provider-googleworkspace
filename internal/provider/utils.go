@@ -177,8 +177,8 @@ func listOfInterfacestoStrings(v interface{}) []string {
 func listOfStringsToInterfaces(v []string) []interface{} {
 	result := make([]interface{}, len(v))
 
-	for _, s := range v {
-		result = append(result, s)
+	for i, s := range v {
+		result[i] = s
 	}
 
 	return result
