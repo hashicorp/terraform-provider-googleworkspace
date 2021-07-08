@@ -160,11 +160,12 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 		}
 
 		// Get scopes
-		scopes := d.Get("oauth_scopes").([]interface{})
-		if len(scopes) > 0 {
-			config.ClientScopes = make([]string, len(scopes))
+		scopes := d.Get("oauth_scopes").(*schema.Set)
+		scopesList := scopes.List()
+		if len(scopesList) > 0 {
+			config.ClientScopes = make([]string, len(scopesList))
 		}
-		for i, scope := range scopes {
+		for i, scope := range scopesList {
 			config.ClientScopes[i] = scope.(string)
 		}
 
