@@ -1,3 +1,9 @@
+## 0.4.0 (Unreleased)
+
+BUG FIXES:
+
+* directory: fixed bug where `googleworkspace_schema.fields.indexed` would break if it was nil. [GH-108]
+
 ## 0.3.0 (July 07, 2021)
 
 FEATURES:
