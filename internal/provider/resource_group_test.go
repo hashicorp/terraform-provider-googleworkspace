@@ -10,7 +10,10 @@ import (
 )
 
 // this test requires the service account in the credentials file to have
-// GROUPS ADMIN role assignment.
+// GROUPS ADMIN role assignment. Use the rest api
+// "Try this API" https://developers.google.com/admin-sdk/directory/reference/rest/v1/roleAssignments/insert
+// you will need to determine the roleId of GROUPS ADMIN and use the client_id
+// in the credentials file as 'assignedTo', 'scopeType' should be 'CUSTOMER'
 func TestAccResourceGroup_noImpersonation(t *testing.T) {
 	domainName := os.Getenv("GOOGLEWORKSPACE_DOMAIN")
 
