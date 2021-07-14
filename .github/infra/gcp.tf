@@ -58,8 +58,8 @@ resource "google_project_service" "group-settings" {
   service = "groupssettings.googleapis.com"
 }
 
-  // Enable the chrome policy api service
-  resource "google_project_service" "chrome-policy" {
+// Enable the chrome policy api service
+resource "google_project_service" "chrome-policy" {
   project = data.google_project.project.project_id
   service = "chromepolicy.googleapis.com"
-  }
+}

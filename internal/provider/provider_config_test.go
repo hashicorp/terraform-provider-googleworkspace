@@ -88,8 +88,9 @@ func TestConfigLoadAndValidate_credsNoImpersonation(t *testing.T) {
 	}
 
 	diags := config.loadAndValidate(context.Background())
-	if !diags.HasError() {
-		t.Fatalf("expected error, but got nil")
+	err := checkDiags(diags)
+	if err != nil {
+		t.Fatalf(err.Error())
 	}
 }
 
