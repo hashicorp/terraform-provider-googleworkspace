@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -68,6 +69,12 @@ func IsRateLimitExceeded(err error) bool {
 		log.Printf("[DEBUG] Dismissed an error as retryable based on error code: %s", err)
 		return true
 	}
+
+	if gerr.Code == 403 && strings.Contains(gerr.Error(), "quotaExceeded") {
+		log.Printf("[DEBUG] Dismissed an error as retryable based on error code: %s", err)
+		return true
+	}
+
 	return false
 
 }

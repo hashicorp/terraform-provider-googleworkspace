@@ -34,6 +34,27 @@ func TestAccResourceChromePolicy_basic(t *testing.T) {
 	})
 }
 
+func TestAccResourceChromePolicy_typeMessage(t *testing.T) {
+	t.Parallel()
+
+	ouName := fmt.Sprintf("tf-test-%s", acctest.RandString(10))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: providerFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceChromePolicy_typeMessage(ouName),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("googleworkspace_chrome_policy.test", "policies.#", "1"),
+					resource.TestCheckResourceAttr("googleworkspace_chrome_policy.test", "policies.0.schema_name", "chrome.users.ManagedBookmarksSetting"),
+					resource.TestCheckResourceAttr("googleworkspace_chrome_policy.test", "policies.0.schema_values.managedBookmarks", "{\"toplevelName\":\"Stuff\"}"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccResourceChromePolicy_update(t *testing.T) {
 	t.Parallel()
 
@@ -249,4 +270,23 @@ resource "googleworkspace_chrome_policy" "test" {
   }
 }
 `, ouName, conns)
+}
+
+func testAccResourceChromePolicy_typeMessage(ouName string) string {
+	return fmt.Sprintf(`
+resource "googleworkspace_org_unit" "test" {
+  name = "%s"
+  parent_org_unit_path = "/"
+}
+
+resource "googleworkspace_chrome_policy" "test" {
+  org_unit_id = googleworkspace_org_unit.test.id
+  policies {
+    schema_name = "chrome.users.ManagedBookmarksSetting"
+    schema_values = {
+		managedBookmarks = "{\"toplevelName\":\"Stuff\"}"
+    }
+  }
+}
+`, ouName)
 }

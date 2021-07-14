@@ -2,10 +2,12 @@ package googleworkspace
 
 import (
 	"context"
+	"log"
+	"time"
+
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	directory "google.golang.org/api/admin/directory/v1"
-	"log"
 )
 
 func resourceOrgUnit() *schema.Resource {
@@ -123,7 +125,12 @@ func resourceOrgUnitCreate(ctx context.Context, d *schema.ResourceData, meta int
 		orgUnitObj.ParentOrgUnitPath = d.Get("parent_org_unit_path").(string)
 	}
 
-	orgUnit, err := orgUnitsService.Insert(client.Customer, &orgUnitObj).Do()
+	var orgUnit *directory.OrgUnit
+	err := retryTimeDuration(ctx, time.Minute, func() error {
+		var retryErr error
+		orgUnit, retryErr = orgUnitsService.Insert(client.Customer, &orgUnitObj).Do()
+		return retryErr
+	})
 	if err != nil {
 		return diag.FromErr(err)
 	}

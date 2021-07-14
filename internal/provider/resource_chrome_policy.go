@@ -84,7 +84,7 @@ func resourceChromePolicyCreate(ctx context.Context, d *schema.ResourceData, met
 		TargetResource: "orgunits/" + orgUnitId,
 	}
 
-	diags = validateChromePolicies(d, client)
+	diags = validateChromePolicies(ctx, d, client)
 	if diags.HasError() {
 		return diags
 	}
@@ -94,7 +94,7 @@ func resourceChromePolicyCreate(ctx context.Context, d *schema.ResourceData, met
 		return diags
 	}
 
-	var modifyRequests []*chromepolicy.GoogleChromePolicyV1ModifyOrgUnitPolicyRequest
+	var requests []*chromepolicy.GoogleChromePolicyV1ModifyOrgUnitPolicyRequest
 	for _, p := range policies {
 		var keys []string
 		var schemaValues map[string]interface{}
@@ -104,14 +104,18 @@ func resourceChromePolicyCreate(ctx context.Context, d *schema.ResourceData, met
 		for key := range schemaValues {
 			keys = append(keys, key)
 		}
-		modifyRequests = append(modifyRequests, &chromepolicy.GoogleChromePolicyV1ModifyOrgUnitPolicyRequest{
+		requests = append(requests, &chromepolicy.GoogleChromePolicyV1ModifyOrgUnitPolicyRequest{
 			PolicyTargetKey: policyTargetKey,
 			PolicyValue:     p,
 			UpdateMask:      strings.Join(keys, ","),
 		})
 	}
 
-	_, err := chromePoliciesService.Orgunits.BatchModify(fmt.Sprintf("customers/%s", client.Customer), &chromepolicy.GoogleChromePolicyV1BatchModifyOrgUnitPoliciesRequest{Requests: modifyRequests}).Do()
+	err := retryTimeDuration(ctx, time.Minute, func() error {
+		_, retryErr := chromePoliciesService.Orgunits.BatchModify(fmt.Sprintf("customers/%s", client.Customer), &chromepolicy.GoogleChromePolicyV1BatchModifyOrgUnitPoliciesRequest{Requests: requests}).Do()
+		return retryErr
+	})
+
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -155,7 +159,11 @@ func resourceChromePolicyUpdate(ctx context.Context, d *schema.ResourceData, met
 		})
 	}
 
-	_, err := chromePoliciesService.Orgunits.BatchInherit(fmt.Sprintf("customers/%s", client.Customer), &chromepolicy.GoogleChromePolicyV1BatchInheritOrgUnitPoliciesRequest{Requests: requests}).Do()
+	err := retryTimeDuration(ctx, time.Minute, func() error {
+		_, retryErr := chromePoliciesService.Orgunits.BatchInherit(fmt.Sprintf("customers/%s", client.Customer), &chromepolicy.GoogleChromePolicyV1BatchInheritOrgUnitPoliciesRequest{Requests: requests}).Do()
+		return retryErr
+	})
+
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -196,7 +204,6 @@ func resourceChromePolicyRead(ctx context.Context, d *schema.ResourceData, meta 
 		schemaName := policy["schema_name"].(string)
 
 		var resp *chromepolicy.GoogleChromePolicyV1ResolveResponse
-		// the resolve endpoint does not like being called in quick succession
 		err := retryTimeDuration(ctx, time.Minute, func() error {
 			var retryErr error
 
@@ -221,7 +228,7 @@ func resourceChromePolicyRead(ctx context.Context, d *schema.ResourceData, meta 
 		policiesObj = append(policiesObj, value)
 	}
 
-	policies, diags := flattenChromePolicies(policiesObj, client)
+	policies, diags := flattenChromePolicies(ctx, policiesObj, client)
 	if diags.HasError() {
 		return diags
 	}
@@ -264,7 +271,11 @@ func resourceChromePolicyDelete(ctx context.Context, d *schema.ResourceData, met
 		})
 	}
 
-	_, err := chromePoliciesService.Orgunits.BatchInherit(fmt.Sprintf("customers/%s", client.Customer), &chromepolicy.GoogleChromePolicyV1BatchInheritOrgUnitPoliciesRequest{Requests: requests}).Do()
+	err := retryTimeDuration(ctx, time.Minute, func() error {
+		_, retryErr := chromePoliciesService.Orgunits.BatchInherit(fmt.Sprintf("customers/%s", client.Customer), &chromepolicy.GoogleChromePolicyV1BatchInheritOrgUnitPoliciesRequest{Requests: requests}).Do()
+		return retryErr
+	})
+
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -275,7 +286,7 @@ func resourceChromePolicyDelete(ctx context.Context, d *schema.ResourceData, met
 
 // Chrome Policies
 
-func validateChromePolicies(d *schema.ResourceData, client *apiClient) diag.Diagnostics {
+func validateChromePolicies(ctx context.Context, d *schema.ResourceData, client *apiClient) diag.Diagnostics {
 	var diags diag.Diagnostics
 
 	new := d.Get("policies")
@@ -294,7 +305,13 @@ func validateChromePolicies(d *schema.ResourceData, client *apiClient) diag.Diag
 	for _, policy := range new.([]interface{}) {
 		schemaName := policy.(map[string]interface{})["schema_name"].(string)
 
-		schemaDef, err := chromePolicySchemasService.Get(fmt.Sprintf("customers/%s/policySchemas/%s", client.Customer, schemaName)).Do()
+		var schemaDef *chromepolicy.GoogleChromePolicyV1PolicySchema
+		err := retryTimeDuration(ctx, time.Minute, func() error {
+			var retryErr error
+
+			schemaDef, retryErr = chromePolicySchemasService.Get(fmt.Sprintf("customers/%s/policySchemas/%s", client.Customer, schemaName)).Do()
+			return retryErr
+		})
 		if err != nil {
 			return diag.FromErr(err)
 		}
@@ -391,9 +408,10 @@ func validatePolicyFieldValueType(fieldType string, fieldValue interface{}) bool
 			fieldValue == float32(int(fieldValue.(float32))) {
 			valid = true
 		}
-	case "TYPE_ENUM":
-		fallthrough
 	case "TYPE_MESSAGE":
+		valid = reflect.ValueOf(fieldValue).Kind() == reflect.Map
+		// TODO we should probably recursively ensure the type is correct
+	case "TYPE_ENUM":
 		fallthrough
 	case "TYPE_STRING":
 		fallthrough
@@ -493,7 +511,7 @@ func expandChromePoliciesValues(policies []interface{}) ([]*chromepolicy.GoogleC
 	return result, diags
 }
 
-func flattenChromePolicies(policiesObj []*chromepolicy.GoogleChromePolicyV1PolicyValue, client *apiClient) ([]map[string]interface{}, diag.Diagnostics) {
+func flattenChromePolicies(ctx context.Context, policiesObj []*chromepolicy.GoogleChromePolicyV1PolicyValue, client *apiClient) ([]map[string]interface{}, diag.Diagnostics) {
 	var policies []map[string]interface{}
 
 	chromePolicyService, diags := client.NewChromePolicyService()
@@ -507,7 +525,13 @@ func flattenChromePolicies(policiesObj []*chromepolicy.GoogleChromePolicyV1Polic
 	}
 
 	for _, polObj := range policiesObj {
-		schemaDef, err := schemaService.Get(fmt.Sprintf("customers/%s/policySchemas/%s", client.Customer, polObj.PolicySchema)).Do()
+		var schemaDef *chromepolicy.GoogleChromePolicyV1PolicySchema
+		err := retryTimeDuration(ctx, time.Minute, func() error {
+			var retryErr error
+
+			schemaDef, retryErr = schemaService.Get(fmt.Sprintf("customers/%s/policySchemas/%s", client.Customer, polObj.PolicySchema)).Do()
+			return retryErr
+		})
 		if err != nil {
 			return nil, diag.FromErr(err)
 		}
