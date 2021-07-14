@@ -36,15 +36,6 @@ func (c *apiClient) loadAndValidate(ctx context.Context) diag.Diagnostics {
 	}
 
 	if c.Credentials != "" {
-		if c.ImpersonatedUserEmail == "" {
-			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Error,
-				Summary:  "impersonated_user_email is required when not using the default credentials",
-			})
-
-			return diags
-		}
-
 		contents, _, err := pathOrContents(c.Credentials)
 		if err != nil {
 			return diag.FromErr(err)
