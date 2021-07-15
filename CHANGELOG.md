@@ -4,6 +4,8 @@ IMPROVEMENTS:
 
 * provider: allow impersonation to be unset when service account has sufficient role assignments. [GH-115]
 
+BUG FIXES:
+
 * directory: fixed bug where `googleworkspace_schema.fields.indexed` would break if it was nil. [GH-108]
 * chrome: fixed validation bug on message type schema values, [GH-116]
 
