@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"reflect"
 	"strconv"
 	"time"
 
@@ -12,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
+	"google.golang.org/api/googleapi"
 	"google.golang.org/api/groupssettings/v1"
 )
 
@@ -391,13 +391,23 @@ func resourceGroupSettingsCreate(ctx context.Context, d *schema.ResourceData, me
 
 	d.SetId(groupSettings.Email)
 
+	numInserts := 1
+	cc := consistencyCheck{
+		timeout:      d.Timeout(schema.TimeoutCreate),
+		resourceType: "group_settings",
+	}
 	err = retryTimeDuration(ctx, d.Timeout(schema.TimeoutCreate), func() error {
-		newGroupSettings, retryErr := groupsService.Get(d.Id()).Do()
-		if retryErr != nil {
-			return fmt.Errorf("unexpected error during retries of group settings: %s", retryErr)
-		}
-		if reflect.DeepEqual(groupSettings, newGroupSettings) {
+		if cc.reachedConsistency(numInserts) {
 			return nil
+		}
+
+		newGroupSettings, retryErr := groupsService.Get(d.Id()).IfNoneMatch(cc.lastEtag).Do()
+		if googleapi.IsNotModified(retryErr) {
+			cc.currConsistent += 1
+		} else if retryErr != nil {
+			return fmt.Errorf("unexpected error during retries of %s: %s", cc.resourceType, retryErr)
+		} else {
+			cc.handleNewEtag(newGroupSettings.ServerResponse.Header.Get("Etag"))
 		}
 
 		return fmt.Errorf("timed out while waiting for group settings to be updated")
@@ -667,13 +677,23 @@ func resourceGroupSettingsUpdate(ctx context.Context, d *schema.ResourceData, me
 
 	d.SetId(groupSettings.Email)
 
+	numInserts := 1
+	cc := consistencyCheck{
+		timeout:      d.Timeout(schema.TimeoutUpdate),
+		resourceType: "group_settings",
+	}
 	err = retryTimeDuration(ctx, d.Timeout(schema.TimeoutUpdate), func() error {
-		newGroupSettings, retryErr := groupsService.Get(d.Id()).Do()
-		if retryErr != nil {
-			return fmt.Errorf("unexpected error during retries of group settings: %s", retryErr)
-		}
-		if reflect.DeepEqual(groupSettings, newGroupSettings) {
+		if cc.reachedConsistency(numInserts) {
 			return nil
+		}
+
+		newGroupSettings, retryErr := groupsService.Get(d.Id()).IfNoneMatch(cc.lastEtag).Do()
+		if googleapi.IsNotModified(retryErr) {
+			cc.currConsistent += 1
+		} else if retryErr != nil {
+			return fmt.Errorf("unexpected error during retries of %s: %s", cc.resourceType, retryErr)
+		} else {
+			cc.handleNewEtag(newGroupSettings.ServerResponse.Header.Get("Etag"))
 		}
 
 		return fmt.Errorf("timed out while waiting for group settings to be updated")
