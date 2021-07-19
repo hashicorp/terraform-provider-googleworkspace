@@ -6,6 +6,7 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
+* groups settings: fixed bug where consistency check was prone to failure/timeout. [GH-119]
 * directory: fixed bug where `googleworkspace_schema.fields.indexed` would break if it was nil. [GH-108]
 * chrome: fixed validation bug on message type schema values, [GH-116]
 
