@@ -1,0 +1,1 @@
+terraform import googleworkspace_user_alias.dwight dwight.schrute@example.com/assistant_to_regional_manager@example.com
