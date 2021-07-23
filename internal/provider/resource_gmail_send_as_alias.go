@@ -196,7 +196,7 @@ func resourceGmailSendAsAliasRead(ctx context.Context, d *schema.ResourceData, m
 	primaryEmail := d.Get("primary_email").(string)
 	sendAs, err := sendAsAliasService.Get(primaryEmail, d.Get("send_as_email").(string)).Do()
 	if err != nil {
-		return diag.FromErr(err)
+		return handleNotFoundError(err, d, d.Id())
 	}
 
 	log.Printf("[DEBUG] Finished getting Gmail Send As Alias %q", d.Id())
