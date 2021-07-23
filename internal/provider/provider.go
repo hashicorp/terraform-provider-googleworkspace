@@ -14,6 +14,7 @@ import (
 )
 
 var DefaultClientScopes = []string{
+	"https://www.googleapis.com/auth/gmail.settings.sharing",
 	"https://www.googleapis.com/auth/chrome.management.policy",
 	"https://www.googleapis.com/auth/cloud-platform",
 	"https://www.googleapis.com/auth/admin.directory.customer",
@@ -101,17 +102,18 @@ func New(version string) func() *schema.Provider {
 				"googleworkspace_user":                 dataSourceUser(),
 			},
 			ResourcesMap: map[string]*schema.Resource{
-				"googleworkspace_chrome_policy":   resourceChromePolicy(),
-				"googleworkspace_domain":          resourceDomain(),
-				"googleworkspace_domain_alias":    resourceDomainAlias(),
-				"googleworkspace_group":           resourceGroup(),
-				"googleworkspace_group_member":    resourceGroupMember(),
-				"googleworkspace_group_settings":  resourceGroupSettings(),
-				"googleworkspace_org_unit":        resourceOrgUnit(),
-				"googleworkspace_role":            resourceRole(),
-				"googleworkspace_role_assignment": resourceRoleAssignment(),
-				"googleworkspace_schema":          resourceSchema(),
-				"googleworkspace_user":            resourceUser(),
+				"googleworkspace_chrome_policy":       resourceChromePolicy(),
+				"googleworkspace_domain":              resourceDomain(),
+				"googleworkspace_domain_alias":        resourceDomainAlias(),
+				"googleworkspace_gmail_send_as_alias": resourceGmailSendAsAlias(),
+				"googleworkspace_group":               resourceGroup(),
+				"googleworkspace_group_member":        resourceGroupMember(),
+				"googleworkspace_group_settings":      resourceGroupSettings(),
+				"googleworkspace_org_unit":            resourceOrgUnit(),
+				"googleworkspace_role":                resourceRole(),
+				"googleworkspace_role_assignment":     resourceRoleAssignment(),
+				"googleworkspace_schema":              resourceSchema(),
+				"googleworkspace_user":                resourceUser(),
 			},
 		}
 
