@@ -234,6 +234,11 @@ func resourceGmailSendAsAliasDelete(ctx context.Context, d *schema.ResourceData,
 
 	log.Printf("[DEBUG] Deleting Gmail Send As Alias %q", d.Id())
 
+	err := sendAsAliasService.Delete(d.Get("primary_email").(string), d.Get("send_as_email").(string)).Do()
+	if err != nil {
+		handleNotFoundError(err, d, d.Id())
+	}
+
 	log.Printf("[DEBUG] Finished deleting Gmail Send As Alias %q", d.Id())
 
 	return nil
