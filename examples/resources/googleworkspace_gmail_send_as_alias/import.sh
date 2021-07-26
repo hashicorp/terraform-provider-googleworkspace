@@ -1,0 +1,1 @@
+terraform import googleworkspace_gmail_send_as_alias.alias user@example.com:alias@anotherexample.com

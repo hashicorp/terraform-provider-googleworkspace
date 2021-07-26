@@ -18,7 +18,7 @@ const sendAsIdSeparator = ":"
 
 func resourceGmailSendAsAlias() *schema.Resource {
 	return &schema.Resource{
-		Description: "Role resource in the Terraform Googleworkspace provider.",
+		Description: "Gmail Send As Alias resource in the Terraform Googleworkspace provider. Please ensure the Gmail API is enabled for your workspace and that the user being configured has a Gmail license.",
 
 		CreateContext: resourceGmailSendAsAliasCreate,
 		ReadContext:   resourceGmailSendAsAliasRead,
@@ -71,7 +71,7 @@ func resourceGmailSendAsAlias() *schema.Resource {
 				Computed:    true,
 			},
 			"is_default": {
-				Description: "Whether this address is selected as the default 'From:' address in situations such as composing a new message or sending a vacation auto-reply. Every Gmail account has exactly one default send-as address, so the only legal value that clients may write to this field is true. Changing this from false to true for an address will result in this field becoming false for the other previous default address. To avoid drift with Terraform, please change the previous default's config to false after this change is applied and perform a refresh to synchronize with remote state.",
+				Description: "Whether this address is selected as the default 'From:' address in situations such as composing a new message or sending a vacation auto-reply. Every Gmail account has exactly one default send-as address, so the only legal value that clients may write to this field is true. Changing this from false to true for an address will result in this field becoming false for the other previous default address. Toggling an existing alias' default to false is not possible, another alias must be added/imported and toggled to true to remove the default from an existing alias. To avoid drift with Terraform, please change the previous default's config to false AFTER a new default is applied and perform a refresh to synchronize with remote state.",
 				Type:        schema.TypeBool,
 				Optional:    true,
 			},
