@@ -2,7 +2,9 @@ package googleworkspace
 
 import (
 	"context"
+	"fmt"
 	"log"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -23,10 +25,17 @@ func resourceGmailSendAsAlias() *schema.Resource {
 		UpdateContext: resourceGmailSendAsAliasUpdate,
 		DeleteContext: resourceGmailSendAsAliasDelete,
 
-		// TODO split email:sendAs id, is ':' a safe separator?
-		// Importer: &schema.ResourceImporter{
-		// 	StateContext: nil,
-		// },
+		Importer: &schema.ResourceImporter{
+			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+				idParts := strings.Split(d.Id(), sendAsIdSeparator)
+				if len(idParts) != 2 || idParts[0] == "" || idParts[1] == "" {
+					return nil, fmt.Errorf("Unexpected format of ID (%q), expected primary-email%ssend-as-email", d.Id(), sendAsIdSeparator)
+				}
+				d.Set("primary_email", idParts[0])
+				d.Set("send_as_email", idParts[1])
+				return []*schema.ResourceData{d}, nil
+			},
+		},
 
 		Schema: map[string]*schema.Schema{
 			"primary_email": {
@@ -147,7 +156,7 @@ func resourceGmailSendAsAliasCreate(ctx context.Context, d *schema.ResourceData,
 		SmtpMsa:        expandSmtpMsa(d.Get("smtp_msa").([]interface{})),
 	}).Do()
 	if err != nil {
-		diag.FromErr(err)
+		return diag.FromErr(err)
 	}
 
 	d.Set("send_as_email", sendAs.SendAsEmail)
@@ -172,6 +181,18 @@ func resourceGmailSendAsAliasUpdate(ctx context.Context, d *schema.ResourceData,
 	}
 
 	log.Printf("[DEBUG] Updating Gmail Send As Alias %q", d.Id())
+
+	_, err := sendAsAliasService.Update(d.Get("primary_email").(string), d.Get("send_as_email").(string), &gmail.SendAs{
+		DisplayName:    d.Get("display_name").(string),
+		ReplyToAddress: d.Get("reply_to_address").(string),
+		Signature:      d.Get("signature").(string),
+		IsDefault:      d.Get("is_default").(bool),
+		TreatAsAlias:   d.Get("treat_as_alias").(bool),
+		SmtpMsa:        expandSmtpMsa(d.Get("smtp_msa").([]interface{})),
+	}).Do()
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	log.Printf("[DEBUG] Finished updating Gmail Send As Alias %q", d.Id())
 
