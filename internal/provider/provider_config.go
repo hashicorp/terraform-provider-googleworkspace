@@ -109,12 +109,27 @@ func (c *apiClient) NewDirectoryService() (*directory.Service, diag.Diagnostics)
 
 	return directoryService, diags
 }
-func (c *apiClient) NewGmailService() (*gmail.Service, diag.Diagnostics) {
+func (c *apiClient) NewGmailService(ctx context.Context, userId string) (*gmail.Service, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	log.Printf("[INFO] Instantiating Google Admin Gmail service")
 
-	gmailService, err := gmail.NewService(context.Background(), option.WithHTTPClient(c.client))
+	// the send-as-alias resource requires the oauth token impersonate the user
+	// the alias is being created for.
+	log.Printf("[INFO] Creating Google Admin Gmail client that impersonates %q", userId)
+	newClient := &apiClient{
+		Credentials:           c.Credentials,
+		ClientScopes:          c.ClientScopes,
+		Customer:              c.Customer,
+		UserAgent:             c.UserAgent,
+		ImpersonatedUserEmail: userId,
+	}
+	diags = newClient.loadAndValidate(ctx)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	gmailService, err := gmail.NewService(ctx, option.WithHTTPClient(newClient.client))
 	if err != nil {
 		return nil, diag.FromErr(err)
 	}
