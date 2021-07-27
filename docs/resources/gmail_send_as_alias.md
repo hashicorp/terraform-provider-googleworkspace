@@ -45,7 +45,6 @@ resource "googleworkspace_gmail_send_as_alias" "test" {
 ### Optional
 
 - **display_name** (String) A name that appears in the 'From:' header for mail sent using this alias. For custom 'from' addresses, when this is empty, Gmail will populate the 'From:' header with the name that is used for the primary address associated with the account. If the admin has disabled the ability for users to update their name format, requests to update this field for the primary login will silently fail.
-- **id** (String) The ID of this resource.
 - **is_default** (Boolean) Whether this address is selected as the default 'From:' address in situations such as composing a new message or sending a vacation auto-reply. Every Gmail account has exactly one default send-as address, so the only legal value that clients may write to this field is true. Changing this from false to true for an address will result in this field becoming false for the other previous default address. Toggling an existing alias' default to false is not possible, another alias must be added/imported and toggled to true to remove the default from an existing alias. To avoid drift with Terraform, please change the previous default's config to false AFTER a new default is applied and perform a refresh to synchronize with remote state.
 - **reply_to_address** (String) An optional email address that is included in a 'Reply-To:' header for mail sent using this alias. If this is empty, Gmail will not generate a 'Reply-To:' header.
 - **signature** (String) An optional HTML signature that is included in messages composed with this alias in the Gmail web UI. This signature is added to new emails only.
@@ -54,6 +53,7 @@ resource "googleworkspace_gmail_send_as_alias" "test" {
 
 ### Read-Only
 
+- **id** (String) The ID of this resource.
 - **is_primary** (Boolean) Whether this address is the primary address used to login to the account. Every Gmail account has exactly one primary address, and it cannot be deleted from the collection of send-as aliases.
 - **verification_status** (String) Indicates whether this address has been verified for use as a send-as alias.
 
@@ -68,7 +68,7 @@ Required:
 Optional:
 
 - **password** (String, Sensitive) The password that will be used for authentication with the SMTP service. This is a write-only field that can be specified in requests to create or update SendAs settings; it is never populated in responses.
-- **security_mode** (String) he protocol that will be used to secure communication with the SMTP service. Defaults to `securityModeUnspecified`.
+- **security_mode** (String) The protocol that will be used to secure communication with the SMTP service. Defaults to `securityModeUnspecified`.
 - **username** (String) The username that will be used for authentication with the SMTP service. This is a write-only field that can be specified in requests to create or update SendAs settings; it is never populated in responses.
 
 ## Import
