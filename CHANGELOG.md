@@ -1,18 +1,18 @@
-## 0.4.0 (Unreleased)
+## 0.4.0 (July 27, 2021)
 
 FEATURES:
 
-* **New Resource:** `googleworkspace_gmail_send_as_alias` [GH-122]
+* **New Resource:** `googleworkspace_gmail_send_as_alias` ([#122](https://github.com/hashicorp/terraform-provider-googleworkspace/issues/122))
 
 IMPROVEMENTS:
 
-* provider: allow impersonation to be unset when service account has sufficient role assignments. [GH-115]
+* provider: allow impersonation to be unset when service account has sufficient role assignments. ([#115](https://github.com/hashicorp/terraform-provider-googleworkspace/issues/115))
 
 BUG FIXES:
 
-* groups settings: fixed bug where consistency check was prone to failure/timeout. [GH-119]
-* directory: fixed bug where `googleworkspace_schema.fields.indexed` would break if it was nil. [GH-108]
-* chrome: fixed validation bug on message type schema values, [GH-116]
+* groups settings: fixed bug where consistency check was prone to failure/timeout. ([#119](https://github.com/hashicorp/terraform-provider-googleworkspace/issues/119))
+* directory: fixed bug where `googleworkspace_schema.fields.indexed` would break if it was nil. ([#108](https://github.com/hashicorp/terraform-provider-googleworkspace/issues/108))
+* chrome: fixed validation bug on message type schema values, ([#116](https://github.com/hashicorp/terraform-provider-googleworkspace/issues/116))
 
 ## 0.3.0 (July 07, 2021)
 
