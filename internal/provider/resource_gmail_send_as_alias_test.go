@@ -11,8 +11,6 @@ import (
 )
 
 func TestAccResourceGmailSendAsAlias_basic(t *testing.T) {
-	t.Parallel()
-
 	gmailUser := os.Getenv("GOOGLEWORKSPACE_TEST_GMAIL_USER")
 
 	if gmailUser == "" {
@@ -49,8 +47,6 @@ func TestAccResourceGmailSendAsAlias_basic(t *testing.T) {
 }
 
 func TestAccResourceGmailSendAsAlias_full(t *testing.T) {
-	t.Parallel()
-
 	gmailUser := os.Getenv("GOOGLEWORKSPACE_TEST_GMAIL_USER")
 
 	if gmailUser == "" {
@@ -95,8 +91,6 @@ func TestAccResourceGmailSendAsAlias_full(t *testing.T) {
 }
 
 func TestAccResourceGmailSendAsAlias_defaultCannotBeSetToFalseDirectly(t *testing.T) {
-	t.Parallel()
-
 	gmailUser := os.Getenv("GOOGLEWORKSPACE_TEST_GMAIL_USER")
 
 	if gmailUser == "" {
@@ -132,8 +126,6 @@ func TestAccResourceGmailSendAsAlias_defaultCannotBeSetToFalseDirectly(t *testin
 }
 
 func TestAccResourceGmailSendAsAlias_switchingDefaultCausesDiff(t *testing.T) {
-	t.Parallel()
-
 	gmailUser := os.Getenv("GOOGLEWORKSPACE_TEST_GMAIL_USER")
 
 	if gmailUser == "" {
