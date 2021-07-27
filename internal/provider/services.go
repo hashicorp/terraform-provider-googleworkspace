@@ -7,6 +7,7 @@ import (
 
 	directory "google.golang.org/api/admin/directory/v1"
 	"google.golang.org/api/chromepolicy/v1"
+	"google.golang.org/api/gmail/v1"
 	"google.golang.org/api/groupssettings/v1"
 )
 
@@ -110,6 +111,23 @@ func GetGroupsSettingsService(groupsSettingsService *groupssettings.Service) (*g
 	}
 
 	return groupsService, diags
+}
+
+func GetGmailSendAsAliasService(gmailService *gmail.Service) (*gmail.UsersSettingsSendAsService, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	log.Printf("[INFO] Instantiating Google Admin Gmail Send As Alias service")
+	usersService := gmailService.Users
+	if usersService == nil || usersService.Settings == nil || usersService.Settings.SendAs == nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Send As Alias Service could not be created.",
+		})
+
+		return nil, diags
+	}
+
+	return usersService.Settings.SendAs, diags
 }
 
 func GetGroupAliasService(groupsService *directory.GroupsService) (*directory.GroupsAliasesService, diag.Diagnostics) {

@@ -12,6 +12,7 @@ import (
 	"golang.org/x/oauth2"
 	googleoauth "golang.org/x/oauth2/google"
 	"google.golang.org/api/chromepolicy/v1"
+	"google.golang.org/api/gmail/v1"
 	"google.golang.org/api/option"
 
 	directory "google.golang.org/api/admin/directory/v1"
@@ -107,6 +108,42 @@ func (c *apiClient) NewDirectoryService() (*directory.Service, diag.Diagnostics)
 	}
 
 	return directoryService, diags
+}
+func (c *apiClient) NewGmailService(ctx context.Context, userId string) (*gmail.Service, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	log.Printf("[INFO] Instantiating Google Admin Gmail service")
+
+	// the send-as-alias resource requires the oauth token impersonate the user
+	// the alias is being created for.
+	log.Printf("[INFO] Creating Google Admin Gmail client that impersonates %q", userId)
+	newClient := &apiClient{
+		Credentials:           c.Credentials,
+		ClientScopes:          c.ClientScopes,
+		Customer:              c.Customer,
+		UserAgent:             c.UserAgent,
+		ImpersonatedUserEmail: userId,
+	}
+	diags = newClient.loadAndValidate(ctx)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	gmailService, err := gmail.NewService(ctx, option.WithHTTPClient(newClient.client))
+	if err != nil {
+		return nil, diag.FromErr(err)
+	}
+
+	if gmailService == nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "Gmail Service could not be created.",
+		})
+
+		return nil, diags
+	}
+
+	return gmailService, diags
 }
 
 func (c *apiClient) NewGroupsSettingsService() (*groupssettings.Service, diag.Diagnostics) {

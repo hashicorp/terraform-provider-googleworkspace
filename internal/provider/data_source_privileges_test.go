@@ -20,7 +20,7 @@ func TestAccDataSourcePrivileges_basic(t *testing.T) {
 				Config: testAccDataSourcePrivileges(),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("data.googleworkspace_privileges.test", "etag"),
-					resource.TestCheckResourceAttr("data.googleworkspace_privileges.test", "items.#", "104"),
+					resource.TestCheckResourceAttr("data.googleworkspace_privileges.test", "items.#", "107"),
 				),
 			},
 		},
