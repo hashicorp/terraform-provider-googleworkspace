@@ -125,10 +125,11 @@ func resourceUser() *schema.Resource {
 			"password": {
 				Description: "Stores the password for the user account. A password can contain any combination of " +
 					"ASCII characters. A minimum of 8 characters is required. The maximum length is 100 characters. " +
-					"As the API does not return the value of password, this field is write-only, " +
-					"and the value stored in the state will be what is provided in the configuration.",
+					"As the API does not return the value of password, this field is write-only, and the value stored " +
+					"in the state will be what is provided in the configuration. The field is required on create and will " +
+					"be empty on import.",
 				Type:             schema.TypeString,
-				Required:         true,
+				Optional:         true,
 				Sensitive:        true,
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringLenBetween(8, 100)),
 			},
@@ -975,6 +976,15 @@ func resourceUserCreate(ctx context.Context, d *schema.ResourceData, meta interf
 
 	// use the meta value to retrieve your client from the provider configure method
 	client := meta.(*apiClient)
+
+	if d.Get("password").(string) == "" {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  fmt.Sprintf("Password is required when creating a new user"),
+		})
+
+		return diags
+	}
 
 	primaryEmail := d.Get("primary_email").(string)
 	log.Printf("[DEBUG] Creating User %q: %#v", d.Id(), primaryEmail)
