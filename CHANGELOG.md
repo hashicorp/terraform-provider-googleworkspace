@@ -1,5 +1,9 @@
 ## 0.4.0 (Unreleased)
 
+FEATURES:
+
+* **New Resource:** `googleworkspace_gmail_send_as_alias` [GH-122]
+
 IMPROVEMENTS:
 
 * provider: allow impersonation to be unset when service account has sufficient role assignments. [GH-115]
