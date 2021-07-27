@@ -3,6 +3,7 @@ package googleworkspace
 import (
 	"fmt"
 	"os"
+	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
@@ -36,6 +37,32 @@ func TestAccResourceUser_basic(t *testing.T) {
 				ImportState:             true,
 				ImportStateVerify:       true,
 				ImportStateVerifyIgnore: []string{"password"},
+			},
+		},
+	})
+}
+
+func TestAccResourceUser_noPassword(t *testing.T) {
+	t.Parallel()
+
+	domainName := os.Getenv("GOOGLEWORKSPACE_DOMAIN")
+
+	if domainName == "" {
+		t.Skip("GOOGLEWORKSPACE_DOMAIN needs to be set to run this test")
+	}
+
+	testUserVals := map[string]interface{}{
+		"domainName": domainName,
+		"userEmail":  fmt.Sprintf("tf-test-%s", acctest.RandString(10)),
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: providerFactories,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccResourceUser_noPassword(testUserVals),
+				ExpectError: regexp.MustCompile("Password is required"),
 			},
 		},
 	})
@@ -211,6 +238,19 @@ func testAccResourceUser_basic(testUserVals map[string]interface{}) string {
 resource "googleworkspace_user" "my-new-user" {
   primary_email = "%{userEmail}@%{domainName}"
   password = "%{password}"
+
+  name {
+    family_name = "Scott"
+    given_name = "Michael"
+  }
+}
+`, testUserVals)
+}
+
+func testAccResourceUser_noPassword(testUserVals map[string]interface{}) string {
+	return Nprintf(`
+resource "googleworkspace_user" "my-new-user" {
+  primary_email = "%{userEmail}@%{domainName}"
 
   name {
     family_name = "Scott"

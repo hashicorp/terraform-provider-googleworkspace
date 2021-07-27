@@ -111,7 +111,6 @@ resource "googleworkspace_user" "dwight" {
 ### Required
 
 - **name** (Block List, Min: 1, Max: 1) Holds the given and family names of the user, and the read-only fullName value. The maximum number of characters in the givenName and in the familyName values is 60. In addition, name values support unicode/UTF-8 characters, and can contain spaces, letters (a-z), numbers (0-9), dashes (-), forward slashes (/), and periods (.). Maximum allowed data size for this field is 1Kb. (see [below for nested schema](#nestedblock--name))
-- **password** (String, Sensitive) Stores the password for the user account. A password can contain any combination of ASCII characters. A minimum of 8 characters is required. The maximum length is 100 characters. As the API does not return the value of password, this field is write-only, and the value stored in the state will be what is provided in the configuration.
 - **primary_email** (String) The user's primary email address. The primaryEmail must be unique and cannot be an alias of another user.
 
 ### Optional
@@ -133,6 +132,7 @@ resource "googleworkspace_user" "dwight" {
 - **locations** (Block List) A list of the user's locations. The maximum allowed data size is 10Kb. (see [below for nested schema](#nestedblock--locations))
 - **org_unit_path** (String) The full path of the parent organization associated with the user. If the parent organization is the top-level, it is represented as a forward slash (/).
 - **organizations** (Block List) A list of organizations the user belongs to. The maximum allowed data size is 10Kb. (see [below for nested schema](#nestedblock--organizations))
+- **password** (String, Sensitive) Stores the password for the user account. A password can contain any combination of ASCII characters. A minimum of 8 characters is required. The maximum length is 100 characters. As the API does not return the value of password, this field is write-only, and the value stored in the state will be what is provided in the configuration. The field is required on create and will be empty on import.
 - **phones** (Block List) Holds the given and family names of the user, and the read-only fullName value. The maximum number of characters in the givenName and in the familyName values is 60. In addition, name values support unicode/UTF-8 characters, and can contain spaces, letters (a-z), numbers (0-9), dashes (-), forward slashes (/), and periods (.). Maximum allowed data size for this field is 1Kb. (see [below for nested schema](#nestedblock--phones))
 - **posix_accounts** (Block List) A list of POSIX account information for the user. (see [below for nested schema](#nestedblock--posix_accounts))
 - **recovery_email** (String) Recovery email of the user.
