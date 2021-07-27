@@ -18,7 +18,7 @@ func TestAccResourceRole_basic(t *testing.T) {
 			{
 				Config: testAccRole_basic(fmt.Sprintf("tf-test-%s", acctest.RandString(10)), "test"),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("googleworkspace_role.test", "privileges.#", "8"),
+					resource.TestCheckResourceAttr("googleworkspace_role.test", "privileges.#", "9"),
 				),
 			},
 			{
@@ -40,7 +40,7 @@ func TestAccResourceRole_full(t *testing.T) {
 			{
 				Config: testAccRole_basic(fmt.Sprintf("tf-test-%s", acctest.RandString(10)), "test"),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("googleworkspace_role.test", "privileges.#", "8"),
+					resource.TestCheckResourceAttr("googleworkspace_role.test", "privileges.#", "9"),
 				),
 			},
 			{
@@ -51,7 +51,7 @@ func TestAccResourceRole_full(t *testing.T) {
 			{
 				Config: testAccRole_update(fmt.Sprintf("tf-test-%s", acctest.RandString(10)), "update"),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("googleworkspace_role.test", "privileges.#", "12"),
+					resource.TestCheckResourceAttr("googleworkspace_role.test", "privileges.#", "13"),
 				),
 			},
 			{
