@@ -62,7 +62,7 @@ jobs:
           # skipping due to https://github.com/hashicorp/terraform/issues/25961 test failures
           # - '0.13.4'
           - '0.14.11'
-          - '0.15.1'
+          - '1.0.3'
     steps:
     - name: Set up Go
       uses: actions/setup-go@37335c7bb261b353407cff977110895fa0b4f7d8

@@ -63,3 +63,9 @@ resource "google_project_service" "chrome-policy" {
   project = data.google_project.project.project_id
   service = "chromepolicy.googleapis.com"
 }
+
+// Enable the gmail api service
+resource "google_project_service" "gmail" {
+  project = data.google_project.project.project_id
+  service = "gmail.googleapis.com"
+}

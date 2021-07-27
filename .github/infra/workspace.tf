@@ -7,5 +7,5 @@ data "googleworkspace_role" "groups-admin" {
 
 resource "googleworkspace_role_assignment" "sa-groups-admin" {
   role_id = data.googleworkspace_role.groups-admin.id
-  assigned_to = google_service_account.acctest-sa.unique_id
+  assigned_to = vault_gcp_secret_roleset.roleset.service_account_email
 }
