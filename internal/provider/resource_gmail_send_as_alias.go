@@ -26,15 +26,7 @@ func resourceGmailSendAsAlias() *schema.Resource {
 		DeleteContext: resourceGmailSendAsAliasDelete,
 
 		Importer: &schema.ResourceImporter{
-			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-				idParts := strings.Split(d.Id(), sendAsIdSeparator)
-				if len(idParts) != 2 || idParts[0] == "" || idParts[1] == "" {
-					return nil, fmt.Errorf("Unexpected format of ID (%q), expected primary-email%ssend-as-email", d.Id(), sendAsIdSeparator)
-				}
-				d.Set("primary_email", idParts[0])
-				d.Set("send_as_email", idParts[1])
-				return []*schema.ResourceData{d}, nil
-			},
+			StateContext: resourceGmailSendAsAliasImport,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -111,7 +103,7 @@ func resourceGmailSendAsAlias() *schema.Resource {
 							Sensitive:   true,
 						},
 						"security_mode": {
-							Description:      "he protocol that will be used to secure communication with the SMTP service.",
+							Description:      "The protocol that will be used to secure communication with the SMTP service.",
 							Type:             schema.TypeString,
 							Optional:         true,
 							Default:          "securityModeUnspecified",
@@ -122,6 +114,13 @@ func resourceGmailSendAsAlias() *schema.Resource {
 			},
 			"verification_status": {
 				Description: "Indicates whether this address has been verified for use as a send-as alias.",
+				Type:        schema.TypeString,
+				Computed:    true,
+			},
+			// Adding a computed id simply to override the `optional` id that gets added in the SDK
+			// that will then display improperly in the docs
+			"id": {
+				Description: "The ID of this resource.",
 				Type:        schema.TypeString,
 				Computed:    true,
 			},
@@ -265,6 +264,16 @@ func resourceGmailSendAsAliasDelete(ctx context.Context, d *schema.ResourceData,
 	log.Printf("[DEBUG] Finished deleting Gmail Send As Alias %q", d.Id())
 
 	return nil
+}
+
+func resourceGmailSendAsAliasImport(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	idParts := strings.Split(d.Id(), sendAsIdSeparator)
+	if len(idParts) != 2 || idParts[0] == "" || idParts[1] == "" {
+		return nil, fmt.Errorf("Unexpected format of ID (%q), expected primary-email%ssend-as-email", d.Id(), sendAsIdSeparator)
+	}
+	d.Set("primary_email", idParts[0])
+	d.Set("send_as_email", idParts[1])
+	return []*schema.ResourceData{d}, nil
 }
 
 func expandSmtpMsa(smtpMsa []interface{}) *gmail.SmtpMsa {
