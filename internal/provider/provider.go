@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/mitchellh/go-homedir"
 
 	googleoauth "golang.org/x/oauth2/google"
 )
@@ -175,8 +176,12 @@ func validateCredentials(v interface{}, p cty.Path) diag.Diagnostics {
 		return diags
 	}
 	creds := v.(string)
+	path, err := homedir.Expand(creds)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 	// if this is a path and we can stat it, assume it's ok
-	if _, err := os.Stat(creds); err == nil {
+	if _, err := os.Stat(path); err == nil {
 		return diags
 	}
 	if _, err := googleoauth.CredentialsFromJSON(context.Background(), []byte(creds)); err != nil {
