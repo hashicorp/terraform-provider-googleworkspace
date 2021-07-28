@@ -1,3 +1,11 @@
+## 0.4.0 (Unreleased)
+
+FEATURES:
+
+BUG FIXES:
+
+* directory: fixed bug where `googleworkspace_user.password` was always required, which would break on import, now it is only required on create. [GH-125]
+
 ## 0.4.0 (July 27, 2021)
 
 FEATURES:
