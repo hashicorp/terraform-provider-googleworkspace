@@ -201,7 +201,7 @@ func TestAccResourceUser_gone(t *testing.T) {
 	})
 }
 
-func TestAccResourceUser_customSchemas(t *testing.T) {
+func TestAccResourceUser_customSchemasAllTypes(t *testing.T) {
 	t.Parallel()
 
 	domainName := os.Getenv("GOOGLEWORKSPACE_DOMAIN")
@@ -222,6 +222,38 @@ func TestAccResourceUser_customSchemas(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testAccResourceUser_customSchemaAllTypes(testUserVals),
+			},
+			{
+				ResourceName:            "googleworkspace_user.my-new-user",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"password"},
+			},
+		},
+	})
+}
+
+func TestAccResourceUser_customSchemasMultiple(t *testing.T) {
+	t.Parallel()
+
+	domainName := os.Getenv("GOOGLEWORKSPACE_DOMAIN")
+
+	if domainName == "" {
+		t.Skip("GOOGLEWORKSPACE_DOMAIN needs to be set to run this test")
+	}
+
+	testUserVals := map[string]interface{}{
+		"domainName": domainName,
+		"userEmail":  fmt.Sprintf("tf-test-%s", acctest.RandString(10)),
+		"password":   acctest.RandString(10),
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: providerFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceUser_customSchemaMultiple(testUserVals),
 			},
 			{
 				ResourceName:            "googleworkspace_user.my-new-user",
@@ -676,6 +708,54 @@ resource "googleworkspace_user" "my-new-user" {
       "lbs-of-beets" = jsonencode([1004.35, 100.0, 658])
       "favorite-animal" = jsonencode("bears")
       "fire-certified" =  jsonencode(true)
+    }
+  }
+}
+`, testUserVals)
+}
+
+func testAccResourceUser_customSchemaMultiple(testUserVals map[string]interface{}) string {
+	return Nprintf(`
+resource "googleworkspace_schema" "bar-schema" {
+  schema_name = "%{userEmail}-bar-schema"
+
+  fields {
+    field_name = "bar"
+    field_type = "STRING"
+  }
+}
+
+resource "googleworkspace_schema" "baz-schema" {
+  schema_name = "%{userEmail}-baz-schema"
+
+  fields {
+    field_name = "baz"
+    field_type = "STRING"
+  }
+}
+
+resource "googleworkspace_user" "my-new-user" {
+  primary_email = "%{userEmail}@%{domainName}"
+  password = "%{password}"
+
+  name {
+    family_name = "Scott"
+    given_name = "Michael"
+  }
+
+  custom_schemas {
+    schema_name = googleworkspace_schema.bar-schema.schema_name
+
+    schema_values = {
+      "bar" = jsonencode("Bar")
+    }
+  }
+
+  custom_schemas {
+    schema_name = googleworkspace_schema.baz-schema.schema_name
+
+    schema_values = {
+      "baz" = jsonencode("Baz")
     }
   }
 }

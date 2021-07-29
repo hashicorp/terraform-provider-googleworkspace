@@ -57,38 +57,35 @@ func diffSuppressEmails(k, old, new string, d *schema.ResourceData) bool {
 	return reflect.DeepEqual(subsetEmails, configEmails.([]interface{}))
 }
 
-func diffSuppressCustomSchemas(k, old, new string, d *schema.ResourceData) bool {
-	// we only care about the nested schema values
-	parts := strings.Split(k, ".")
-	if !stringInSlice(parts, "schema_values") || parts[len(parts)-1] == "%" {
-		return false
-	}
+func diffSuppressCustomSchemas(_, _, _ string, d *schema.ResourceData) bool {
+	old, new := d.GetChange("custom_schemas")
+	customSchemasOld := old.([]interface{})
+	customSchemasNew := new.([]interface{})
 
-	var oldVal interface{}
-	err := json.Unmarshal([]byte(old), &oldVal)
-	if err != nil {
-		return false
-	}
+	// rearrange the data structure into 2 dimensional map[string]map[string]string
+	// which DeepEqual can compare, (it cannot compare map[string]map[string]interface{})
 
-	var newVal interface{}
-	err = json.Unmarshal([]byte(new), &newVal)
-	if err != nil {
-		return false
-	}
-
-	// sort nested lists
-	if reflect.ValueOf(oldVal).Kind() == reflect.Slice {
-		if reflect.ValueOf(newVal).Kind() != reflect.Slice {
-			return false
+	oldMap := make(map[string]map[string]string)
+	for _, schema := range customSchemasOld {
+		s := schema.(map[string]interface{})
+		schemaValues := make(map[string]string)
+		for k, v := range s["schema_values"].(map[string]interface{}) {
+			schemaValues[k] = v.(string)
 		}
-
-		sortedOld := sortListOfInterfaces(oldVal.([]interface{}))
-		sortedNew := sortListOfInterfaces(newVal.([]interface{}))
-
-		return reflect.DeepEqual(sortedOld, sortedNew)
+		oldMap[s["schema_name"].(string)] = schemaValues
 	}
 
-	return reflect.DeepEqual(oldVal, newVal)
+	newMap := make(map[string]map[string]string)
+	for _, schema := range customSchemasNew {
+		s := schema.(map[string]interface{})
+		schemaValues := make(map[string]string)
+		for k, v := range s["schema_values"].(map[string]interface{}) {
+			schemaValues[k] = v.(string)
+		}
+		newMap[s["schema_name"].(string)] = schemaValues
+	}
+
+	return reflect.DeepEqual(oldMap, newMap)
 }
 
 func resourceUser() *schema.Resource {
