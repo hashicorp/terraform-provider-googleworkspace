@@ -62,15 +62,55 @@ func diffSuppressCustomSchemas(_, _, _ string, d *schema.ResourceData) bool {
 	customSchemasOld := old.([]interface{})
 	customSchemasNew := new.([]interface{})
 
-	// rearrange the data structure into 2 dimensional map[string]map[string]string
-	// which DeepEqual can compare, (it cannot compare map[string]map[string]interface{})
+	// transform the blocks
+	//
+	// custom_schemas {
+	// 	schema_name = "a"
+	//
+	// 	schema_values = {
+	// 	  "bar" = jsonencode("Bar")
+	// 	}
+	// }
+	//
+	// custom_schemas {
+	// 	schema_name = "b"
+	//
+	// 	schema_values = {
+	// 	  "baz" = jsonencode("Baz")
+	// 	}
+	// }
+	//
+	// into a 2 dimentional map[string]map[string]string
+	//
+	// {
+	// 	"a": {
+	// 		"bar": "Bar",
+	// 	},
+	// 	"b": {
+	// 		"baz": "Baz",
+	// 	},
+	// }
+	//
+	// and use reflect.DeepEqual to compare
 
 	oldMap := make(map[string]map[string]string)
 	for _, schema := range customSchemasOld {
 		s := schema.(map[string]interface{})
 		schemaValues := make(map[string]string)
 		for k, v := range s["schema_values"].(map[string]interface{}) {
-			schemaValues[k] = v.(string)
+			// ensure if field is list that it is sorted for comparison
+			// google stores unordered multi-value fields
+			var list []interface{}
+			if err := json.Unmarshal([]byte(v.(string)), &list); err == nil {
+				sorted := sortListOfInterfaces(list)
+				encoded, err := json.Marshal(sorted)
+				if err != nil {
+					panic(err)
+				}
+				schemaValues[k] = string(encoded)
+			} else {
+				schemaValues[k] = v.(string)
+			}
 		}
 		oldMap[s["schema_name"].(string)] = schemaValues
 	}
@@ -80,7 +120,19 @@ func diffSuppressCustomSchemas(_, _, _ string, d *schema.ResourceData) bool {
 		s := schema.(map[string]interface{})
 		schemaValues := make(map[string]string)
 		for k, v := range s["schema_values"].(map[string]interface{}) {
-			schemaValues[k] = v.(string)
+			// ensure if field is list that it is sorted for comparison
+			// google stores unordered multi-value fields
+			var list []interface{}
+			if err := json.Unmarshal([]byte(v.(string)), &list); err == nil {
+				sorted := sortListOfInterfaces(list)
+				encoded, err := json.Marshal(sorted)
+				if err != nil {
+					panic(err)
+				}
+				schemaValues[k] = string(encoded)
+			} else {
+				schemaValues[k] = v.(string)
+			}
 		}
 		newMap[s["schema_name"].(string)] = schemaValues
 	}
