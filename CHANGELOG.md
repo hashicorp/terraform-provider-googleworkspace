@@ -6,6 +6,7 @@ BUG FIXES:
 
 * directory: fixed bug where `googleworkspace_user.password` was always required, which would break on import, now it is only required on create. [GH-125]
 * provider: fixed validation of credentials [GH-126]
+* directory: fixed permadiff on`googleworkspace_user.custom_schemas` [GH-129]
 
 ## 0.4.0 (July 27, 2021)
 
