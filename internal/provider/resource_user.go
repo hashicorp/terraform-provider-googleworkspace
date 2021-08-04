@@ -57,38 +57,71 @@ func diffSuppressEmails(k, old, new string, d *schema.ResourceData) bool {
 	return reflect.DeepEqual(subsetEmails, configEmails.([]interface{}))
 }
 
-func diffSuppressCustomSchemas(k, old, new string, d *schema.ResourceData) bool {
-	// we only care about the nested schema values
-	parts := strings.Split(k, ".")
-	if !stringInSlice(parts, "schema_values") || parts[len(parts)-1] == "%" {
-		return false
-	}
+func diffSuppressCustomSchemas(_, _, _ string, d *schema.ResourceData) bool {
+	old, new := d.GetChange("custom_schemas")
+	customSchemasOld := old.([]interface{})
+	customSchemasNew := new.([]interface{})
 
-	var oldVal interface{}
-	err := json.Unmarshal([]byte(old), &oldVal)
-	if err != nil {
-		return false
-	}
+	// transform the blocks
+	//
+	// custom_schemas {
+	// 	schema_name = "a"
+	//
+	// 	schema_values = {
+	// 	  "bar" = jsonencode("Bar")
+	// 	}
+	// }
+	//
+	// custom_schemas {
+	// 	schema_name = "b"
+	//
+	// 	schema_values = {
+	// 	  "baz" = jsonencode("Baz")
+	// 	}
+	// }
+	//
+	// into a 2 dimentional map[string]map[string]string
+	//
+	// {
+	// 	"a": {
+	// 		"bar": "Bar",
+	// 	},
+	// 	"b": {
+	// 		"baz": "Baz",
+	// 	},
+	// }
+	//
+	// and use reflect.DeepEqual to compare
 
-	var newVal interface{}
-	err = json.Unmarshal([]byte(new), &newVal)
-	if err != nil {
-		return false
-	}
+	oldMap := transformCustomSchemasTo2DMap(customSchemasOld)
+	newMap := transformCustomSchemasTo2DMap(customSchemasNew)
 
-	// sort nested lists
-	if reflect.ValueOf(oldVal).Kind() == reflect.Slice {
-		if reflect.ValueOf(newVal).Kind() != reflect.Slice {
-			return false
+	return reflect.DeepEqual(oldMap, newMap)
+}
+
+func transformCustomSchemasTo2DMap(customSchemas []interface{}) map[string]map[string]string {
+	result := make(map[string]map[string]string)
+	for _, schema := range customSchemas {
+		s := schema.(map[string]interface{})
+		schemaValues := make(map[string]string)
+		for k, v := range s["schema_values"].(map[string]interface{}) {
+			// ensure if field is list that it is sorted for comparison
+			// google stores unordered multi-value fields
+			var list []interface{}
+			if err := json.Unmarshal([]byte(v.(string)), &list); err == nil {
+				sorted := sortListOfInterfaces(list)
+				encoded, err := json.Marshal(sorted)
+				if err != nil {
+					panic(err)
+				}
+				schemaValues[k] = string(encoded)
+			} else {
+				schemaValues[k] = v.(string)
+			}
 		}
-
-		sortedOld := sortListOfInterfaces(oldVal.([]interface{}))
-		sortedNew := sortListOfInterfaces(newVal.([]interface{}))
-
-		return reflect.DeepEqual(sortedOld, sortedNew)
+		result[s["schema_name"].(string)] = schemaValues
 	}
-
-	return reflect.DeepEqual(oldVal, newVal)
+	return result
 }
 
 func resourceUser() *schema.Resource {
