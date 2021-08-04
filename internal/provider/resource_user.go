@@ -93,51 +93,35 @@ func diffSuppressCustomSchemas(_, _, _ string, d *schema.ResourceData) bool {
 	//
 	// and use reflect.DeepEqual to compare
 
-	oldMap := make(map[string]map[string]string)
-	for _, schema := range customSchemasOld {
-		s := schema.(map[string]interface{})
-		schemaValues := make(map[string]string)
-		for k, v := range s["schema_values"].(map[string]interface{}) {
-			// ensure if field is list that it is sorted for comparison
-			// google stores unordered multi-value fields
-			var list []interface{}
-			if err := json.Unmarshal([]byte(v.(string)), &list); err == nil {
-				sorted := sortListOfInterfaces(list)
-				encoded, err := json.Marshal(sorted)
-				if err != nil {
-					panic(err)
-				}
-				schemaValues[k] = string(encoded)
-			} else {
-				schemaValues[k] = v.(string)
-			}
-		}
-		oldMap[s["schema_name"].(string)] = schemaValues
-	}
-
-	newMap := make(map[string]map[string]string)
-	for _, schema := range customSchemasNew {
-		s := schema.(map[string]interface{})
-		schemaValues := make(map[string]string)
-		for k, v := range s["schema_values"].(map[string]interface{}) {
-			// ensure if field is list that it is sorted for comparison
-			// google stores unordered multi-value fields
-			var list []interface{}
-			if err := json.Unmarshal([]byte(v.(string)), &list); err == nil {
-				sorted := sortListOfInterfaces(list)
-				encoded, err := json.Marshal(sorted)
-				if err != nil {
-					panic(err)
-				}
-				schemaValues[k] = string(encoded)
-			} else {
-				schemaValues[k] = v.(string)
-			}
-		}
-		newMap[s["schema_name"].(string)] = schemaValues
-	}
+	oldMap := transformCustomSchemasTo2DMap(customSchemasOld)
+	newMap := transformCustomSchemasTo2DMap(customSchemasNew)
 
 	return reflect.DeepEqual(oldMap, newMap)
+}
+
+func transformCustomSchemasTo2DMap(customSchemas []interface{}) map[string]map[string]string {
+	result := make(map[string]map[string]string)
+	for _, schema := range customSchemas {
+		s := schema.(map[string]interface{})
+		schemaValues := make(map[string]string)
+		for k, v := range s["schema_values"].(map[string]interface{}) {
+			// ensure if field is list that it is sorted for comparison
+			// google stores unordered multi-value fields
+			var list []interface{}
+			if err := json.Unmarshal([]byte(v.(string)), &list); err == nil {
+				sorted := sortListOfInterfaces(list)
+				encoded, err := json.Marshal(sorted)
+				if err != nil {
+					panic(err)
+				}
+				schemaValues[k] = string(encoded)
+			} else {
+				schemaValues[k] = v.(string)
+			}
+		}
+		result[s["schema_name"].(string)] = schemaValues
+	}
+	return result
 }
 
 func resourceUser() *schema.Resource {
