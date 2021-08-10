@@ -107,7 +107,8 @@ func CameltoSnake(s string) string {
 }
 
 // For resources that have many nested interfaces, we can pass them to the API as is,
-// only each field name needs to be camel case rather than snake case.
+// only each field name needs to be camel case rather than snake case. Additionally,
+// fields that are not set should not be sent to the API.
 func expandInterfaceObjects(parent interface{}) []interface{} {
 	objList := parent.([]interface{})
 	if len(objList) == 0 {
@@ -119,7 +120,7 @@ func expandInterfaceObjects(parent interface{}) []interface{} {
 	for _, o := range objList {
 		obj := o.(map[string]interface{})
 		for k, v := range obj {
-			if strings.Contains(k, "_") {
+			if strings.Contains(k, "_") || v == "" {
 				delete(obj, k)
 
 				// In the case that the field is not set, don't send it to the API
