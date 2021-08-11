@@ -159,7 +159,7 @@ func resourceOrgUnitRead(ctx context.Context, d *schema.ResourceData, meta inter
 
 	orgUnit, err := orgUnitsService.Get(client.Customer, d.Id()).Do()
 	if err != nil {
-		return diag.FromErr(err)
+		return handleNotFoundError(err, d, d.Id())
 	}
 
 	d.Set("name", orgUnit.Name)
@@ -249,7 +249,7 @@ func resourceOrgUnitDelete(ctx context.Context, d *schema.ResourceData, meta int
 
 	err := orgUnitsService.Delete(client.Customer, d.Id()).Do()
 	if err != nil {
-		return diag.FromErr(err)
+		return handleNotFoundError(err, d, d.Id())
 	}
 
 	log.Printf("[DEBUG] Finished deleting OrgUnit %q: %#v", d.Id(), ouName)
