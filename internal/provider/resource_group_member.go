@@ -171,7 +171,7 @@ func resourceGroupMemberRead(ctx context.Context, d *schema.ResourceData, meta i
 
 	member, err := membersService.Get(groupId, memberId).Do()
 	if err != nil {
-		return diag.FromErr(err)
+		return handleNotFoundError(err, d, d.Id())
 	}
 
 	d.Set("email", member.Email)
@@ -264,7 +264,7 @@ func resourceGroupMemberDelete(ctx context.Context, d *schema.ResourceData, meta
 
 	err := membersService.Delete(groupId, memberId).Do()
 	if err != nil {
-		return diag.FromErr(err)
+		return handleNotFoundError(err, d, d.Id())
 	}
 
 	log.Printf("[DEBUG] Finished deleting Group Member %q: %#v", memberId, email)

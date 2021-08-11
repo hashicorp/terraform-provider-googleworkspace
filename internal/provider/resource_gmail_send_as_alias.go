@@ -258,7 +258,7 @@ func resourceGmailSendAsAliasDelete(ctx context.Context, d *schema.ResourceData,
 
 	err := sendAsAliasService.Delete("me", d.Get("send_as_email").(string)).Do()
 	if err != nil {
-		handleNotFoundError(err, d, d.Id())
+		return handleNotFoundError(err, d, d.Id())
 	}
 
 	log.Printf("[DEBUG] Finished deleting Gmail Send As Alias %q", d.Id())
