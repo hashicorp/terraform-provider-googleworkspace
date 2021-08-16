@@ -1,14 +1,14 @@
-## 0.4.1 (Unreleased)
+## 0.4.1 (August 16, 2021)
 
 BUG FIXES:
 
-* provider: fixed validation of credentials [GH-126]
-* directory: fixed bug where `googleworkspace_user.password` was always required, which would break on import, now it is only required on create. [GH-125]
-* directory: fixed permadiff on`googleworkspace_user.custom_schemas` [GH-129]
-* directory: fixed bug where different fields on `googleworkspace_user` would error if the value was empty. [GH-133]
-* directory: fixed bugs on `googleworkspace_group`, `googleworkspace_group_member` and `googleworkspace_org_unit` where changes made out of band would not refresh appropriately. [GH-136]
-* directory: changed nested `type` fields on `googleworkspace_org_user` from optional to required. [GH-139]
-* gmail: fixed bugs on `googleworkspace_gmail_send_as_alias` where changes made out of band would not refresh appropriately. [GH-136]
+* provider: fixed validation of credentials ([#126](https://github.com/hashicorp/terraform-provider-googleworkspace/issues/126))
+* directory: fixed bug where `googleworkspace_user.password` was always required, which would break on import, now it is only required on create. ([#125](https://github.com/hashicorp/terraform-provider-googleworkspace/issues/125))
+* directory: fixed permadiff on`googleworkspace_user.custom_schemas` ([#129](https://github.com/hashicorp/terraform-provider-googleworkspace/issues/129))
+* directory: fixed bug where different fields on `googleworkspace_user` would error if the value was empty. ([#133](https://github.com/hashicorp/terraform-provider-googleworkspace/issues/133))
+* directory: fixed bugs on `googleworkspace_group`, `googleworkspace_group_member` and `googleworkspace_org_unit` where changes made out of band would not refresh appropriately. ([#136](https://github.com/hashicorp/terraform-provider-googleworkspace/issues/136))
+* directory: changed nested `type` fields on `googleworkspace_org_user` from optional to required. ([#139](https://github.com/hashicorp/terraform-provider-googleworkspace/issues/139))
+* gmail: fixed bugs on `googleworkspace_gmail_send_as_alias` where changes made out of band would not refresh appropriately. ([#136](https://github.com/hashicorp/terraform-provider-googleworkspace/issues/136))
 
 ## 0.4.0 (July 27, 2021)
 
