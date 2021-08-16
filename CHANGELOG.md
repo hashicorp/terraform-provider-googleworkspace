@@ -1,12 +1,14 @@
 ## 0.5.0 (Unreleased)
 
-FEATURES:
-
 BUG FIXES:
 
-* directory: fixed bug where `googleworkspace_user.password` was always required, which would break on import, now it is only required on create. [GH-125]
 * provider: fixed validation of credentials [GH-126]
+* directory: fixed bug where `googleworkspace_user.password` was always required, which would break on import, now it is only required on create. [GH-125]
 * directory: fixed permadiff on`googleworkspace_user.custom_schemas` [GH-129]
+* directory: fixed bug where different fields on `googleworkspace_user` would error if the value was empty. [GH-133]
+* directory: fixed bugs on `googleworkspace_group`, `googleworkspace_group_member` and `googleworkspace_org_unit` where changes made out of band would not refresh appropriately. [GH-136]
+* directory: changed nested `type` fields on `googleworkspace_org_user` from optional to required. [GH-139]
+* gmail: fixed bugs on `googleworkspace_gmail_send_as_alias` where changes made out of band would not refresh appropriately. [GH-136]
 
 ## 0.4.0 (July 27, 2021)
 
