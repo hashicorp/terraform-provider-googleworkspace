@@ -180,6 +180,10 @@ Read-Only:
 <a id="nestedblock--addresses"></a>
 ### Nested Schema for `addresses`
 
+Required:
+
+- **type** (String) The address type. Acceptable values: `custom`, `home`, `other`, `work`.
+
 Optional:
 
 - **country** (String) Country
@@ -194,7 +198,6 @@ Optional:
 - **region** (String) The abbreviated province or state.
 - **source_is_structured** (Boolean) Indicates if the user-supplied address was formatted. Formatted addresses are not currently supported.
 - **street_address** (String) The street address, such as 1600 Amphitheatre Parkway. Whitespace within the string is ignored; however, newlines are significant.
-- **type** (String) The address type. Acceptable values: `custom`, `home`, `other`, `work`.
 
 
 <a id="nestedblock--custom_schemas"></a>
@@ -209,12 +212,15 @@ Required:
 <a id="nestedblock--emails"></a>
 ### Nested Schema for `emails`
 
+Required:
+
+- **type** (String) The type of the email account. Acceptable values: `custom`, `home`, `other`, `work`.
+
 Optional:
 
 - **address** (String) The user's email address. Also serves as the email ID. This value can be the user's primary email address or an alias.
 - **custom_type** (String) If the value of type is custom, this property contains the custom type string.
 - **primary** (Boolean) Indicates if this is the user's primary email. Only one entry can be marked as primary. Defaults to `false`.
-- **type** (String) The type of the email account. Acceptable values: `custom`, `home`, `other`, `work`.
 
 
 <a id="nestedblock--external_ids"></a>
@@ -222,16 +228,21 @@ Optional:
 
 Required:
 
+- **type** (String) The type of external ID. If set to custom, customType must also be set. Acceptable values: `account`, `custom`, `customer`, `login_id`, `network`, `organization`.
 - **value** (String) The value of the ID.
 
 Optional:
 
-- **custom_type** (String) If the value of type is custom, this property contains the custom type string.
-- **type** (String) The type of the email account. Acceptable values: `custom`, `home`, `other`, `work`.
+- **custom_type** (String) If the external ID type is custom, this property contains the custom value and must be set.
 
 
 <a id="nestedblock--ims"></a>
 ### Nested Schema for `ims`
+
+Required:
+
+- **protocol** (String) An IM protocol identifies the IM network. The value can be a custom network or the standard network. Acceptable values: `aim`, `custom_protocol`, `gtalk`, `icq`, `jabber`, `msn`, `net_meeting`, `qq`, `skype`, `yahoo`.
+- **type** (String) Acceptable values: `custom`, `home`, `other`, `work`.
 
 Optional:
 
@@ -239,8 +250,6 @@ Optional:
 - **custom_type** (String) If the IM type is custom, this property holds the custom type string.
 - **im** (String) The user's IM network ID.
 - **primary** (Boolean) If this is the user's primary IM. Only one entry in the IM list can have a value of true.
-- **protocol** (String) An IM protocol identifies the IM network. The value can be a custom network or the standard network. Acceptable values: `aim`, `custom_protocol`, `gtalk`, `icq`, `jabber`, `msn`, `net_meeting`, `qq`, `skype`, `yahoo`.
-- **type** (String) Acceptable values: `home`, `callback`, `other`, `work`.
 
 
 <a id="nestedblock--keywords"></a>
@@ -248,12 +257,12 @@ Optional:
 
 Required:
 
+- **type** (String) Each entry can have a type which indicates standard type of that entry. For example, keyword could be of type occupation or outlook. In addition to the standard type, an entry can have a custom type and can give it any name. Such types should have the CUSTOM value as type and also have a customType value. Acceptable values: `custom`, `mission`, `occupation`, `outlook`
 - **value** (String) Keyword.
 
 Optional:
 
 - **custom_type** (String) Custom Type.
-- **type** (String) Each entry can have a type which indicates standard type of that entry. For example, keyword could be of type occupation or outlook. In addition to the standard type, an entry can have a custom type and can give it any name. Such types should have the CUSTOM value as type and also have a customType value. Acceptable values: `custom`, `mission`, `occupation`, `outlook`
 
 
 <a id="nestedblock--languages"></a>
@@ -268,6 +277,10 @@ Optional:
 <a id="nestedblock--locations"></a>
 ### Nested Schema for `locations`
 
+Required:
+
+- **type** (String) The location type. Acceptable values: `custom`, `default`, `desk`
+
 Optional:
 
 - **area** (String) Textual location. This is most useful for display purposes to concisely describe the location. For example, Mountain View, CA or Near Seattle.
@@ -276,11 +289,14 @@ Optional:
 - **desk_code** (String) Most specific textual code of individual desk location.
 - **floor_name** (String) Floor name/number.
 - **floor_section** (String) Floor section. More specific location within the floor. For example, if a floor is divided into sections A, B, and C, this field would identify one of those values.
-- **type** (String) The location type. Acceptable values: `custom`, `default`, `desk`
 
 
 <a id="nestedblock--organizations"></a>
 ### Nested Schema for `organizations`
+
+Required:
+
+- **type** (String) The type of organization. Acceptable values: `domain_only`, `school`, `unknown`, `work`.
 
 Optional:
 
@@ -295,7 +311,6 @@ Optional:
 - **primary** (Boolean) Indicates if this is the user's primary organization. A user may only have one primary organization.
 - **symbol** (String) Text string symbol of the organization. For example, the text symbol for Google is GOOG.
 - **title** (String) The user's title within the organization. For example, member or engineer.
-- **type** (String) The type of organization. Acceptable values: `domain_only`, `school`, `unknown`, `work`.
 
 
 <a id="nestedblock--phones"></a>
@@ -303,13 +318,13 @@ Optional:
 
 Required:
 
+- **type** (String) The type of phone number. Acceptable values: `assistant`, `callback`, `car`, `company_main` , `custom`, `grand_central`, `home`, `home_fax`, `isdn`, `main`, `mobile`, `other`, `other_fax`, `pager`, `radio`, `telex`, `tty_tdd`, `work`, `work_fax`, `work_mobile`, `work_pager`.
 - **value** (String) A human-readable phone number. It may be in any telephone number format.
 
 Optional:
 
 - **custom_type** (String) If the value of type is custom, this property contains the custom type.
 - **primary** (Boolean) Indicates if this is the user's primary phone number. A user may only have one primary phone number.
-- **type** (String) The type of phone number. Acceptable values: `assistant`, `callback`, `car`, `company_main` , `custom`, `grand_central`, `home`, `home_fax`, `isdn`, `main`, `mobile`, `other`, `other_fax`, `pager`, `radio`, `telex`, `tty_tdd`, `work`, `work_fax`, `work_mobile`, `work_pager`.
 
 
 <a id="nestedblock--posix_accounts"></a>
@@ -334,12 +349,12 @@ Optional:
 
 Required:
 
+- **type** (String) The type of relation. Acceptable values: `admin_assistant`, `assistant`, `brother`, `child`, `custom`, `domestic_partner`, `dotted_line_manager`, `exec_assistant`, `father`, `friend`, `manager`, `mother`, `parent`, `partner`, `referred_by`, `relative`, `sister`, `spouse`.
 - **value** (String) The name of the person the user is related to.
 
 Optional:
 
 - **custom_type** (String) If the value of type is custom, this property contains the custom type string.
-- **type** (String) The type of relation. Acceptable values: `admin_assistant`, `assistant`, `brother`, `child`, `custom`, `domestic_partner`, `dotted_line_manager`, `exec_assistant`, `father`, `friend`, `manager`, `mother`, `parent`, `partner`, `referred_by`, `relative`, `sister`, `spouse`.
 
 
 <a id="nestedblock--ssh_public_keys"></a>
@@ -372,13 +387,13 @@ Optional:
 
 Required:
 
+- **type** (String) The type or purpose of the website. For example, a website could be labeled as home or blog. Alternatively, an entry can have a custom type Custom types must have a customType value. Acceptable values: `app_install_page`, `blog`, `custom`, `ftp` , `home`, `home_page`, `other`, `profile`, `reservations`, `resume`, `work`.
 - **value** (String) The URL of the website.
 
 Optional:
 
 - **custom_type** (String) The custom type. Only used if the type is custom.
 - **primary** (Boolean) If this is user's primary website or not.
-- **type** (String) The type or purpose of the website. For example, a website could be labeled as home or blog. Alternatively, an entry can have a custom type Custom types must have a customType value. Acceptable values: `app_install_page`, `blog`, `custom`, `ftp` , `home`, `home_page`, `other`, `profile`, `reservations`, `resume`, `work`.
 
 ## Import
 

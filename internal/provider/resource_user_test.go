@@ -614,7 +614,7 @@ resource "googleworkspace_user" "my-new-user" {
   }
 
   timeouts {
-    update = "10m"
+    update = "15m"
   }
 
   suspended = true
