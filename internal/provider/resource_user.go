@@ -277,7 +277,7 @@ func resourceUser() *schema.Resource {
 							Description: "The type of the email account. " +
 								"Acceptable values: `custom`, `home`, `other`, `work`.",
 							Type:     schema.TypeString,
-							Optional: true,
+							Required: true,
 							ValidateDiagFunc: validation.ToDiagFunc(
 								validation.StringInSlice([]string{"custom", "home", "other", "work"}, false),
 							),
@@ -295,18 +295,19 @@ func resourceUser() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"custom_type": {
-							Description: "If the value of type is custom, this property contains " +
-								"the custom type string.",
+							Description: "If the external ID type is custom, this property contains the custom value and " +
+								"must be set.",
 							Type:     schema.TypeString,
 							Optional: true,
 						},
 						"type": {
-							Description: "The type of the email account. " +
-								"Acceptable values: `custom`, `home`, `other`, `work`.",
+							Description: "The type of external ID. If set to custom, customType must also be set. " +
+								"Acceptable values: `account`, `custom`, `customer`, `login_id`, `network`, `organization`.",
 							Type:     schema.TypeString,
-							Optional: true,
+							Required: true,
 							ValidateDiagFunc: validation.ToDiagFunc(
-								validation.StringInSlice([]string{"custom", "home", "other", "work"}, false),
+								validation.StringInSlice([]string{"account", "custom", "customer", "login_id",
+									"network", "organization"}, false),
 							),
 						},
 						"value": {
@@ -339,7 +340,7 @@ func resourceUser() *schema.Resource {
 								"`manager`, `mother`, `parent`, `partner`, `referred_by`, `relative`, `sister`, " +
 								"`spouse`.",
 							Type:     schema.TypeString,
-							Optional: true,
+							Required: true,
 							ValidateDiagFunc: validation.ToDiagFunc(
 								validation.StringInSlice([]string{"admin_assistant", "assistant", "brother", "child",
 									"custom", "domestic_partner", "dotted_line_manager", "exec_assistant", "father",
@@ -454,7 +455,7 @@ func resourceUser() *schema.Resource {
 							Description: "The address type. " +
 								"Acceptable values: `custom`, `home`, `other`, `work`.",
 							Type:     schema.TypeString,
-							Optional: true,
+							Required: true,
 							ValidateDiagFunc: validation.ToDiagFunc(
 								validation.StringInSlice([]string{"custom", "home", "other", "work"}, false),
 							),
@@ -532,7 +533,7 @@ func resourceUser() *schema.Resource {
 							Description: "The type of organization. " +
 								"Acceptable values: `domain_only`, `school`, `unknown`, `work`.",
 							Type:     schema.TypeString,
-							Optional: true,
+							Required: true,
 							ValidateDiagFunc: validation.ToDiagFunc(
 								validation.StringInSlice([]string{"domain_only", "school", "unknown", "work"}, false),
 							),
@@ -577,7 +578,7 @@ func resourceUser() *schema.Resource {
 								"`other_fax`, `pager`, `radio`, `telex`, `tty_tdd`, `work`, `work_fax`, `work_mobile`, " +
 								"`work_pager`.",
 							Type:     schema.TypeString,
-							Optional: true,
+							Required: true,
 							ValidateDiagFunc: validation.ToDiagFunc(
 								validation.StringInSlice([]string{"assistant", "callback", "car", "company_main",
 									"custom", "grand_central", "home", "home_fax", "isdn", "main", "mobile", "other",
@@ -762,7 +763,7 @@ func resourceUser() *schema.Resource {
 								"Acceptable values: `app_install_page`, `blog`, `custom`, `ftp` " +
 								", `home`, `home_page`, `other`, `profile`, `reservations`, `resume`, `work`.",
 							Type:     schema.TypeString,
-							Optional: true,
+							Required: true,
 							ValidateDiagFunc: validation.ToDiagFunc(
 								validation.StringInSlice([]string{"app_install_page", "blog", "custom", "ftp",
 									"home", "home_page", "other", "profile", "reservations", "resume", "work"},
@@ -822,7 +823,7 @@ func resourceUser() *schema.Resource {
 							Description: "The location type. " +
 								"Acceptable values: `custom`, `default`, `desk`",
 							Type:     schema.TypeString,
-							Optional: true,
+							Required: true,
 							ValidateDiagFunc: validation.ToDiagFunc(
 								validation.StringInSlice([]string{"custom", "default", "desk"},
 									false),
@@ -858,7 +859,7 @@ func resourceUser() *schema.Resource {
 								"should have the CUSTOM value as type and also have a customType value. " +
 								"Acceptable values: `custom`, `mission`, `occupation`, `outlook`",
 							Type:     schema.TypeString,
-							Optional: true,
+							Required: true,
 							ValidateDiagFunc: validation.ToDiagFunc(
 								validation.StringInSlice([]string{"custom", "mission", "occupation", "outlook"},
 									false),
@@ -923,16 +924,16 @@ func resourceUser() *schema.Resource {
 								"Acceptable values: `aim`, `custom_protocol`, `gtalk`, `icq`, `jabber`, " +
 								"`msn`, `net_meeting`, `qq`, `skype`, `yahoo`.",
 							Type:     schema.TypeString,
-							Optional: true,
+							Required: true,
 							ValidateDiagFunc: validation.ToDiagFunc(
 								validation.StringInSlice([]string{"aim", "custom_protocol", "gtalk", "icq",
 									"jabber", "msn", "net_meeting", "qq", "skype", "yahoo"}, false),
 							),
 						},
 						"type": {
-							Description: "Acceptable values: `home`, `callback`, `other`, `work`.",
+							Description: "Acceptable values: `custom`, `home`, `other`, `work`.",
 							Type:        schema.TypeString,
-							Optional:    true,
+							Required:    true,
 							ValidateDiagFunc: validation.ToDiagFunc(
 								validation.StringInSlice([]string{"custom", "home", "other", "work"}, false),
 							),
