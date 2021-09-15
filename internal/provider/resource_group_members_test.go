@@ -22,8 +22,7 @@ func TestAccResourceGroupMembers_basic(t *testing.T) {
 
 	testGroupVals := map[string]interface{}{
 		"domainName": domainName,
-		"userEmail1": fmt.Sprintf("tf-test-%s", acctest.RandString(10)),
-		"userEmail2": fmt.Sprintf("tf-test-%s", acctest.RandString(10)),
+		"userEmail":  fmt.Sprintf("tf-test-%s", acctest.RandString(10)),
 		"groupEmail": fmt.Sprintf("tf-test-%s", acctest.RandString(10)),
 		"password":   acctest.RandString(10),
 	}
@@ -58,7 +57,8 @@ func TestAccResourceGroupMembers_full(t *testing.T) {
 
 	testGroupVals := map[string]interface{}{
 		"domainName": domainName,
-		"userEmail":  fmt.Sprintf("tf-test-%s", acctest.RandString(10)),
+		"userEmail1": fmt.Sprintf("tf-test-%s", acctest.RandString(10)),
+		"userEmail2": fmt.Sprintf("tf-test-%s", acctest.RandString(10)),
 		"groupEmail": fmt.Sprintf("tf-test-%s", acctest.RandString(10)),
 		"password":   acctest.RandString(10),
 	}
@@ -135,7 +135,7 @@ resource "googleworkspace_group" "my-group" {
 }
 
 resource "googleworkspace_user" "my-new-user" {
-  primary_email = "%{userEmail1}@%{domainName}"
+  primary_email = "%{userEmail}@%{domainName}"
   password = "%{password}"
 
   name {

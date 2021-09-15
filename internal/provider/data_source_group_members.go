@@ -23,5 +23,5 @@ func dataSourceGroupMembers() *schema.Resource {
 }
 
 func dataSourceGroupMembersRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	return resourceGroupMemberRead(ctx, d, meta)
+	return resourceGroupMembersRead(ctx, d, meta)
 }

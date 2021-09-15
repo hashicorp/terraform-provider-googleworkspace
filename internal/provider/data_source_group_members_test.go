@@ -37,7 +37,7 @@ func TestAccDataSourceGroupMembers(t *testing.T) {
 					resource.TestCheckTypeSetElemNestedAttrs(
 						"data.googleworkspace_group_members.my-group-members", "members", map[string]string{
 							"email": Nprintf("%{userEmail}@%{domainName}", testGroupVals),
-							"role":  "MANAGER",
+							"role":  "MEMBER",
 							"type":  "USER",
 						}),
 				),
@@ -70,7 +70,7 @@ resource "googleworkspace_group_member" "my-group-member" {
 data "googleworkspace_group_members" "my-group-members" {
   group_id = googleworkspace_group.my-group.id
 
-	depends_on = [googleworkspace_group_member.my-group-member]
+  depends_on = [googleworkspace_group_member.my-group-member]
 }
 `, testGroupVals)
 }

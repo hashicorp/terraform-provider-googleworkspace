@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"reflect"
 	"strings"
 
 	"github.com/hashicorp/go-cty/cty"
@@ -200,7 +201,6 @@ func resourceGroupMembersRead(ctx context.Context, d *schema.ResourceData, meta 
 		members[i] = map[string]interface{}{
 			"email":             member.Email,
 			"role":              member.Role,
-			"etag":              member.Etag,
 			"type":              member.Type,
 			"status":            member.Status,
 			"delivery_settings": member.DeliverySettings,
@@ -286,7 +286,7 @@ func resourceGroupMembersUpdate(ctx context.Context, d *schema.ResourceData, met
 			continue
 		}
 		// no change
-		if change.New["role"] == change.Old["role"] && change.New["type"] == change.Old["type"] && change.New["delivery_settings"] == change.Old["delivery_settings"] {
+		if reflect.DeepEqual(change.Old, change.New) {
 			continue
 		}
 
