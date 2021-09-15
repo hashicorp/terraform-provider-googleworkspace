@@ -1,6 +1,7 @@
 package googleworkspace
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"log"
@@ -39,6 +40,7 @@ func resourceGroupMembers() *schema.Resource {
 					"group alias, or the unique group ID.",
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 
 			"members": {
@@ -47,69 +49,15 @@ func resourceGroupMembers() *schema.Resource {
 				Required:    true,
 				ForceNew:    true,
 				MinItems:    1,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"email": {
-							Description: "The member's email address. A member can be a user or another group. This property is" +
-								"required when adding a member to a group. The email must be unique and cannot be an alias of" +
-								"another group. If the email address is changed, the API automatically reflects the email address changes.",
-							Type:     schema.TypeString,
-							Required: true,
-						},
-						"role": {
-							Description: "The member's role in a group. The API returns an error for cycles in group memberships. " +
-								"For example, if group1 is a member of group2, group2 cannot be a member of group1. " +
-								"Acceptable values are: " +
-								"`MANAGER`: This role is only available if the Google Groups for Business is " +
-								"enabled using the Admin Console. A `MANAGER` role can do everything done by an `OWNER` role except " +
-								"make a member an `OWNER` or delete the group. A group can have multiple `MANAGER` members. " +
-								"`MEMBER`: This role can subscribe to a group, view discussion archives, and view the group's " +
-								"membership list. " +
-								"`OWNER`: This role can send messages to the group, add or remove members, change member roles, " +
-								"change group's settings, and delete the group. An OWNER must be a member of the group. " +
-								"A group can have more than one OWNER.",
-							Type:     schema.TypeString,
-							Optional: true,
-							Default:  "MEMBER",
-							ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"MANAGER", "MEMBER", "OWNER"},
-								false)),
-						},
-						"type": {
-							Description: "The type of group member. Acceptable values are: " +
-								"`CUSTOMER`: The member represents all users in a domain. An email address is not returned and the " +
-								"ID returned is the customer ID. " +
-								"`GROUP`: The member is another group. " +
-								"`USER`: The member is a user.",
-							Type:     schema.TypeString,
-							Optional: true,
-							Default:  "USER",
-							ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"CUSTOMER", "GROUP", "USER"},
-								false)),
-						},
-						"delivery_settings": {
-							Description: "Defines mail delivery preferences of member. Acceptable values are:" +
-								"`ALL_MAIL`: All messages, delivered as soon as they arrive. " +
-								"`DAILY`: No more than one message a day. " +
-								"`DIGEST`: Up to 25 messages bundled into a single message. " +
-								"`DISABLED`: Remove subscription. " +
-								"`NONE`: No messages.",
-							Type:     schema.TypeString,
-							Optional: true,
-							Default:  "ALL_MAIL",
-							ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"ALL_MAIL", "DAILY", "DIGEST",
-								"DISABLED", "NONE"}, false)),
-						},
-						"status": {
-							Description: "Status of member.",
-							Type:        schema.TypeString,
-							Computed:    true,
-						},
-						"id": {
-							Description: "The unique ID of the group member. A member id can be used as a member request URI's memberKey.",
-							Type:        schema.TypeString,
-							Computed:    true,
-						},
-					},
+				Elem:        groupMembersMemberSchema(),
+				Set: func(v interface{}) int {
+					raw := v.(map[string]interface{})
+					if email, ok := raw["email"]; ok {
+						hashcode(email.(string))
+					}
+					var buf bytes.Buffer
+					schema.SerializeResourceForHash(&buf, raw, groupMembersMemberSchema())
+					return hashcode(buf.String())
 				},
 			},
 
@@ -123,6 +71,73 @@ func resourceGroupMembers() *schema.Resource {
 			// that will then display improperly in the docs
 			"id": {
 				Description: "The ID of this resource.",
+				Type:        schema.TypeString,
+				Computed:    true,
+			},
+		},
+	}
+}
+
+func groupMembersMemberSchema() *schema.Resource {
+	return &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"email": {
+				Description: "The member's email address. A member can be a user or another group. This property is" +
+					"required when adding a member to a group. The email must be unique and cannot be an alias of" +
+					"another group. If the email address is changed, the API automatically reflects the email address changes.",
+				Type:     schema.TypeString,
+				Required: true,
+			},
+			"role": {
+				Description: "The member's role in a group. The API returns an error for cycles in group memberships. " +
+					"For example, if group1 is a member of group2, group2 cannot be a member of group1. " +
+					"Acceptable values are: " +
+					"`MANAGER`: This role is only available if the Google Groups for Business is " +
+					"enabled using the Admin Console. A `MANAGER` role can do everything done by an `OWNER` role except " +
+					"make a member an `OWNER` or delete the group. A group can have multiple `MANAGER` members. " +
+					"`MEMBER`: This role can subscribe to a group, view discussion archives, and view the group's " +
+					"membership list. " +
+					"`OWNER`: This role can send messages to the group, add or remove members, change member roles, " +
+					"change group's settings, and delete the group. An OWNER must be a member of the group. " +
+					"A group can have more than one OWNER.",
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "MEMBER",
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"MANAGER", "MEMBER", "OWNER"},
+					false)),
+			},
+			"type": {
+				Description: "The type of group member. Acceptable values are: " +
+					"`CUSTOMER`: The member represents all users in a domain. An email address is not returned and the " +
+					"ID returned is the customer ID. " +
+					"`GROUP`: The member is another group. " +
+					"`USER`: The member is a user.",
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "USER",
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"CUSTOMER", "GROUP", "USER"},
+					false)),
+			},
+			"delivery_settings": {
+				Description: "Defines mail delivery preferences of member. Acceptable values are:" +
+					"`ALL_MAIL`: All messages, delivered as soon as they arrive. " +
+					"`DAILY`: No more than one message a day. " +
+					"`DIGEST`: Up to 25 messages bundled into a single message. " +
+					"`DISABLED`: Remove subscription. " +
+					"`NONE`: No messages.",
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "ALL_MAIL",
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"ALL_MAIL", "DAILY", "DIGEST",
+					"DISABLED", "NONE"}, false)),
+			},
+			"status": {
+				Description: "Status of member.",
+				Type:        schema.TypeString,
+				Computed:    true,
+			},
+			"id": {
+				Description: "The unique ID of the group member. A member id can be used as a member request URI's memberKey.",
 				Type:        schema.TypeString,
 				Computed:    true,
 			},
