@@ -41,6 +41,9 @@ func TestAccResourceGroupMembers_basic(t *testing.T) {
 				ResourceName:      "googleworkspace_group_members.my-group-members",
 				ImportState:       true,
 				ImportStateVerify: true,
+				ImportStateVerifyIgnore: []string{
+					"members.0.delivery_settings",
+				},
 			},
 		},
 	})
@@ -77,6 +80,10 @@ func TestAccResourceGroupMembers_full(t *testing.T) {
 				ResourceName:      "googleworkspace_group_members.my-group-members",
 				ImportState:       true,
 				ImportStateVerify: true,
+				ImportStateVerifyIgnore: []string{
+					"members.0.delivery_settings",
+					"members.1.delivery_settings",
+				},
 			},
 			{
 				Config: testAccResourceGroupMembers_fullUpdate(testGroupVals),
@@ -85,6 +92,10 @@ func TestAccResourceGroupMembers_full(t *testing.T) {
 				ResourceName:      "googleworkspace_group_members.my-group-members",
 				ImportState:       true,
 				ImportStateVerify: true,
+				ImportStateVerifyIgnore: []string{
+					"members.0.delivery_settings",
+					"members.1.delivery_settings",
+				},
 			},
 		},
 	})
