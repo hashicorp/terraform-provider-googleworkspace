@@ -39,6 +39,7 @@ func resourceGroupMember() *schema.Resource {
 					"required when adding a member to a group. The email must be unique and cannot be an alias of" +
 					"another group. If the email address is changed, the API automatically reflects the email address changes.",
 				Type:     schema.TypeString,
+				ForceNew: true,
 				Required: true,
 			},
 			"role": {
