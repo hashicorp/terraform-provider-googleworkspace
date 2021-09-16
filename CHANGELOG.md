@@ -1,3 +1,8 @@
+## 0.4.1 (Unreleased)
+
+BUG FIXES:
+directory: fixed bug where `googleworkspace_group_member` would not force new change on change of email [GH-152]
+
 ## 0.4.1 (August 16, 2021)
 
 BUG FIXES:
