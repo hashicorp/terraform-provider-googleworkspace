@@ -47,7 +47,6 @@ func resourceGroupMembers() *schema.Resource {
 				Description: "The members of the group",
 				Type:        schema.TypeSet,
 				Required:    true,
-				ForceNew:    true,
 				MinItems:    1,
 				Elem:        groupMembersMemberSchema(),
 				Set: func(v interface{}) int {
@@ -213,12 +212,18 @@ func resourceGroupMembersRead(ctx context.Context, d *schema.ResourceData, meta 
 
 	members := make([]interface{}, len(membersObj.Members))
 	for i, member := range membersObj.Members {
+		// Use value if presnet or default as "delivery_settings" is not provided by API
+		deliverySettings := resourceGroupMembers().Schema["members"].Elem.(*schema.Resource).Schema["delivery_settings"].Default.(string)
+		if ds := d.Get(fmt.Sprintf("members.%d.delivery_settings", i)); ds != nil {
+			deliverySettings = ds.(string)
+		}
+
 		members[i] = map[string]interface{}{
 			"email":             member.Email,
 			"role":              member.Role,
 			"type":              member.Type,
 			"status":            member.Status,
-			"delivery_settings": member.DeliverySettings,
+			"delivery_settings": deliverySettings,
 			"id":                member.Id,
 		}
 	}
@@ -321,7 +326,7 @@ func resourceGroupMembersUpdate(ctx context.Context, d *schema.ResourceData, met
 		log.Printf("[DEBUG] Finished updating Group Members %q", groupId)
 	}
 
-	return resourceGroupMemberRead(ctx, d, meta)
+	return resourceGroupMembersRead(ctx, d, meta)
 }
 
 func resourceGroupMembersDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
