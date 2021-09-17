@@ -7,9 +7,7 @@ import (
 	"log"
 	"net/mail"
 	"reflect"
-	"regexp"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -23,31 +21,19 @@ import (
 func diffSuppressEmails(k, old, new string, d *schema.ResourceData) bool {
 	stateEmails, configEmails := d.GetChange("emails")
 
-	// The primary email (and potentially a test email with the format <primary_email>.test-google-a.com,
-	// if the domain is the primary domain), along with aliases and associated test-google-a email addresses for them,
+	// User aliases and other alternate emails (added by Google and denoted by no `type`),
 	// are auto-added to the email list, even if it's not configured that way.
 	// Only show a diff if the other emails differ.
 	subsetEmails := []interface{}{}
 
-	primaryEmail := d.Get("primary_email").(string)
 	aliases := listOfInterfacestoStrings(d.Get("aliases").([]interface{}))
-	testEmailMatch, err := regexp.Compile("test-google-a.com")
-	if err != nil {
-		log.Println("[ERROR] Failed to compile email match")
-		return false
-	}
 
 	for _, se := range stateEmails.([]interface{}) {
 		email := se.(map[string]interface{})
 		emailAddress := email["address"].(string)
+		emailType := email["type"].(string)
 
-		testEmail := testEmailMatch.MatchString(emailAddress)
-
-		if testEmail {
-			emailAddress = strings.ReplaceAll(emailAddress, ".test-google-a.com", "")
-		}
-
-		if emailAddress == primaryEmail || stringInSlice(aliases, emailAddress) {
+		if emailType == "" || stringInSlice(aliases, emailAddress) {
 			continue
 		}
 
