@@ -1,7 +1,6 @@
 package googleworkspace
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"log"
@@ -15,6 +14,8 @@ import (
 
 	directory "google.golang.org/api/admin/directory/v1"
 )
+
+const deliverySettingsDefault = "ALL_MAIL"
 
 type MemberChange struct {
 	Old, New map[string]interface{}
@@ -49,15 +50,6 @@ func resourceGroupMembers() *schema.Resource {
 				Required:    true,
 				MinItems:    1,
 				Elem:        groupMembersMemberSchema(),
-				Set: func(v interface{}) int {
-					raw := v.(map[string]interface{})
-					if email, ok := raw["email"]; ok {
-						hashcode(email.(string))
-					}
-					var buf bytes.Buffer
-					schema.SerializeResourceForHash(&buf, raw, groupMembersMemberSchema())
-					return hashcode(buf.String())
-				},
 			},
 
 			"etag": {
@@ -126,7 +118,7 @@ func groupMembersMemberSchema() *schema.Resource {
 					"`NONE`: No messages.",
 				Type:     schema.TypeString,
 				Optional: true,
-				Default:  "ALL_MAIL",
+				Default:  deliverySettingsDefault,
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"ALL_MAIL", "DAILY", "DIGEST",
 					"DISABLED", "NONE"}, false)),
 			},
@@ -210,12 +202,20 @@ func resourceGroupMembersRead(ctx context.Context, d *schema.ResourceData, meta 
 		return handleNotFoundError(err, d, d.Id())
 	}
 
+	configMembers := d.Get("members").(*schema.Set)
+
 	members := make([]interface{}, len(membersObj.Members))
 	for i, member := range membersObj.Members {
-		// Use value if presnet or default as "delivery_settings" is not provided by API
-		deliverySettings := resourceGroupMembers().Schema["members"].Elem.(*schema.Resource).Schema["delivery_settings"].Default.(string)
-		if ds := d.Get(fmt.Sprintf("members.%d.delivery_settings", i)); ds != nil {
-			deliverySettings = ds.(string)
+
+		// Use value if present or default as "delivery_settings" is not provided by API
+		deliverySettings := deliverySettingsDefault
+
+		for _, cm := range configMembers.List() {
+			cMem := cm.(map[string]interface{})
+			if cMem["email"].(string) == member.Email {
+				deliverySettings = cMem["delivery_settings"].(string)
+				break
+			}
 		}
 
 		members[i] = map[string]interface{}{
