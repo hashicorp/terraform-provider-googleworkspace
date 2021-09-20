@@ -21,9 +21,8 @@ func TestAccResourceGroupMembers_basic(t *testing.T) {
 	}
 
 	testGroupVals := map[string]interface{}{
-		"domainName": domainName,
-		"userEmail":  fmt.Sprintf("tf-test-%s", acctest.RandString(10)),
-		"groupEmail": fmt.Sprintf("tf-test-%s", acctest.RandString(10)),
+		"userEmail":  fmt.Sprintf("tf-test-%s@%s", acctest.RandString(10), domainName),
+		"groupEmail": fmt.Sprintf("tf-test-%s@%s", acctest.RandString(10), domainName),
 		"password":   acctest.RandString(10),
 	}
 
@@ -36,14 +35,17 @@ func TestAccResourceGroupMembers_basic(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testAccResourceGroupMembers_basic(testGroupVals),
+				Check: testAccCheckGoogleWorkspaceMembers(t, []map[string]interface{}{
+					{
+						"email": testGroupVals["userEmail"],
+						"type":  "USER",
+						"role":  "MEMBER",
+					},
+				}),
 			},
 			{
-				ResourceName:      "googleworkspace_group_members.my-group-members",
-				ImportState:       true,
-				ImportStateVerify: true,
-				ImportStateVerifyIgnore: []string{
-					"members.0.delivery_settings",
-				},
+				ResourceName: "googleworkspace_group_members.my-group-members",
+				ImportState:  true,
 			},
 		},
 	})
@@ -59,10 +61,9 @@ func TestAccResourceGroupMembers_full(t *testing.T) {
 	}
 
 	testGroupVals := map[string]interface{}{
-		"domainName": domainName,
-		"userEmail1": fmt.Sprintf("tf-test-%s", acctest.RandString(10)),
-		"userEmail2": fmt.Sprintf("tf-test-%s", acctest.RandString(10)),
-		"groupEmail": fmt.Sprintf("tf-test-%s", acctest.RandString(10)),
+		"userEmail1": fmt.Sprintf("tf-test-%s@%s", acctest.RandString(10), domainName),
+		"userEmail2": fmt.Sprintf("tf-test-%s@%s", acctest.RandString(10), domainName),
+		"groupEmail": fmt.Sprintf("tf-test-%s@%s", acctest.RandString(10), domainName),
 		"password":   acctest.RandString(10),
 	}
 
@@ -75,27 +76,41 @@ func TestAccResourceGroupMembers_full(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testAccResourceGroupMembers_full(testGroupVals),
+				Check: testAccCheckGoogleWorkspaceMembers(t, []map[string]interface{}{
+					{
+						"email": testGroupVals["userEmail1"],
+						"type":  "USER",
+						"role":  "MANAGER",
+					},
+					{
+						"email": testGroupVals["userEmail2"],
+						"type":  "USER",
+						"role":  "MANAGER",
+					},
+				}),
 			},
 			{
-				ResourceName:      "googleworkspace_group_members.my-group-members",
-				ImportState:       true,
-				ImportStateVerify: true,
-				ImportStateVerifyIgnore: []string{
-					"members.0.delivery_settings",
-					"members.1.delivery_settings",
-				},
+				ResourceName: "googleworkspace_group_members.my-group-members",
+				ImportState:  true,
 			},
 			{
 				Config: testAccResourceGroupMembers_fullUpdate(testGroupVals),
+				Check: testAccCheckGoogleWorkspaceMembers(t, []map[string]interface{}{
+					{
+						"email": testGroupVals["userEmail1"],
+						"type":  "USER",
+						"role":  "OWNER",
+					},
+					{
+						"email": testGroupVals["userEmail2"],
+						"type":  "USER",
+						"role":  "MANAGER",
+					},
+				}),
 			},
 			{
-				ResourceName:      "googleworkspace_group_members.my-group-members",
-				ImportState:       true,
-				ImportStateVerify: true,
-				ImportStateVerifyIgnore: []string{
-					"members.0.delivery_settings",
-					"members.1.delivery_settings",
-				},
+				ResourceName: "googleworkspace_group_members.my-group-members",
+				ImportState:  true,
 			},
 		},
 	})
@@ -139,14 +154,47 @@ func testAccResourceGroupMembersExists(resource string) resource.TestCheckFunc {
 	}
 }
 
+func testAccCheckGoogleWorkspaceMembers(t *testing.T, members []map[string]interface{}) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources["googleworkspace_group_members.my-group-members"]
+		if !ok {
+			return fmt.Errorf("Resource not found: googleworkspace_group_members.my-group-members")
+		}
+
+		for _, mem := range members {
+			prefix := ""
+			for attrKey, attrVal := range rs.Primary.Attributes {
+				if attrVal == mem["email"] {
+					prefix = strings.Join(strings.Split(attrKey, ".")[0:2], ".")
+					break
+				}
+			}
+
+			if prefix == "" {
+				return fmt.Errorf("No members matching %s", mem["email"])
+			}
+
+			if rs.Primary.Attributes[prefix+".role"] != mem["role"] {
+				return fmt.Errorf("Member %s does not match role state: %s | expected: %s", mem["email"], rs.Primary.Attributes[prefix+".role"], mem["role"])
+			}
+
+			if rs.Primary.Attributes[prefix+".type"] != mem["type"] {
+				return fmt.Errorf("Member %s does not match type state: %s | expected: %s", mem["email"], rs.Primary.Attributes[prefix+".type"], mem["type"])
+			}
+		}
+
+		return nil
+	}
+}
+
 func testAccResourceGroupMembers_basic(testGroupVals map[string]interface{}) string {
 	return Nprintf(`
 resource "googleworkspace_group" "my-group" {
-  email = "%{groupEmail}@%{domainName}"
+  email = "%{groupEmail}"
 }
 
 resource "googleworkspace_user" "my-new-user" {
-  primary_email = "%{userEmail}@%{domainName}"
+  primary_email = "%{userEmail}"
   password = "%{password}"
 
   name {
@@ -168,11 +216,11 @@ resource "googleworkspace_group_members" "my-group-members" {
 func testAccResourceGroupMembers_full(testGroupVals map[string]interface{}) string {
 	return Nprintf(`
 resource "googleworkspace_group" "my-group" {
-  email = "%{groupEmail}@%{domainName}"
+  email = "%{groupEmail}"
 }
 
 resource "googleworkspace_user" "my-new-user1" {
-  primary_email = "%{userEmail1}@%{domainName}"
+  primary_email = "%{userEmail1}"
   password = "%{password}"
 
   name {
@@ -182,7 +230,7 @@ resource "googleworkspace_user" "my-new-user1" {
 }
 
 resource "googleworkspace_user" "my-new-user2" {
-  primary_email = "%{userEmail2}@%{domainName}"
+  primary_email = "%{userEmail2}"
   password = "%{password}"
 
   name {
@@ -214,11 +262,11 @@ resource "googleworkspace_group_members" "my-group-members" {
 func testAccResourceGroupMembers_fullUpdate(testGroupVals map[string]interface{}) string {
 	return Nprintf(`
 resource "googleworkspace_group" "my-group" {
-  email = "%{groupEmail}@%{domainName}"
+  email = "%{groupEmail}"
 }
 
 resource "googleworkspace_user" "my-new-user1" {
-  primary_email = "%{userEmail1}@%{domainName}"
+  primary_email = "%{userEmail1}"
   password = "%{password}"
 
   name {
@@ -228,7 +276,7 @@ resource "googleworkspace_user" "my-new-user1" {
 }
 
 resource "googleworkspace_user" "my-new-user2" {
-  primary_email = "%{userEmail2}@%{domainName}"
+  primary_email = "%{userEmail2}"
   password = "%{password}"
 
   name {
