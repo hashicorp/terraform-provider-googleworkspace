@@ -19,9 +19,8 @@ func TestAccDataSourceGroupMembers(t *testing.T) {
 	}
 
 	testGroupVals := map[string]interface{}{
-		"domainName": domainName,
-		"userEmail":  fmt.Sprintf("tf-test-%s", acctest.RandString(10)),
-		"groupEmail": fmt.Sprintf("tf-test-%s", acctest.RandString(10)),
+		"userEmail":  fmt.Sprintf("tf-test-%s@%s", acctest.RandString(10), domainName),
+		"groupEmail": fmt.Sprintf("tf-test-%s@%s", acctest.RandString(10), domainName),
 		"password":   acctest.RandString(10),
 	}
 
@@ -35,8 +34,8 @@ func TestAccDataSourceGroupMembers(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"data.googleworkspace_group_members.my-group-members", "members.#", "1"),
 					resource.TestCheckTypeSetElemNestedAttrs(
-						"data.googleworkspace_group_members.my-group-members", "members", map[string]string{
-							"email": Nprintf("%{userEmail}@%{domainName}", testGroupVals),
+						"data.googleworkspace_group_members.my-group-members", "members.*", map[string]string{
+							"email": Nprintf("%{userEmail}", testGroupVals),
 							"role":  "MEMBER",
 							"type":  "USER",
 						}),
@@ -49,11 +48,11 @@ func TestAccDataSourceGroupMembers(t *testing.T) {
 func testAccDataSourceGroupMembers(testGroupVals map[string]interface{}) string {
 	return Nprintf(`
 resource "googleworkspace_group" "my-group" {
-  email = "%{groupEmail}@%{domainName}"
+  email = "%{groupEmail}"
 }
 
 resource "googleworkspace_user" "my-new-user" {
-  primary_email = "%{userEmail}@%{domainName}"
+  primary_email = "%{userEmail}"
   password = "%{password}"
 
   name {
