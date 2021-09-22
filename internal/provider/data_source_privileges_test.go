@@ -2,7 +2,9 @@ package googleworkspace
 
 import (
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"reflect"
+	"strconv"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -20,7 +22,7 @@ func TestAccDataSourcePrivileges_basic(t *testing.T) {
 				Config: testAccDataSourcePrivileges(),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("data.googleworkspace_privileges.test", "etag"),
-					resource.TestCheckResourceAttr("data.googleworkspace_privileges.test", "items.#", "107"),
+					resource.TestCheckFunc(testAccResourcePrivilegesCount("data.googleworkspace_privileges.test", "items.#")),
 				),
 			},
 		},
@@ -29,9 +31,28 @@ func TestAccDataSourcePrivileges_basic(t *testing.T) {
 
 func testAccDataSourcePrivileges() string {
 	return fmt.Sprintf(`
-data "googleworkspace_privileges" "test" {
-}
+data "googleworkspace_privileges" "test" {}
 `)
+}
+
+func testAccResourcePrivilegesCount(resource, attr string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[resource]
+		if !ok {
+			return fmt.Errorf("%s key not found in state", resource)
+		}
+
+		privCount, err := strconv.Atoi(rs.Primary.Attributes[attr])
+		if err != nil {
+			return err
+		}
+
+		if privCount <= 0 {
+			return fmt.Errorf("%s is less than or equal to zero (%d)", attr, privCount)
+		}
+
+		return nil
+	}
 }
 
 func TestDataSourcePrivileges_flattenAndPrune(t *testing.T) {
