@@ -2,7 +2,9 @@ package googleworkspace
 
 import (
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"reflect"
+	"strconv"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -20,7 +22,7 @@ func TestAccDataSourcePrivileges_basic(t *testing.T) {
 				Config: testAccDataSourcePrivileges(),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("data.googleworkspace_privileges.test", "etag"),
-					resource.TestCheckResourceAttr("data.googleworkspace_privileges.test", "items.#", "107"),
+					resource.TestCheckFunc(testAccResourcePrivilegesCount("data.googleworkspace_privileges.test", "items.#")),
 				),
 			},
 		},
@@ -29,9 +31,50 @@ func TestAccDataSourcePrivileges_basic(t *testing.T) {
 
 func testAccDataSourcePrivileges() string {
 	return fmt.Sprintf(`
-data "googleworkspace_privileges" "test" {
-}
+data "googleworkspace_privileges" "test" {}
 `)
+}
+
+func testAccResourcePrivilegesCount(resource, attr string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[resource]
+		if !ok {
+			return fmt.Errorf("%s key not found in state", resource)
+		}
+
+		privCount, err := strconv.Atoi(rs.Primary.Attributes[attr])
+		if err != nil {
+			return err
+		}
+
+		client, err := googleworkspaceTestClient()
+		if err != nil {
+			return err
+		}
+
+		directoryService, diags := client.NewDirectoryService()
+		if diags.HasError() {
+			return fmt.Errorf("error creating directory service %+v", diags)
+		}
+
+		privilegesService, diags := GetPrivilegesService(directoryService)
+		if diags.HasError() {
+			return fmt.Errorf("error getting privileges service %+v", diags)
+		}
+
+		privsFromApi, err := privilegesService.List(client.Customer).Do()
+		if err != nil {
+			return err
+		}
+
+		flattenedPrivs := flattenAndPrunePrivileges(privsFromApi.Items, make(map[string]bool))
+
+		if privCount != len(flattenedPrivs) {
+			return fmt.Errorf("number of privileges returned (%d) doesn't match number returned by API (%d)", privCount, len(flattenedPrivs))
+		}
+
+		return nil
+	}
 }
 
 func TestDataSourcePrivileges_flattenAndPrune(t *testing.T) {
