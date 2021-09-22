@@ -6,6 +6,8 @@ import (
 	"io/ioutil"
 	"os"
 	"testing"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 )
 
 func TestConfigLoadAndValidate_credsInvalidJSON(t *testing.T) {
@@ -71,12 +73,8 @@ func TestAccConfigLoadAndValidate_credsFromEnv(t *testing.T) {
 		t.Fatalf(err.Error())
 	}
 
-	directoryService, diags := config.NewDirectoryService()
-	if diags.HasError() {
-		t.Fatalf(diags[0].Summary)
-	}
-
-	_, err = directoryService.Customers.Get(config.Customer).Do()
+	diags = checkValidCreds(config)
+	err = checkDiags(diags)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
@@ -113,4 +111,20 @@ func TestConfigOauthScopes_custom(t *testing.T) {
 	if config.ClientScopes[0] != "https://www.googleapis.com/auth/admin/directory" {
 		t.Fatalf("expected scope to be %q, got %q", "https://www.googleapis.com/auth/admin/directory", config.ClientScopes[0])
 	}
+}
+
+func checkValidCreds(config *apiClient) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	directoryService, diags := config.NewDirectoryService()
+	if diags.HasError() {
+		return diags
+	}
+
+	_, err := directoryService.Customers.Get(config.Customer).Do()
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	return diags
 }

@@ -11,12 +11,13 @@ import (
 
 	"golang.org/x/oauth2"
 	googleoauth "golang.org/x/oauth2/google"
-	"google.golang.org/api/chromepolicy/v1"
-	"google.golang.org/api/gmail/v1"
-	"google.golang.org/api/option"
 
 	directory "google.golang.org/api/admin/directory/v1"
+	"google.golang.org/api/chromepolicy/v1"
+	"google.golang.org/api/gmail/v1"
 	"google.golang.org/api/groupssettings/v1"
+	"google.golang.org/api/option"
+	"google.golang.org/api/transport"
 )
 
 type apiClient struct {
@@ -42,27 +43,52 @@ func (c *apiClient) loadAndValidate(ctx context.Context) diag.Diagnostics {
 			return diag.FromErr(err)
 		}
 
-		jwtConfig, err := googleoauth.JWTConfigFromJSON([]byte(contents), c.ClientScopes...)
+		credParams := googleoauth.CredentialsParams{
+			Scopes:  c.ClientScopes,
+			Subject: c.ImpersonatedUserEmail,
+		}
+
+		creds, err := googleoauth.CredentialsFromJSONWithParams(ctx, []byte(contents), credParams)
 		if err != nil {
 			return diag.FromErr(err)
 		}
 
-		jwtConfig.Subject = c.ImpersonatedUserEmail
+		diags = c.SetupClient(ctx, creds)
+	} else {
+		credParams := googleoauth.CredentialsParams{
+			Scopes:  c.ClientScopes,
+			Subject: c.ImpersonatedUserEmail,
+		}
 
-		cleanCtx := context.WithValue(ctx, oauth2.HTTPClient, cleanhttp.DefaultClient())
+		creds, err := googleoauth.FindDefaultCredentialsWithParams(ctx, credParams)
+		if err != nil {
+			return diag.FromErr(err)
+		}
 
-		// 1. OAUTH2 TRANSPORT/CLIENT - sets up proper auth headers
-		client := jwtConfig.Client(cleanCtx)
-
-		// 2. Logging Transport - ensure we log HTTP requests to admin APIs.
-		loggingTransport := logging.NewTransport("Google Workspace", client.Transport)
-
-		// Set final transport value.
-		client.Transport = loggingTransport
-
-		c.client = client
+		diags = c.SetupClient(ctx, creds)
 	}
 
+	return diags
+}
+
+func (c *apiClient) SetupClient(ctx context.Context, creds *googleoauth.Credentials) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	cleanCtx := context.WithValue(ctx, oauth2.HTTPClient, cleanhttp.DefaultClient())
+
+	// 1. MTLS TRANSPORT/CLIENT - sets up proper auth headers
+	client, _, err := transport.NewHTTPClient(cleanCtx, option.WithTokenSource(creds.TokenSource))
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	// 2. Logging Transport - ensure we log HTTP requests to admin APIs.
+	loggingTransport := logging.NewTransport("Google Workspace", client.Transport)
+
+	// Set final transport value.
+	client.Transport = loggingTransport
+
+	c.client = client
 	return diags
 }
 
