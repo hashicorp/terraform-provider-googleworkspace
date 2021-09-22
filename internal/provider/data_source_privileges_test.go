@@ -47,6 +47,10 @@ func testAccResourcePrivilegesCount(resource, attr string) resource.TestCheckFun
 			return err
 		}
 
+		if privCount <= 0 {
+			return fmt.Errorf("%s is less than or equal to zero (%d)", attr, privCount)
+		}
+
 		client, err := googleworkspaceTestClient()
 		if err != nil {
 			return err
