@@ -165,7 +165,8 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 
 		config.UserAgent = p.UserAgent("terraform-provider-googleworkspace", version)
 
-		diags = config.loadAndValidate(ctx)
+		newCtx, _ := schema.StopContext(ctx)
+		diags = config.loadAndValidate(newCtx)
 
 		return &config, diags
 	}
