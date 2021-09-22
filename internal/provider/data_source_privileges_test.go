@@ -51,32 +51,6 @@ func testAccResourcePrivilegesCount(resource, attr string) resource.TestCheckFun
 			return fmt.Errorf("%s is less than or equal to zero (%d)", attr, privCount)
 		}
 
-		client, err := googleworkspaceTestClient()
-		if err != nil {
-			return err
-		}
-
-		directoryService, diags := client.NewDirectoryService()
-		if diags.HasError() {
-			return fmt.Errorf("error creating directory service %+v", diags)
-		}
-
-		privilegesService, diags := GetPrivilegesService(directoryService)
-		if diags.HasError() {
-			return fmt.Errorf("error getting privileges service %+v", diags)
-		}
-
-		privsFromApi, err := privilegesService.List(client.Customer).Do()
-		if err != nil {
-			return err
-		}
-
-		flattenedPrivs := flattenAndPrunePrivileges(privsFromApi.Items, make(map[string]bool))
-
-		if privCount != len(flattenedPrivs) {
-			return fmt.Errorf("number of privileges returned (%d) doesn't match number returned by API (%d)", privCount, len(flattenedPrivs))
-		}
-
 		return nil
 	}
 }
