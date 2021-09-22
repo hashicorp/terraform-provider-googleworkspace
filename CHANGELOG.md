@@ -1,7 +1,19 @@
-## 0.4.1 (Unreleased)
+## 0.5.0 (Unreleased)
+
+FEATURES:
+
+* **New Resource:**   `googleworkspace_group_members` [GH-155]
+
+* **New Datasource:** `googleworkspace_group_members` [GH-155]
+
+IMPROVEMENTS:
+
+* provider: added ability to user user credentials to authenticate [GH-156]
 
 BUG FIXES:
+
 directory: fixed bug where `googleworkspace_group_member` would not force new change on change of email [GH-152]
+directory: fixed bug where `googleworkspace_user` would show permadiff on user alias emails from secondary domains [GH-154]
 
 ## 0.4.1 (August 16, 2021)
 
