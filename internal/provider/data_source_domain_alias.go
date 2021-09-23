@@ -13,7 +13,8 @@ func dataSourceDomainAlias() *schema.Resource {
 
 	return &schema.Resource{
 		// This description is used by the documentation generator and the language server.
-		Description: "Domain Alias data source in the Terraform Googleworkspace provider.",
+		Description: "Domain Alias data source in the Terraform Googleworkspace provider. Domain Alias resides under the " +
+			"`https://www.googleapis.com/auth/admin.directory.domain` client scope.",
 
 		ReadContext: dataSourceDomainAliasRead,
 

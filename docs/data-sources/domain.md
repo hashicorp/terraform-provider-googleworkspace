@@ -3,12 +3,12 @@
 page_title: "googleworkspace_domain Data Source - terraform-provider-googleworkspace"
 subcategory: ""
 description: |-
-  Domain data source in the Terraform Googleworkspace provider.
+  Domain data source in the Terraform Googleworkspace provider. Domain resides under the https://www.googleapis.com/auth/admin.directory.domain client scope.
 ---
 
 # googleworkspace_domain (Data Source)
 
-Domain data source in the Terraform Googleworkspace provider.
+Domain data source in the Terraform Googleworkspace provider. Domain resides under the `https://www.googleapis.com/auth/admin.directory.domain` client scope.
 
 ## Example Usage
 

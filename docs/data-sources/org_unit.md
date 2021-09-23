@@ -3,12 +3,12 @@
 page_title: "googleworkspace_org_unit Data Source - terraform-provider-googleworkspace"
 subcategory: ""
 description: |-
-  OrgUnit data source in the Terraform Googleworkspace provider.
+  Org Unit data source in the Terraform Googleworkspace provider. Org Unit resides under the https://www.googleapis.com/auth/admin.directory.orgunit client scope.
 ---
 
 # googleworkspace_org_unit (Data Source)
 
-OrgUnit data source in the Terraform Googleworkspace provider.
+Org Unit data source in the Terraform Googleworkspace provider. Org Unit resides under the `https://www.googleapis.com/auth/admin.directory.orgunit` client scope.
 
 ## Example Usage
 

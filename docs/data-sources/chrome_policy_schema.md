@@ -3,12 +3,12 @@
 page_title: "googleworkspace_chrome_policy_schema Data Source - terraform-provider-googleworkspace"
 subcategory: ""
 description: |-
-  Chrome Policy Schema data source in the Terraform Googleworkspace provider.
+  Chrome Policy Schema data source in the Terraform Googleworkspace provider. Chrome Policy Schema resides under the https://www.googleapis.com/auth/chrome.management.policy client scope.
 ---
 
 # googleworkspace_chrome_policy_schema (Data Source)
 
-Chrome Policy Schema data source in the Terraform Googleworkspace provider.
+Chrome Policy Schema data source in the Terraform Googleworkspace provider. Chrome Policy Schema resides under the `https://www.googleapis.com/auth/chrome.management.policy` client scope.
 
 ## Example Usage
 

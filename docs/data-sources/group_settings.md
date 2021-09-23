@@ -3,12 +3,12 @@
 page_title: "googleworkspace_group_settings Data Source - terraform-provider-googleworkspace"
 subcategory: ""
 description: |-
-  Group Settings data source in the Terraform Googleworkspace provider.
+  Group Settings data source in the Terraform Googleworkspace provider. Group Settings resides under the https://www.googleapis.com/auth/apps.groups.settings client scope.
 ---
 
 # googleworkspace_group_settings (Data Source)
 
-Group Settings data source in the Terraform Googleworkspace provider.
+Group Settings data source in the Terraform Googleworkspace provider. Group Settings resides under the `https://www.googleapis.com/auth/apps.groups.settings` client scope.
 
 ## Example Usage
 

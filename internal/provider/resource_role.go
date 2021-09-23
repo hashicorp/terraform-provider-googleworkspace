@@ -14,7 +14,8 @@ import (
 
 func resourceRole() *schema.Resource {
 	return &schema.Resource{
-		Description: "Role resource in the Terraform Googleworkspace provider.",
+		Description: "Role resource in the Terraform Googleworkspace provider. Role resides " +
+			"under the `https://www.googleapis.com/auth/admin.directory.rolemanagement` client scope.",
 
 		CreateContext: resourceRoleCreate,
 		ReadContext:   resourceRoleRead,

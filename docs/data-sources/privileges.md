@@ -3,12 +3,12 @@
 page_title: "googleworkspace_privileges Data Source - terraform-provider-googleworkspace"
 subcategory: ""
 description: |-
-  Privileges data source in the Terraform Googleworkspace provider.
+  Privileges data source in the Terraform Googleworkspace provider. Privileges resides under the https://www.googleapis.com/auth/admin.directory.rolemanagement client scope.
 ---
 
 # googleworkspace_privileges (Data Source)
 
-Privileges data source in the Terraform Googleworkspace provider.
+Privileges data source in the Terraform Googleworkspace provider. Privileges resides under the `https://www.googleapis.com/auth/admin.directory.rolemanagement` client scope.
 
 ## Example Usage
 

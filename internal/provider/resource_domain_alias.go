@@ -14,7 +14,8 @@ import (
 func resourceDomainAlias() *schema.Resource {
 	return &schema.Resource{
 		// This description is used by the documentation generator and the language server.
-		Description: "Domain Alias resource manages Google Workspace Domain Aliases.",
+		Description: "Domain Alias resource manages Google Workspace Domain Aliases. Domain Alias resides under the " +
+			"`https://www.googleapis.com/auth/admin.directory.domain` client scope.",
 
 		CreateContext: resourceDomainAliasCreate,
 		ReadContext:   resourceDomainAliasRead,

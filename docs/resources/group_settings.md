@@ -3,12 +3,12 @@
 page_title: "googleworkspace_group_settings Resource - terraform-provider-googleworkspace"
 subcategory: ""
 description: |-
-  Group Settings resource manages Google Workspace Groups Setting.
+  Group Settings resource manages Google Workspace Groups Setting. Group Settings requires the https://www.googleapis.com/auth/apps.groups.settings client scope.
 ---
 
 # googleworkspace_group_settings (Resource)
 
-Group Settings resource manages Google Workspace Groups Setting.
+Group Settings resource manages Google Workspace Groups Setting. Group Settings requires the `https://www.googleapis.com/auth/apps.groups.settings` client scope.
 
 ## Example Usage
 

@@ -3,12 +3,12 @@
 page_title: "googleworkspace_gmail_send_as_alias Resource - terraform-provider-googleworkspace"
 subcategory: ""
 description: |-
-  Gmail Send As Alias resource in the Terraform Googleworkspace provider. Please ensure the Gmail API is enabled for your workspace and that the user being configured has a Gmail license.
+  Gmail Send As Alias resource in the Terraform Googleworkspace provider. Please ensure the Gmail API is enabled for your workspace and that the user being configured has a Gmail license. Gmail Send As Alias resides under the https://www.googleapis.com/auth/gmail.settings client scope.
 ---
 
 # googleworkspace_gmail_send_as_alias (Resource)
 
-Gmail Send As Alias resource in the Terraform Googleworkspace provider. Please ensure the Gmail API is enabled for your workspace and that the user being configured has a Gmail license.
+Gmail Send As Alias resource in the Terraform Googleworkspace provider. Please ensure the Gmail API is enabled for your workspace and that the user being configured has a Gmail license. Gmail Send As Alias resides under the `https://www.googleapis.com/auth/gmail.settings` client scope.
 
 ## Example Usage
 

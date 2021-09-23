@@ -3,12 +3,12 @@
 page_title: "googleworkspace_schema Data Source - terraform-provider-googleworkspace"
 subcategory: ""
 description: |-
-  Schema data source in the Terraform Googleworkspace provider.
+  Schema data source in the Terraform Googleworkspace provider. Schema resides under the https://www.googleapis.com/auth/admin.directory.userschema client scope.
 ---
 
 # googleworkspace_schema (Data Source)
 
-Schema data source in the Terraform Googleworkspace provider.
+Schema data source in the Terraform Googleworkspace provider. Schema resides under the `https://www.googleapis.com/auth/admin.directory.userschema` client scope.
 
 ## Example Usage
 

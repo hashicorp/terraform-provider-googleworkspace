@@ -17,7 +17,8 @@ import (
 func resourceGroup() *schema.Resource {
 	return &schema.Resource{
 		// This description is used by the documentation generator and the language server.
-		Description: "Group resource manages Google Workspace Groups.",
+		Description: "Group resource manages Google Workspace Groups. Group resides under the " +
+			"`https://www.googleapis.com/auth/admin.directory.group` client scope.",
 
 		CreateContext: resourceGroupCreate,
 		ReadContext:   resourceGroupRead,

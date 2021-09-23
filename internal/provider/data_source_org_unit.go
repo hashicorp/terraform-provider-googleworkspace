@@ -15,7 +15,8 @@ func dataSourceOrgUnit() *schema.Resource {
 
 	return &schema.Resource{
 		// This description is used by the documentation generator and the language server.
-		Description: "OrgUnit data source in the Terraform Googleworkspace provider.",
+		Description: "Org Unit data source in the Terraform Googleworkspace provider. Org Unit resides " +
+			"under the `https://www.googleapis.com/auth/admin.directory.orgunit` client scope.",
 
 		ReadContext: dataSourceOrgUnitRead,
 

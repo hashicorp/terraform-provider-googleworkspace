@@ -3,12 +3,12 @@
 page_title: "googleworkspace_group_members Data Source - terraform-provider-googleworkspace"
 subcategory: ""
 description: |-
-  Group Members data source in the Terraform Googleworkspace provider.
+  Group Members data source in the Terraform Googleworkspace provider. Group Members resides under the https://www.googleapis.com/auth/admin.directory.group client scope.
 ---
 
 # googleworkspace_group_members (Data Source)
 
-Group Members data source in the Terraform Googleworkspace provider.
+Group Members data source in the Terraform Googleworkspace provider. Group Members resides under the `https://www.googleapis.com/auth/admin.directory.group` client scope.
 
 ## Example Usage
 

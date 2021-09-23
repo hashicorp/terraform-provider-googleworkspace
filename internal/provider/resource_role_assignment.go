@@ -15,7 +15,8 @@ import (
 
 func resourceRoleAssignment() *schema.Resource {
 	return &schema.Resource{
-		Description:   "RoleAssignment resource in the Terraform Googleworkspace provider.",
+		Description: "Role Assignment resource in the Terraform Googleworkspace provider. Role Assignment resides " +
+			"under the `https://www.googleapis.com/auth/admin.directory.rolemanagement` client scope.",
 		CreateContext: resourceRolesAssignmentCreate,
 		ReadContext:   resourceRoleAssignmentRead,
 		DeleteContext: resourceRoleAssignmentDelete,

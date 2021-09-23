@@ -13,7 +13,8 @@ import (
 func resourceOrgUnit() *schema.Resource {
 	return &schema.Resource{
 		// This description is used by the documentation generator and the language server.
-		Description: "OrgUnit resource manages Google Workspace OrgUnits.",
+		Description: "OrgUnit resource manages Google Workspace OrgUnits. Org Unit resides " +
+			"under the `https://www.googleapis.com/auth/admin.directory.orgunit` client scope.",
 
 		CreateContext: resourceOrgUnitCreate,
 		ReadContext:   resourceOrgUnitRead,

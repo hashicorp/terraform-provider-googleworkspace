@@ -3,12 +3,12 @@
 page_title: "googleworkspace_role_assignment Resource - terraform-provider-googleworkspace"
 subcategory: ""
 description: |-
-  RoleAssignment resource in the Terraform Googleworkspace provider.
+  Role Assignment resource in the Terraform Googleworkspace provider. Role Assignment resides under the https://www.googleapis.com/auth/admin.directory.rolemanagement client scope.
 ---
 
 # googleworkspace_role_assignment (Resource)
 
-RoleAssignment resource in the Terraform Googleworkspace provider.
+Role Assignment resource in the Terraform Googleworkspace provider. Role Assignment resides under the `https://www.googleapis.com/auth/admin.directory.rolemanagement` client scope.
 
 ## Example Usage
 

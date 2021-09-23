@@ -14,7 +14,8 @@ func dataSourceGroup() *schema.Resource {
 
 	return &schema.Resource{
 		// This description is used by the documentation generator and the language server.
-		Description: "Group data source in the Terraform Googleworkspace provider.",
+		Description: "Group data source in the Terraform Googleworkspace provider. Group resides under the " +
+			"`https://www.googleapis.com/auth/admin.directory.group` client scope.",
 
 		ReadContext: dataSourceGroupRead,
 

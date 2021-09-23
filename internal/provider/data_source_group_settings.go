@@ -13,7 +13,8 @@ func dataSourceGroupSettings() *schema.Resource {
 
 	return &schema.Resource{
 		// This description is used by the documentation generator and the language server.
-		Description: "Group Settings data source in the Terraform Googleworkspace provider.",
+		Description: "Group Settings data source in the Terraform Googleworkspace provider. Group Settings resides " +
+			"under the `https://www.googleapis.com/auth/apps.groups.settings` client scope.",
 
 		ReadContext: dataSourceGroupSettingsRead,
 

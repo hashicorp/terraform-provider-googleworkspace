@@ -3,12 +3,12 @@
 page_title: "googleworkspace_role Data Source - terraform-provider-googleworkspace"
 subcategory: ""
 description: |-
-  Role data source in the Terraform Googleworkspace provider.
+  Role data source in the Terraform Googleworkspace provider. Role resides under the https://www.googleapis.com/auth/admin.directory.rolemanagement client scope.
 ---
 
 # googleworkspace_role (Data Source)
 
-Role data source in the Terraform Googleworkspace provider.
+Role data source in the Terraform Googleworkspace provider. Role resides under the `https://www.googleapis.com/auth/admin.directory.rolemanagement` client scope.
 
 ## Example Usage
 

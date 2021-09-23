@@ -14,7 +14,8 @@ func dataSourceUser() *schema.Resource {
 
 	return &schema.Resource{
 		// This description is used by the documentation generator and the language server.
-		Description: "User data source in the Terraform Googleworkspace provider.",
+		Description: "User data source in the Terraform Googleworkspace provider. User resides " +
+			"under the `https://www.googleapis.com/auth/admin.directory.user` client scope.",
 
 		ReadContext: dataSourceUserRead,
 
