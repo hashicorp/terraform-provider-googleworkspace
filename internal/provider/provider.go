@@ -49,6 +49,16 @@ func New(version string) func() *schema.Provider {
 	return func() *schema.Provider {
 		p := &schema.Provider{
 			Schema: map[string]*schema.Schema{
+				"access_token": {
+					Description: "A temporary [OAuth 2.0 access token] obtained from " +
+						"the Google Authorization server, i.e. the `Authorization: Bearer` token used to " +
+						"authenticate HTTP requests to Google Admin SDK APIs. This is an alternative to `credentials`, " +
+						"and ignores the `scopes` field. If both are specified, `access_token` will be " +
+						"used over the `credentials` field.",
+					Type:     schema.TypeString,
+					Optional: true,
+				},
+
 				"credentials": {
 					Description: "Either the path to or the contents of a service account key file in JSON format " +
 						"you can manage key files using the Cloud Console).  If not provided, the application default " +
@@ -131,6 +141,11 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 	return func(ctx context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
 		var diags diag.Diagnostics
 		config := apiClient{}
+
+		// Get access token
+		if v, ok := d.GetOk("access_token"); ok {
+			config.AccessToken = v.(string)
+		}
 
 		// Get credentials
 		if v, ok := d.GetOk("credentials"); ok {

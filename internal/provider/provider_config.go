@@ -23,6 +23,7 @@ import (
 type apiClient struct {
 	client *http.Client
 
+	AccessToken           string
 	ClientScopes          []string
 	Credentials           string
 	Customer              string
@@ -35,6 +36,36 @@ func (c *apiClient) loadAndValidate(ctx context.Context) diag.Diagnostics {
 
 	if len(c.ClientScopes) == 0 {
 		c.ClientScopes = DefaultClientScopes
+	}
+
+	if c.AccessToken != "" {
+		contents, _, err := pathOrContents(c.AccessToken)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		token := &oauth2.Token{AccessToken: contents}
+
+		log.Printf("[INFO] Authenticating using configured Google JSON 'access_token'...")
+		log.Printf("[INFO]   -- Scopes: %s", c.ClientScopes)
+
+		if c.ImpersonatedUserEmail != "" {
+			opts := []option.ClientOption{
+				option.WithTokenSource(oauth2.StaticTokenSource(token)),
+				option.ImpersonateCredentials(c.ImpersonatedUserEmail),
+				option.WithScopes(c.ClientScopes...),
+			}
+			creds, err := transport.Creds(context.TODO(), opts...)
+			if err != nil {
+				return diag.FromErr(err)
+			}
+			diags = c.SetupClient(ctx, creds)
+			return diags
+		}
+
+		creds := googleoauth.Credentials{
+			TokenSource: oauth2.StaticTokenSource(token),
+		}
+		diags = c.SetupClient(ctx, &creds)
 	}
 
 	if c.Credentials != "" {

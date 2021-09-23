@@ -8,6 +8,9 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+
+	"google.golang.org/api/iamcredentials/v1"
+	"google.golang.org/api/option"
 )
 
 func TestConfigLoadAndValidate_credsInvalidJSON(t *testing.T) {
@@ -110,6 +113,72 @@ func TestConfigOauthScopes_custom(t *testing.T) {
 	}
 	if config.ClientScopes[0] != "https://www.googleapis.com/auth/admin/directory" {
 		t.Fatalf("expected scope to be %q, got %q", "https://www.googleapis.com/auth/admin/directory", config.ClientScopes[0])
+	}
+}
+
+func TestConfigLoadAndValidate_accessTokenInvalid(t *testing.T) {
+	config := &apiClient{
+		AccessToken:           "abcdefghijklmnopqrstuvwxyz",
+		Customer:              os.Getenv("GOOGLEWORKSPACE_CUSTOMER_ID"),
+		ImpersonatedUserEmail: os.Getenv("GOOGLEWORKSPACE_IMPERSONATED_USER_EMAIL"),
+		ClientScopes:          []string{"https://www.googleapis.com/auth/admin.directory.domain"},
+	}
+
+	config.loadAndValidate(context.Background())
+	diags := checkValidCreds(config)
+	err := checkDiags(diags)
+	if err == nil {
+		t.Fatalf("expected error, but got nil")
+	}
+}
+
+func TestConfigLoadAndValidate_accessToken(t *testing.T) {
+	if os.Getenv("TF_ACC") == "" {
+		t.Skip(fmt.Sprintf("Network access not allowed; use TF_ACC=1 to enable"))
+	}
+
+	testAccPreCheck(t)
+
+	creds := getTestCredsFromEnv()
+	gcpConfig := &apiClient{
+		Credentials:  creds,
+		ClientScopes: []string{"https://www.googleapis.com/auth/cloud-platform"},
+	}
+
+	diags := gcpConfig.loadAndValidate(context.Background())
+	err := checkDiags(diags)
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	iamCredsService, err := iamcredentials.NewService(context.Background(), option.WithHTTPClient(gcpConfig.client))
+	name := fmt.Sprintf("projects/-/serviceAccounts/%s", os.Getenv("GOOGLEWORKSPACE_SERVICE_ACCOUNT_IMPERSONATE"))
+	tokenRequest := &iamcredentials.GenerateAccessTokenRequest{
+		Lifetime: "300s",
+		Scope:    []string{"https://www.googleapis.com/auth/cloud-platform"},
+	}
+	at, err := iamCredsService.Projects.ServiceAccounts.GenerateAccessToken(name, tokenRequest).Do()
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	config := &apiClient{
+		AccessToken:           at.AccessToken,
+		Customer:              os.Getenv("GOOGLEWORKSPACE_CUSTOMER_ID"),
+		ImpersonatedUserEmail: os.Getenv("GOOGLEWORKSPACE_IMPERSONATED_USER_EMAIL"),
+		ClientScopes:          []string{"https://www.googleapis.com/auth/admin.directory.customer"},
+	}
+
+	diags = config.loadAndValidate(context.Background())
+	err = checkDiags(diags)
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	diags = checkValidCreds(config)
+	err = checkDiags(diags)
+	if err != nil {
+		t.Fatalf(err.Error())
 	}
 }
 
