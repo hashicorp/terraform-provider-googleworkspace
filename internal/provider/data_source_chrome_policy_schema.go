@@ -12,7 +12,8 @@ import (
 
 func dataSourceChromePolicySchema() *schema.Resource {
 	return &schema.Resource{
-		Description: "Chrome Policy Schema data source in the Terraform Googleworkspace provider.",
+		Description: "Chrome Policy Schema data source in the Terraform Googleworkspace provider. Chrome Policy Schema " +
+			"resides under the `https://www.googleapis.com/auth/chrome.management.policy` client scope.",
 
 		ReadContext: dataSourceChromePolicySchemaRead,
 

@@ -3,12 +3,12 @@
 page_title: "googleworkspace_chrome_policy Resource - terraform-provider-googleworkspace"
 subcategory: ""
 description: |-
-  Chrome Policy resource in the Terraform Googleworkspace provider. Currently only supports policies not requiring additionalTargetKeys.
+  Chrome Policy resource in the Terraform Googleworkspace provider. Currently only supports policies not requiring additionalTargetKeys. Chrome Policy Schema resides under the https://www.googleapis.com/auth/chrome.management.policy client scope.
 ---
 
 # googleworkspace_chrome_policy (Resource)
 
-Chrome Policy resource in the Terraform Googleworkspace provider. Currently only supports policies not requiring additionalTargetKeys.
+Chrome Policy resource in the Terraform Googleworkspace provider. Currently only supports policies not requiring additionalTargetKeys. Chrome Policy Schema resides under the `https://www.googleapis.com/auth/chrome.management.policy` client scope.
 
 ## Example Usage
 

@@ -11,7 +11,8 @@ import (
 
 func dataSourcePrivileges() *schema.Resource {
 	return &schema.Resource{
-		Description: "Privileges data source in the Terraform Googleworkspace provider.",
+		Description: "Privileges data source in the Terraform Googleworkspace provider. Privileges resides " +
+			"under the `https://www.googleapis.com/auth/admin.directory.rolemanagement` client scope.",
 
 		ReadContext: dataSourcePrivilegesRead,
 

@@ -3,12 +3,12 @@
 page_title: "googleworkspace_org_unit Resource - terraform-provider-googleworkspace"
 subcategory: ""
 description: |-
-  OrgUnit resource manages Google Workspace OrgUnits.
+  OrgUnit resource manages Google Workspace OrgUnits. Org Unit resides under the https://www.googleapis.com/auth/admin.directory.orgunit client scope.
 ---
 
 # googleworkspace_org_unit (Resource)
 
-OrgUnit resource manages Google Workspace OrgUnits.
+OrgUnit resource manages Google Workspace OrgUnits. Org Unit resides under the `https://www.googleapis.com/auth/admin.directory.orgunit` client scope.
 
 ## Example Usage
 

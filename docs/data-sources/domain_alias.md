@@ -3,12 +3,12 @@
 page_title: "googleworkspace_domain_alias Data Source - terraform-provider-googleworkspace"
 subcategory: ""
 description: |-
-  Domain Alias data source in the Terraform Googleworkspace provider.
+  Domain Alias data source in the Terraform Googleworkspace provider. Domain Alias resides under the https://www.googleapis.com/auth/admin.directory.domain client scope.
 ---
 
 # googleworkspace_domain_alias (Data Source)
 
-Domain Alias data source in the Terraform Googleworkspace provider.
+Domain Alias data source in the Terraform Googleworkspace provider. Domain Alias resides under the `https://www.googleapis.com/auth/admin.directory.domain` client scope.
 
 ## Example Usage
 

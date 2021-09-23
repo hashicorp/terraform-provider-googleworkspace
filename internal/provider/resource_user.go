@@ -113,7 +113,8 @@ func transformCustomSchemasTo2DMap(customSchemas []interface{}) map[string]map[s
 func resourceUser() *schema.Resource {
 	return &schema.Resource{
 		// This description is used by the documentation generator and the language server.
-		Description: "User resource manages Google Workspace Users.",
+		Description: "User resource manages Google Workspace Users. User resides " +
+			"under the `https://www.googleapis.com/auth/admin.directory.user` client scope.",
 
 		CreateContext: resourceUserCreate,
 		ReadContext:   resourceUserRead,

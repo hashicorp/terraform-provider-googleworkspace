@@ -3,12 +3,12 @@
 page_title: "googleworkspace_domain Resource - terraform-provider-googleworkspace"
 subcategory: ""
 description: |-
-  Domain resource manages Google Workspace Domains.
+  Domain resource manages Google Workspace Domains. Domain resides under the https://www.googleapis.com/auth/admin.directory.domain client scope.
 ---
 
 # googleworkspace_domain (Resource)
 
-Domain resource manages Google Workspace Domains.
+Domain resource manages Google Workspace Domains. Domain resides under the `https://www.googleapis.com/auth/admin.directory.domain` client scope.
 
 ## Example Usage
 

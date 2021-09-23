@@ -24,7 +24,8 @@ type MemberChange struct {
 func resourceGroupMembers() *schema.Resource {
 	return &schema.Resource{
 		// This description is used by the documentation generator and the language server.
-		Description: "Group resource manages Google Workspace Groups.",
+		Description: "Group Members resource manages Google Workspace Groups Members. Group Members resides under the " +
+			"`https://www.googleapis.com/auth/admin.directory.group` client scope.",
 
 		CreateContext: resourceGroupMembersCreate,
 		ReadContext:   resourceGroupMembersRead,

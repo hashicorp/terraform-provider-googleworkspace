@@ -16,7 +16,8 @@ import (
 func resourceSchema() *schema.Resource {
 	return &schema.Resource{
 		// This description is used by the documentation generator and the language server.
-		Description: "Schema resource manages Google Workspace Schemas.",
+		Description: "Schema resource manages Google Workspace Schemas. Schema resides " +
+			"under the `https://www.googleapis.com/auth/admin.directory.userschema` client scope.",
 
 		CreateContext: resourceSchemaCreate,
 		ReadContext:   resourceSchemaRead,

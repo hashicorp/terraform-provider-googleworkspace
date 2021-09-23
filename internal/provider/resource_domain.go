@@ -14,7 +14,8 @@ import (
 func resourceDomain() *schema.Resource {
 	return &schema.Resource{
 		// This description is used by the documentation generator and the language server.
-		Description: "Domain resource manages Google Workspace Domains.",
+		Description: "Domain resource manages Google Workspace Domains. Domain resides under the " +
+			"`https://www.googleapis.com/auth/admin.directory.domain` client scope.",
 
 		CreateContext: resourceDomainCreate,
 		ReadContext:   resourceDomainRead,

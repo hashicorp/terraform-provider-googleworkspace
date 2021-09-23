@@ -18,7 +18,9 @@ import (
 
 func resourceChromePolicy() *schema.Resource {
 	return &schema.Resource{
-		Description: "Chrome Policy resource in the Terraform Googleworkspace provider. Currently only supports policies not requiring additionalTargetKeys.",
+		Description: "Chrome Policy resource in the Terraform Googleworkspace provider. " +
+			"Currently only supports policies not requiring additionalTargetKeys. Chrome Policy Schema " +
+			"resides under the `https://www.googleapis.com/auth/chrome.management.policy` client scope.",
 
 		CreateContext: resourceChromePolicyCreate,
 		UpdateContext: resourceChromePolicyUpdate,

@@ -3,12 +3,12 @@
 page_title: "googleworkspace_group_member Resource - terraform-provider-googleworkspace"
 subcategory: ""
 description: |-
-  Group resource manages Google Workspace Groups.
+  Group Member resource manages Google Workspace Groups Members. Group Member resides under the https://www.googleapis.com/auth/admin.directory.group client scope.
 ---
 
 # googleworkspace_group_member (Resource)
 
-Group resource manages Google Workspace Groups.
+Group Member resource manages Google Workspace Groups Members. Group Member resides under the `https://www.googleapis.com/auth/admin.directory.group` client scope.
 
 ## Example Usage
 

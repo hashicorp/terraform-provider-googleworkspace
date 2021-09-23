@@ -3,12 +3,12 @@
 page_title: "googleworkspace_role Resource - terraform-provider-googleworkspace"
 subcategory: ""
 description: |-
-  Role resource in the Terraform Googleworkspace provider.
+  Role resource in the Terraform Googleworkspace provider. Role resides under the https://www.googleapis.com/auth/admin.directory.rolemanagement client scope.
 ---
 
 # googleworkspace_role (Resource)
 
-Role resource in the Terraform Googleworkspace provider.
+Role resource in the Terraform Googleworkspace provider. Role resides under the `https://www.googleapis.com/auth/admin.directory.rolemanagement` client scope.
 
 ## Example Usage
 

@@ -3,12 +3,12 @@
 page_title: "googleworkspace_domain_alias Resource - terraform-provider-googleworkspace"
 subcategory: ""
 description: |-
-  Domain Alias resource manages Google Workspace Domain Aliases.
+  Domain Alias resource manages Google Workspace Domain Aliases. Domain Alias resides under the https://www.googleapis.com/auth/admin.directory.domain client scope.
 ---
 
 # googleworkspace_domain_alias (Resource)
 
-Domain Alias resource manages Google Workspace Domain Aliases.
+Domain Alias resource manages Google Workspace Domain Aliases. Domain Alias resides under the `https://www.googleapis.com/auth/admin.directory.domain` client scope.
 
 ## Example Usage
 

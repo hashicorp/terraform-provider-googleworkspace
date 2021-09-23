@@ -18,7 +18,8 @@ import (
 func resourceGroupSettings() *schema.Resource {
 	return &schema.Resource{
 		// This description is used by the documentation generator and the language server.
-		Description: "Group Settings resource manages Google Workspace Groups Setting.",
+		Description: "Group Settings resource manages Google Workspace Groups Setting. Group Settings requires the " +
+			"`https://www.googleapis.com/auth/apps.groups.settings` client scope.",
 
 		CreateContext: resourceGroupSettingsCreate,
 		ReadContext:   resourceGroupSettingsRead,

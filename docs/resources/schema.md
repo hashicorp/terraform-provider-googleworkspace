@@ -3,12 +3,12 @@
 page_title: "googleworkspace_schema Resource - terraform-provider-googleworkspace"
 subcategory: ""
 description: |-
-  Schema resource manages Google Workspace Schemas.
+  Schema resource manages Google Workspace Schemas. Schema resides under the https://www.googleapis.com/auth/admin.directory.userschema client scope.
 ---
 
 # googleworkspace_schema (Resource)
 
-Schema resource manages Google Workspace Schemas.
+Schema resource manages Google Workspace Schemas. Schema resides under the `https://www.googleapis.com/auth/admin.directory.userschema` client scope.
 
 ## Example Usage
 

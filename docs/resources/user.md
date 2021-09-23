@@ -3,12 +3,12 @@
 page_title: "googleworkspace_user Resource - terraform-provider-googleworkspace"
 subcategory: ""
 description: |-
-  User resource manages Google Workspace Users.
+  User resource manages Google Workspace Users. User resides under the https://www.googleapis.com/auth/admin.directory.user client scope.
 ---
 
 # googleworkspace_user (Resource)
 
-User resource manages Google Workspace Users.
+User resource manages Google Workspace Users. User resides under the `https://www.googleapis.com/auth/admin.directory.user` client scope.
 
 ## Example Usage
 

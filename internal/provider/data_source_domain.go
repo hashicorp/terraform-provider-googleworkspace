@@ -13,7 +13,8 @@ func dataSourceDomain() *schema.Resource {
 
 	return &schema.Resource{
 		// This description is used by the documentation generator and the language server.
-		Description: "Domain data source in the Terraform Googleworkspace provider.",
+		Description: "Domain data source in the Terraform Googleworkspace provider. Domain resides under the " +
+			"`https://www.googleapis.com/auth/admin.directory.domain` client scope.",
 
 		ReadContext: dataSourceDomainRead,
 
