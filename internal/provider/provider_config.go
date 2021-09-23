@@ -51,7 +51,6 @@ func (c *apiClient) loadAndValidate(ctx context.Context) diag.Diagnostics {
 		log.Printf("[INFO]   -- Scopes: %s", c.ClientScopes)
 
 		if c.ImpersonatedUserEmail != "" {
-
 			if c.ServiceAccount == "" {
 				diags = append(diags, diag.Diagnostic{
 					Severity: diag.Error,
