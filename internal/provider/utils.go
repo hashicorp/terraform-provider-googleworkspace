@@ -174,6 +174,17 @@ func listOfInterfacestoStrings(v interface{}) []string {
 	return result
 }
 
+// Converts a list of strings to a list of interfaces
+func listOfStringsToInterfaces(v []string) []interface{} {
+	result := make([]interface{}, len(v))
+
+	for i, s := range v {
+		result[i] = s
+	}
+
+	return result
+}
+
 func stringInSlice(arr []string, str string) bool {
 	for _, i := range arr {
 		if i == str {

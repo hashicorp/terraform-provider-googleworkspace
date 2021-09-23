@@ -84,10 +84,26 @@ func New(version string) func() *schema.Provider {
 
 				"oauth_scopes": {
 					Description: "The list of the scopes required for your application (for a list of possible scopes, see " +
-						"[Authorize requests](https://developers.google.com/admin-sdk/directory/v1/guides/authorizing))",
+						"[Authorize requests](https://developers.google.com/admin-sdk/directory/v1/guides/authorizing)). " +
+						"This can be set using the `GOOGLEWORKSPACE_OAUTH_SCOPES` environment variable by passing the scopes as a list of strings, " +
+						"for example: `GOOGLEWORKSPACE_OAUTH_SCOPES=\"https://www.googleapis.com/auth/admin.directory.group,https://www.googleapis.com/auth/admin.directory.user\"`.",
 					Type:     schema.TypeList,
 					Optional: true,
-					Elem:     &schema.Schema{Type: schema.TypeString},
+					DefaultFunc: func() (interface{}, error) {
+						if v := os.Getenv("GOOGLEWORKSPACE_OAUTH_SCOPES"); v != "" {
+							scopes := strings.Split(v, ",")
+							if len(scopes) > 0 {
+								scopes := listOfStringsToInterfaces(scopes)
+								return scopes, nil
+							} else {
+								return make([]interface{}, 0), fmt.Errorf("[WARN]: GOOGLEWORKSPACE_OAUTH_SCOPES environment variable did not return a list of object as expected")
+
+							}
+						} else {
+							return make([]interface{}, 0), nil
+						}
+					},
+					Elem: &schema.Schema{Type: schema.TypeString},
 				},
 			},
 			DataSourcesMap: map[string]*schema.Resource{

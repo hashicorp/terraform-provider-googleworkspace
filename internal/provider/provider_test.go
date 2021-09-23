@@ -46,6 +46,19 @@ func getTestImpersonatedUserFromEnv() string {
 	return os.Getenv("GOOGLEWORKSPACE_IMPERSONATED_USER_EMAIL")
 }
 
+func getTestOauthScopesFromEnv() []string {
+	if v := os.Getenv("GOOGLEWORKSPACE_OAUTH_SCOPES"); v != "" {
+		scopes := strings.Split(v, ",")
+		if len(scopes) > 0 {
+			return scopes
+		} else {
+			return []string{}
+
+		}
+	}
+	return []string{}
+}
+
 // googleworkspaceTestClient returns a common client
 func googleworkspaceTestClient() (*apiClient, error) {
 	creds := getTestCredsFromEnv()
@@ -63,10 +76,16 @@ func googleworkspaceTestClient() (*apiClient, error) {
 		return nil, fmt.Errorf("set customer id with GOOGLEWORKSPACE_IMPERSONATED_USER_EMAIL")
 	}
 
+	scopes := getTestOauthScopesFromEnv()
+	if len(scopes) == 0 {
+		return nil, fmt.Errorf("set oauth scopes with GOOGLEWORKSPACE_OAUTH_SCOPES")
+	}
+
 	client := &apiClient{
 		Credentials:           creds,
 		Customer:              customerId,
 		ImpersonatedUserEmail: impersonatedUser,
+		ClientScopes:          scopes,
 	}
 
 	diags := client.loadAndValidate(context.Background())
