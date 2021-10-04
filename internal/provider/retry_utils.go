@@ -4,12 +4,10 @@ import (
 	"context"
 	"log"
 	"regexp"
-	"strings"
 	"time"
 
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-
-	"google.golang.org/api/googleapi"
 )
 
 func retryTimeDuration(ctx context.Context, duration time.Duration, retryFunc func() error) error {
@@ -20,14 +18,6 @@ func retryTimeDuration(ctx context.Context, duration time.Duration, retryFunc fu
 			return nil
 		}
 		if IsNotConsistent(err) {
-			return resource.RetryableError(err)
-		}
-
-		if IsTemporarilyUnavailable(err) {
-			return resource.RetryableError(err)
-		}
-
-		if IsRateLimitExceeded(err) {
 			return resource.RetryableError(err)
 		}
 
@@ -45,36 +35,26 @@ func IsNotConsistent(err error) bool {
 	return matched
 }
 
-func IsTemporarilyUnavailable(err error) bool {
-	gerr, ok := err.(*googleapi.Error)
-	if !ok {
+func isRetryableError(topErr error, customPredicates ...RetryErrorPredicateFunc) bool {
+	if topErr == nil {
 		return false
 	}
 
-	if gerr.Code == 503 {
-		log.Printf("[DEBUG] Dismissed an error as retryable based on error code: %s", err)
-		return true
-	}
-	return false
+	retryPredicates := append(
+		// Global error retry predicates are registered in this default list.
+		defaultErrorRetryPredicates,
+		customPredicates...)
 
-}
-
-func IsRateLimitExceeded(err error) bool {
-	gerr, ok := err.(*googleapi.Error)
-	if !ok {
-		return false
-	}
-
-	if gerr.Code == 429 {
-		log.Printf("[DEBUG] Dismissed an error as retryable based on error code: %s", err)
-		return true
-	}
-
-	if gerr.Code == 403 && strings.Contains(gerr.Error(), "quotaExceeded") {
-		log.Printf("[DEBUG] Dismissed an error as retryable based on error code: %s", err)
-		return true
-	}
-
-	return false
-
+	// Check all wrapped errors for a retryable error status.
+	isRetryable := false
+	errwrap.Walk(topErr, func(werr error) {
+		for _, pred := range retryPredicates {
+			if predRetry, predReason := pred(werr); predRetry {
+				log.Printf("[DEBUG] Dismissed an error as retryable. %s - %s", predReason, werr)
+				isRetryable = true
+				return
+			}
+		}
+	})
+	return isRetryable
 }
