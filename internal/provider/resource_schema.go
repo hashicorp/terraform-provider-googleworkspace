@@ -116,15 +116,15 @@ func resourceSchema() *schema.Resource {
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"min_value": {
-										Description: "Minimum value of this field. This is meant to be indicative" +
-											"rather than enforced. Values outside this range will still be indexed," +
+										Description: "Minimum value of this field. This is meant to be indicative " +
+											"rather than enforced. Values outside this range will still be indexed, " +
 											"but search may not be as performant.",
 										Type:     schema.TypeFloat,
 										Optional: true,
 									},
 									"max_value": {
-										Description: "Maximum value of this field. This is meant to be indicative" +
-											"rather than enforced. Values outside this range will still be indexed," +
+										Description: "Maximum value of this field. This is meant to be indicative " +
+											"rather than enforced. Values outside this range will still be indexed, " +
 											"but search may not be as performant.",
 										Type:     schema.TypeFloat,
 										Optional: true,

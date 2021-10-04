@@ -104,7 +104,7 @@ func resourceGroupSettings() *schema.Resource {
 					"`ALL_MEMBERS_CAN_POST`: Any group member can post a message. " +
 					"`ALL_OWNERS_CAN_POST`: Only group owners can post a message. " +
 					"`ALL_IN_DOMAIN_CAN_POST`: Anyone in the account can post a message. " +
-					"`ANYONE_CAN_POST`: Any Internet user who outside your account can access your Google Groups" +
+					"`ANYONE_CAN_POST`: Any Internet user who outside your account can access your Google Groups " +
 					"service and post a message. " +
 					"*Note: When `who_can_post_message` is set to `ANYONE_CAN_POST`, we recommend the" +
 					"`message_moderation_level` be set to `MODERATE_NON_MEMBERS` to protect the group from possible spam. " +
@@ -124,7 +124,7 @@ func resourceGroupSettings() *schema.Resource {
 				Default:  true,
 			},
 			"primary_language": {
-				Description: "The primary language for group. For a group's primary language use the language tags from" +
+				Description: "The primary language for group. For a group's primary language use the language tags from " +
 					"the Google Workspace languages found at Google Workspace Email Settings API Email Language Tags.",
 				Type:     schema.TypeString,
 				Optional: true,
@@ -139,7 +139,7 @@ func resourceGroupSettings() *schema.Resource {
 			},
 			"archive_only": {
 				Description: "Allows the group to be archived only. If true, Group is archived and the group is inactive. " +
-					"New messages to this group are rejected. The older archived messages are browseable and searchable. " +
+					"New messages to this group are rejected. The older archived messages are browsable and searchable. " +
 					"If true, the `who_can_post_message` property is set to `NONE_CAN_POST`. If reverted from true to false, " +
 					"`who_can_post_message` is set to `ALL_MANAGERS_CAN_POST`. If false, The group is active and can " +
 					"receive messages. When false, updating `who_can_post_message` to `NONE_CAN_POST`, results in an error.",
