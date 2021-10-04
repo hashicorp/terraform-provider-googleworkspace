@@ -22,6 +22,21 @@ resource "google_service_account_iam_member" "tf-acctest-iam" {
   member             = "user:${var.impersonated_user}"
 }
 
+// Google service account to use for access_token authentication
+resource "google_service_account" "acctest-sa-impersonate" {
+  account_id   = "tf-acctest-access-token-impersonate"
+  display_name = "Acceptance Test SA for access token auth"
+  description  = "SA for Acceptance Testing (for testing access_token auth)"
+  project      = data.google_project.project.project_id
+}
+
+// Impersonate the User with admin permissions (with the sa-impersonate service account)
+resource "google_service_account_iam_member" "tf-acctest-iam-sa" {
+  service_account_id = google_service_account.acctest-sa-impersonate.id
+  role               = "roles/iam.serviceAccountTokenCreator"
+  member             = "user:${var.impersonated_user}"
+}
+
 // Add necessary roles for vault
 resource "google_project_iam_member" "tf-acctest-sa-admin" {
   project = data.google_project.project.project_id
