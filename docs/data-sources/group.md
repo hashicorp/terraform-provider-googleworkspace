@@ -38,6 +38,6 @@ output "group_name" {
 - **direct_members_count** (Number) The number of users that are direct members of the group.If a group is a member (child) of this group (the parent),members of the child group are not counted in the directMembersCount property of the parent group.
 - **etag** (String) ETag of the resource.
 - **name** (String) The group's display name.
-- **non_editable_aliases** (List of String) asps.list of the group's non-editable alias email addresses that are outside of theaccount's primary domain or subdomains. These are functioning email addresses used by the group.
+- **non_editable_aliases** (List of String) asps.list of the group's non-editable alias email addresses that are outside of the account's primary domain or subdomains. These are functioning email addresses used by the group.
 
 

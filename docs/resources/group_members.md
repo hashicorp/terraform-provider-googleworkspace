@@ -72,7 +72,7 @@ resource "googleworkspace_group_members" "sales" {
 
 Required:
 
-- **email** (String) The member's email address. A member can be a user or another group. This property isrequired when adding a member to a group. The email must be unique and cannot be an alias ofanother group. If the email address is changed, the API automatically reflects the email address changes.
+- **email** (String) The member's email address. A member can be a user or another group. This property isrequired when adding a member to a group. The email must be unique and cannot be an alias of another group. If the email address is changed, the API automatically reflects the email address changes.
 
 Optional:
 

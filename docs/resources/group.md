@@ -47,7 +47,7 @@ resource "googleworkspace_group" "sales" {
 - **direct_members_count** (Number) The number of users that are direct members of the group.If a group is a member (child) of this group (the parent),members of the child group are not counted in the directMembersCount property of the parent group.
 - **etag** (String) ETag of the resource.
 - **id** (String) The unique ID of a group. A group id can be used as a group request URI's groupKey.
-- **non_editable_aliases** (List of String) asps.list of the group's non-editable alias email addresses that are outside of theaccount's primary domain or subdomains. These are functioning email addresses used by the group.
+- **non_editable_aliases** (List of String) asps.list of the group's non-editable alias email addresses that are outside of the account's primary domain or subdomains. These are functioning email addresses used by the group.
 
 <a id="nestedblock--timeouts"></a>
 ### Nested Schema for `timeouts`
