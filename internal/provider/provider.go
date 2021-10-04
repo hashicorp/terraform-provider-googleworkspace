@@ -84,8 +84,9 @@ func New(version string) func() *schema.Provider {
 				},
 
 				"impersonated_user_email": {
-					Description: "The impersonated user's email with access to the Admin APIs can access the Admin SDK Directory API.",
-					Type:        schema.TypeString,
+					Description: "The impersonated user's email with access to the Admin APIs can access the Admin SDK Directory API. " +
+						"`impersonated_user_email` is required for all services except group and user management.",
+					Type: schema.TypeString,
 					DefaultFunc: schema.MultiEnvDefaultFunc([]string{
 						"GOOGLEWORKSPACE_IMPERSONATED_USER_EMAIL",
 					}, nil),
@@ -98,6 +99,14 @@ func New(version string) func() *schema.Provider {
 					Type:     schema.TypeList,
 					Optional: true,
 					Elem:     &schema.Schema{Type: schema.TypeString},
+				},
+
+				"service_account": {
+					Description: "The service account used to create the provided `access_token` if authenticating using " +
+						"the `access_token` method and needing to impersonate a user. This service account will require the " +
+						"GCP role `Service Account Token Creator` if needing to impersonate a user.",
+					Type:     schema.TypeString,
+					Optional: true,
 				},
 			},
 			DataSourcesMap: map[string]*schema.Resource{
@@ -176,6 +185,11 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 		}
 		for i, scope := range scopes {
 			config.ClientScopes[i] = scope.(string)
+		}
+
+		// Get service account
+		if v, ok := d.GetOk("service_account"); ok {
+			config.ServiceAccount = v.(string)
 		}
 
 		config.UserAgent = p.UserAgent("terraform-provider-googleworkspace", version)

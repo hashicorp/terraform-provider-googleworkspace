@@ -152,12 +152,12 @@ func TestConfigLoadAndValidate_accessToken(t *testing.T) {
 	}
 
 	iamCredsService, err := iamcredentials.NewService(context.Background(), option.WithHTTPClient(gcpConfig.client))
-	name := fmt.Sprintf("projects/-/serviceAccounts/%s", os.Getenv("GOOGLEWORKSPACE_SERVICE_ACCOUNT_IMPERSONATE"))
+	serviceAccount := fmt.Sprintf("projects/-/serviceAccounts/%s", os.Getenv("GOOGLEWORKSPACE_SERVICE_ACCOUNT_IMPERSONATE"))
 	tokenRequest := &iamcredentials.GenerateAccessTokenRequest{
 		Lifetime: "300s",
 		Scope:    []string{"https://www.googleapis.com/auth/cloud-platform"},
 	}
-	at, err := iamCredsService.Projects.ServiceAccounts.GenerateAccessToken(name, tokenRequest).Do()
+	at, err := iamCredsService.Projects.ServiceAccounts.GenerateAccessToken(serviceAccount, tokenRequest).Do()
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
@@ -166,7 +166,7 @@ func TestConfigLoadAndValidate_accessToken(t *testing.T) {
 		AccessToken:           at.AccessToken,
 		Customer:              os.Getenv("GOOGLEWORKSPACE_CUSTOMER_ID"),
 		ImpersonatedUserEmail: os.Getenv("GOOGLEWORKSPACE_IMPERSONATED_USER_EMAIL"),
-		ClientScopes:          []string{"https://www.googleapis.com/auth/admin.directory.customer"},
+		ServiceAccount:        os.Getenv("GOOGLEWORKSPACE_SERVICE_ACCOUNT_IMPERSONATE"),
 	}
 
 	diags = config.loadAndValidate(context.Background())
