@@ -34,7 +34,7 @@ resource "google_service_account" "acctest-sa-impersonate" {
 resource "google_project_iam_member" "tf-acctest-iam-create-token" {
   project = data.google_project.project.project_id
   role    = "roles/iam.serviceAccountTokenCreator"
-  member  = "serviceAccount:${google_service_account.acctest-sa-impersonate.id}"
+  member  = "serviceAccount:${google_service_account.acctest-sa-impersonate.email}"
 }
 
 // Impersonate the User with admin permissions (with the sa-impersonate service account)
