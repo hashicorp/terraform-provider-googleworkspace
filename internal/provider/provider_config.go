@@ -16,6 +16,7 @@ import (
 	"google.golang.org/api/chromepolicy/v1"
 	"google.golang.org/api/gmail/v1"
 	"google.golang.org/api/groupssettings/v1"
+	"google.golang.org/api/impersonate"
 	"google.golang.org/api/option"
 	"google.golang.org/api/transport"
 )
@@ -23,10 +24,12 @@ import (
 type apiClient struct {
 	client *http.Client
 
+	AccessToken           string
 	ClientScopes          []string
 	Credentials           string
 	Customer              string
 	ImpersonatedUserEmail string
+	ServiceAccount        string
 	UserAgent             string
 }
 
@@ -35,6 +38,49 @@ func (c *apiClient) loadAndValidate(ctx context.Context) diag.Diagnostics {
 
 	if len(c.ClientScopes) == 0 {
 		c.ClientScopes = DefaultClientScopes
+	}
+
+	if c.AccessToken != "" {
+		contents, _, err := pathOrContents(c.AccessToken)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		token := &oauth2.Token{AccessToken: contents}
+
+		log.Printf("[INFO] Authenticating using configured Google JSON 'access_token'...")
+		log.Printf("[INFO]   -- Scopes: %s", c.ClientScopes)
+
+		if c.ImpersonatedUserEmail != "" {
+
+			if c.ServiceAccount == "" {
+				diags = append(diags, diag.Diagnostic{
+					Severity: diag.Error,
+					Summary:  "service_account is required to impersonate a user with the access_token authentication.",
+				})
+
+				return diags
+			}
+
+			tokenSource, err := impersonate.CredentialsTokenSource(context.TODO(), impersonate.CredentialsConfig{
+				TargetPrincipal: c.ServiceAccount,
+				Scopes:          c.ClientScopes,
+				Subject:         c.ImpersonatedUserEmail,
+			}, option.WithTokenSource(oauth2.StaticTokenSource(token)))
+			if err != nil {
+				return diag.FromErr(err)
+			}
+
+			creds := googleoauth.Credentials{
+				TokenSource: tokenSource,
+			}
+			diags = c.SetupClient(ctx, &creds)
+			return diags
+		}
+
+		creds := googleoauth.Credentials{
+			TokenSource: oauth2.StaticTokenSource(token),
+		}
+		diags = c.SetupClient(ctx, &creds)
 	}
 
 	if c.Credentials != "" {

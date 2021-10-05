@@ -49,6 +49,16 @@ func New(version string) func() *schema.Provider {
 	return func() *schema.Provider {
 		p := &schema.Provider{
 			Schema: map[string]*schema.Schema{
+				"access_token": {
+					Description: "A temporary [OAuth 2.0 access token] obtained from " +
+						"the Google Authorization server, i.e. the `Authorization: Bearer` token used to " +
+						"authenticate HTTP requests to Google Admin SDK APIs. This is an alternative to `credentials`, " +
+						"and ignores the `scopes` field. If both are specified, `access_token` will be " +
+						"used over the `credentials` field.",
+					Type:     schema.TypeString,
+					Optional: true,
+				},
+
 				"credentials": {
 					Description: "Either the path to or the contents of a service account key file in JSON format " +
 						"you can manage key files using the Cloud Console).  If not provided, the application default " +
@@ -74,8 +84,9 @@ func New(version string) func() *schema.Provider {
 				},
 
 				"impersonated_user_email": {
-					Description: "The impersonated user's email with access to the Admin APIs can access the Admin SDK Directory API.",
-					Type:        schema.TypeString,
+					Description: "The impersonated user's email with access to the Admin APIs can access the Admin SDK Directory API. " +
+						"`impersonated_user_email` is required for all services except group and user management.",
+					Type: schema.TypeString,
 					DefaultFunc: schema.MultiEnvDefaultFunc([]string{
 						"GOOGLEWORKSPACE_IMPERSONATED_USER_EMAIL",
 					}, nil),
@@ -88,6 +99,14 @@ func New(version string) func() *schema.Provider {
 					Type:     schema.TypeList,
 					Optional: true,
 					Elem:     &schema.Schema{Type: schema.TypeString},
+				},
+
+				"service_account": {
+					Description: "The service account used to create the provided `access_token` if authenticating using " +
+						"the `access_token` method and needing to impersonate a user. This service account will require the " +
+						"GCP role `Service Account Token Creator` if needing to impersonate a user.",
+					Type:     schema.TypeString,
+					Optional: true,
 				},
 			},
 			DataSourcesMap: map[string]*schema.Resource{
@@ -132,6 +151,11 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 		var diags diag.Diagnostics
 		config := apiClient{}
 
+		// Get access token
+		if v, ok := d.GetOk("access_token"); ok {
+			config.AccessToken = v.(string)
+		}
+
 		// Get credentials
 		if v, ok := d.GetOk("credentials"); ok {
 			config.Credentials = v.(string)
@@ -161,6 +185,11 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 		}
 		for i, scope := range scopes {
 			config.ClientScopes[i] = scope.(string)
+		}
+
+		// Get service account
+		if v, ok := d.GetOk("service_account"); ok {
+			config.ServiceAccount = v.(string)
 		}
 
 		config.UserAgent = p.UserAgent("terraform-provider-googleworkspace", version)
