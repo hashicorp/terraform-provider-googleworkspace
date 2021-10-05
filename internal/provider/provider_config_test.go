@@ -152,6 +152,9 @@ func TestConfigLoadAndValidate_accessToken(t *testing.T) {
 	}
 
 	iamCredsService, err := iamcredentials.NewService(context.Background(), option.WithHTTPClient(gcpConfig.client))
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
 	serviceAccount := fmt.Sprintf("projects/-/serviceAccounts/%s", os.Getenv("GOOGLEWORKSPACE_SERVICE_ACCOUNT_IMPERSONATE"))
 	tokenRequest := &iamcredentials.GenerateAccessTokenRequest{
 		Lifetime: "300s",
