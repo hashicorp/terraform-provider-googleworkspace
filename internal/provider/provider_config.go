@@ -131,8 +131,14 @@ func (c *apiClient) SetupClient(ctx context.Context, creds *googleoauth.Credenti
 	// 2. Logging Transport - ensure we log HTTP requests to admin APIs.
 	loggingTransport := logging.NewTransport("Google Workspace", client.Transport)
 
+	// 3. Retry Transport - retries common temporary errors
+	// Keep order for wrapping logging so we log each retried request as well.
+	// This value should be used if needed to create shallow copies with additional retry predicates.
+	// See ClientWithAdditionalRetries
+	retryTransport := NewTransportWithDefaultRetries(loggingTransport)
+
 	// Set final transport value.
-	client.Transport = loggingTransport
+	client.Transport = retryTransport
 
 	c.client = client
 	return diags
