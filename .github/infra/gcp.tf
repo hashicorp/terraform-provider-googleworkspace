@@ -24,7 +24,7 @@ resource "google_service_account_iam_member" "tf-acctest-iam" {
 
 // Google service account to use for access_token authentication
 resource "google_service_account" "acctest-sa-impersonate" {
-  account_id   = "tf-acctest-access-token-impersonate"
+  account_id   = "tf-acctest-acctoken"
   display_name = "Acceptance Test SA for access token auth"
   description  = "SA for Acceptance Testing (for testing access_token auth)"
   project      = data.google_project.project.project_id

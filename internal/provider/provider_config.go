@@ -80,6 +80,7 @@ func (c *apiClient) loadAndValidate(ctx context.Context) diag.Diagnostics {
 			TokenSource: oauth2.StaticTokenSource(token),
 		}
 		diags = c.SetupClient(ctx, &creds)
+		return diags
 	}
 
 	if c.Credentials != "" {
