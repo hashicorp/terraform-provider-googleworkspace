@@ -155,7 +155,7 @@ func TestConfigLoadAndValidate_accessToken(t *testing.T) {
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
-	serviceAccount := fmt.Sprintf("projects/-/serviceAccounts/%s", os.Getenv("GOOGLEWORKSPACE_SERVICE_ACCOUNT_IMPERSONATE"))
+	serviceAccount := fmt.Sprintf("projects/-/serviceAccounts/%s", os.Getenv("GOOGLEWORKSPACE_IMPERSONATED_SERVICE_ACCOUNT"))
 	tokenRequest := &iamcredentials.GenerateAccessTokenRequest{
 		Lifetime: "300s",
 		Scope:    []string{"https://www.googleapis.com/auth/cloud-platform"},
@@ -169,7 +169,7 @@ func TestConfigLoadAndValidate_accessToken(t *testing.T) {
 		AccessToken:           at.AccessToken,
 		Customer:              os.Getenv("GOOGLEWORKSPACE_CUSTOMER_ID"),
 		ImpersonatedUserEmail: os.Getenv("GOOGLEWORKSPACE_IMPERSONATED_USER_EMAIL"),
-		ServiceAccount:        os.Getenv("GOOGLEWORKSPACE_SERVICE_ACCOUNT_IMPERSONATE"),
+		ServiceAccount:        os.Getenv("GOOGLEWORKSPACE_IMPERSONATED_SERVICE_ACCOUNT"),
 	}
 
 	diags = config.loadAndValidate(context.Background())
