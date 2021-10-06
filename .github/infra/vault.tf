@@ -30,9 +30,12 @@ resource "vault_gcp_secret_roleset" "roleset" {
 
     roles = [
       "roles/owner",
-      "roles/iam.serviceAccountTokenCreator",
     ]
   }
 
-  depends_on = [google_project_iam_member.tf-acctest-sa-admin]
+  depends_on = [
+    google_project_iam_member.tf-acctest-sa-admin,
+    google_project_iam_member.tf-acctest-sa-key-admin,
+    google_project_iam_member.tf-acctest-create-token,
+  ]
 }
