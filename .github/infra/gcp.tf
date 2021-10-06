@@ -37,7 +37,7 @@ resource "google_project_iam_member" "tf-acctest-iam-create-token" {
   member  = "serviceAccount:${google_service_account.acctest-sa-impersonate.email}"
 }
 
-resource "google_project_iam_member" "tf-acctest-iam-create-token" {
+resource "google_project_iam_member" "tf-acctest-create-token" {
   project = data.google_project.project.project_id
   role    = "roles/iam.serviceAccountTokenCreator"
   member  = "serviceAccount:${google_service_account.acctest-sa.email}"
