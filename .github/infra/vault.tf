@@ -30,6 +30,7 @@ resource "vault_gcp_secret_roleset" "roleset" {
 
     roles = [
       "roles/owner",
+      "roles/iam.serviceAccountTokenCreator",
     ]
   }
 
