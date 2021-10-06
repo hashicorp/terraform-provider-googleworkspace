@@ -86,7 +86,7 @@ func resourceGroup() *schema.Resource {
 				},
 			},
 			"non_editable_aliases": {
-				Description: "asps.list of the group's non-editable alias email addresses that are outside of the" +
+				Description: "asps.list of the group's non-editable alias email addresses that are outside of the " +
 					"account's primary domain or subdomains. These are functioning email addresses used by the group.",
 				Type:     schema.TypeList,
 				Computed: true,

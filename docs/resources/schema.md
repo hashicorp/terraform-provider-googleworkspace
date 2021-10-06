@@ -68,8 +68,8 @@ Read-Only:
 
 Optional:
 
-- **max_value** (Number) Maximum value of this field. This is meant to be indicativerather than enforced. Values outside this range will still be indexed,but search may not be as performant.
-- **min_value** (Number) Minimum value of this field. This is meant to be indicativerather than enforced. Values outside this range will still be indexed,but search may not be as performant.
+- **max_value** (Number) Maximum value of this field. This is meant to be indicative rather than enforced. Values outside this range will still be indexed, but search may not be as performant.
+- **min_value** (Number) Minimum value of this field. This is meant to be indicative rather than enforced. Values outside this range will still be indexed, but search may not be as performant.
 
 
 
