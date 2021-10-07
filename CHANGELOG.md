@@ -1,11 +1,5 @@
 ## 0.5.0 (Unreleased)
 
-FEATURES:
-
-* **New Resource:**   `googleworkspace_group_members` [GH-155]
-
-* **New Datasource:** `googleworkspace_group_members` [GH-155]
-
 IMPROVEMENTS:
 
 * provider: added ability to user user credentials to authenticate [GH-156]
