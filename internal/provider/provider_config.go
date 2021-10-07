@@ -7,7 +7,6 @@ import (
 
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/logging"
 
 	"golang.org/x/oauth2"
 	googleoauth "golang.org/x/oauth2/google"
@@ -129,13 +128,13 @@ func (c *apiClient) SetupClient(ctx context.Context, creds *googleoauth.Credenti
 	}
 
 	// 2. Logging Transport - ensure we log HTTP requests to admin APIs.
-	loggingTransport := logging.NewTransport("Google Workspace", client.Transport)
+	scrubbedLoggingTransport := NewTransportWithScrubbedLogs("Google Workspace", client.Transport)
 
 	// 3. Retry Transport - retries common temporary errors
 	// Keep order for wrapping logging so we log each retried request as well.
 	// This value should be used if needed to create shallow copies with additional retry predicates.
 	// See ClientWithAdditionalRetries
-	retryTransport := NewTransportWithDefaultRetries(loggingTransport)
+	retryTransport := NewTransportWithDefaultRetries(scrubbedLoggingTransport)
 
 	// Set final transport value.
 	client.Transport = retryTransport
