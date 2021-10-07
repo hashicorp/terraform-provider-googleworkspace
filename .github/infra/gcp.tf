@@ -62,6 +62,13 @@ resource "google_service_account_key" "tf-acctest-key" {
   service_account_id = google_service_account.acctest-sa.name
 }
 
+// Add permission to create tokens to the vault-created service account
+resource "google_project_iam_member" "tf-acctest-create-token" {
+  project = data.google_project.project.project_id
+  role    = "roles/iam.serviceAccountTokenCreator"
+  member  = "serviceAccount:${vault_gcp_secret_roleset.roleset.service_account_email}"
+}
+
 // Enable the cloud resource manager service
 resource "google_project_service" "resource-manager" {
   project = data.google_project.project.project_id
