@@ -2,7 +2,9 @@
 
 IMPROVEMENTS:
 
-* provider: added ability to user user credentials to authenticate [GH-156]
+* provider: added ability to authenticate using user credentials [GH-156]
+* provider: added ability to authenticate using `access_token` rather than just credentials [GH-165]
+* provider: added retryTransport that will retry after common Google errors (like network errors, rate limiting errors, etc) [GH-163]
 
 BUG FIXES:
 
