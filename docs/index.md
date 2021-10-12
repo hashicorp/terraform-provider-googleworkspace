@@ -21,21 +21,22 @@ provider "googleworkspace" {
 ```
 
 ## Authorization
-This provider will use [Admin SDK](https://developers.google.com/admin-sdk) API methods to manage resources on a Workspace customer domain. There are multiple ways to set up proper authorization.
-* Use a Service Account with Domain-wide Delegation to impersonate a user that has Super Admin privileges on the domain. Service Accounts cannot be directly granted the Super Admin role.
+This provider uses [Admin SDK](https://developers.google.com/admin-sdk) API methods to manage resources on a Workspace customer domain. There are multiple ways to set up proper authorization for a service account:
 
-* Workspace also allows granting finer-grained roles to Service Accounts, see [here](https://support.google.com/a/answer/33325?hl=en). Service Accounts can be directly added to these roles.
+* Enable [domain-wide delegation](#using-domain-wide-delegation) to impersonate a user that has super administrator privileges. You cannot directly grant super administrator privileges to Service Accounts.
+
+* Assign [specific administrator roles](https://support.google.com/a/answer/9807615?hl=en&ref_topic=9832445) directly to the Service Account.
 
 ## Authentication
 
-### Using Domain-wide Delegation
+### Using Domain-Wide Delegation
 
 #### Creating a Service Account and Credentials
 
-Terraform will use a GCP service account to manage resources created by the provider. To create the service account and
-generate a service account key see the documentation [here](https://developers.google.com/admin-sdk/directory/v1/guides/delegation#create_the_service_account_and_credentials).
-Once the key has been generated, save the json file locally and set the `GOOGLEWORKSPACE_CREDENTIALS` environment
-variable to the path of the service account key. Terraform will use that key for authentication.
+Terraform uses a GCP service account to manage resources created by the provider. To create the service account and generate a service account key:
+
+ 1.  Follow the instructions in the [create service account and credentials documentation](https://developers.google.com/admin-sdk/directory/v1/guides/delegation#create_the_service_account_and_credentials).
+2. Save the json file containing your service account key credentials locally and set the `GOOGLEWORKSPACE_CREDENTIALS` environment variable to the path of that file. Terraform will now use that key for authentication.
 
 #### Configuring the Service Account
 
@@ -55,15 +56,17 @@ must be set in the environment variable `GOOGLEWORKSPACE_IMPERSONATED_USER_EMAIL
 attribute in the provider. Additionally, the user must have logged in at least once and accepted the Google Workspace
 Terms of Service.
 
-### Using fine-grained roles
-When relying on fine-grained roles, it's not required to set up Domain-wide Delegation. If the execution environment of the Terraform pipeline provides an appropriate token as Application Default Credentials, you can use the provider without any further setup. Make sure to provide the required scopes for the ADC login. When using gcloud locally, this can be done by providing the `--scopes` parameter to [`gcloud auth application-default login`](https://cloud.google.com/sdk/gcloud/reference/auth/application-default/login). On Compute Engine for example, it's possible to [provide additional scopes](https://cloud.google.com/sdk/gcloud/reference/beta/compute/instances/set-scopes). This mechanism can be used both for end-users and service accounts.
+### Using Specific Administrator Roles
+You do not need to set up domain-wide delegation if you are granting more specific administrator roles to the service account. If the Terraform pipeline execution environment provides an appropriate token as Application Default Credentials (ADC), you can use the provider without any further setup. 
+
+When using gcloud locally, you can provide the required scopes for ADC login by adding the `--scopes` parameter to [`gcloud auth application-default login`](https://cloud.google.com/sdk/gcloud/reference/auth/application-default/login). For example, you can [provide additional scopes](https://cloud.google.com/sdk/gcloud/reference/beta/compute/instances/set-scopes) on Compute Engine. You can do this to configure access for both service accounts and end users. 
 ```terraform
 provider "googleworkspace" {
   customer_id             = "A01b123xz"
 }
 ```
 
-The mechanism above won't work when running the pipeline on Cloud Build, as it doesn't (yet) support specifying additional scopes for Service Account tokens accessible during builds. Other pipeline setups rely on Service Account impersonation using `google_service_account_access_token` to let them use a single identity regardless of who is initiating the execution. In this case you can specify the `access_token` parameter.
+The approach outlined above won't work on Cloud Build, as it doesn't (yet) support specifying additional scopes for Service Account tokens accessible during builds. Other pipeline setups rely on Service Account impersonation using `google_service_account_access_token` to let them use a single identity regardless of who is initiating the execution. In this case, you can specify the `access_token` parameter.
 
 ```terraform
 provider "googleworkspace" {
@@ -72,7 +75,7 @@ provider "googleworkspace" {
 }
 ```
 
-You can also provide an exported Service Account key in the `credentials` parameter without specifying an `impersonated_user_email`.
+You can also provide an exported service account key in the `credentials` parameter without specifying an `impersonated_user_email`.
 
 <!-- schema generated by tfplugindocs -->
 ## Schema
