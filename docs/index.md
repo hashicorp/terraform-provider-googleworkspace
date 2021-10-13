@@ -42,7 +42,7 @@ Terraform uses a GCP service account to manage resources created by the provider
 
 To access user data on a Google Workspace domain, the service account that you created needs to be granted access
 by a super administrator for the domain. Follow the instructions in the 
-[delegate domain-wide authority documentation.](https://developers.google.com/admin-sdk/directory/v1/guides/delegation#delegate_domain-wide_authority_to_your_service_account).
+[delegate domain-wide authority documentation](https://developers.google.com/admin-sdk/directory/v1/guides/delegation#delegate_domain-wide_authority_to_your_service_account).
 
 * Note: The Oauth scopes granted to your service account must match, or be a superset, of the `oauth_scopes` granted to
 the `googleworkspace` provider.
