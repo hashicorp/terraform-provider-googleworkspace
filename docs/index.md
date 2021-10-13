@@ -23,9 +23,9 @@ provider "googleworkspace" {
 ## Authorization
 This provider uses [Admin SDK](https://developers.google.com/admin-sdk) API methods to manage resources on a Workspace customer domain. There are multiple ways to set up proper authorization for a service account:
 
-* Enable [domain-wide delegation](#using-domain-wide-delegation) to impersonate a user that has super administrator privileges. You cannot directly grant super administrator privileges to Service Accounts.
+* Enable [domain-wide delegation](#using-domain-wide-delegation) to impersonate a user that has super administrator privileges. You cannot directly grant super administrator privileges to service accounts.
 
-* Assign [specific administrator roles](https://support.google.com/a/answer/9807615?hl=en&ref_topic=9832445) directly to the Service Account.
+* Assign [specific administrator roles](https://support.google.com/a/answer/9807615?hl=en&ref_topic=9832445) directly to the service account.
 
 ## Authentication
 
@@ -41,37 +41,34 @@ Terraform uses a GCP service account to manage resources created by the provider
 #### Configuring the Service Account
 
 To access user data on a Google Workspace domain, the service account that you created needs to be granted access
-by a super administrator for the domain. To delegate domain-wide authority to a service account, follow the instructions
-[here](https://developers.google.com/admin-sdk/directory/v1/guides/delegation#delegate_domain-wide_authority_to_your_service_account).
+by a super administrator for the domain. Follow the instructions in the 
+[delegate domain-wide authority documentation.](https://developers.google.com/admin-sdk/directory/v1/guides/delegation#delegate_domain-wide_authority_to_your_service_account).
 
 * Note: The Oauth scopes granted to your service account must match, or be a superset, of the `oauth_scopes` granted to
 the `googleworkspace` provider.
 
 #### Impersonating a Google Workspace User
 
-Only users with access to the Admin APIs can access the Admin SDK Directory API, therefore your service account needs
-to impersonate one of those users to access the Admin SDK Directory API. You can do this by granting the GCP IAM role
-`roles/iam.serviceAccountUser` to your service account, with member `user:<impersonated_user_email>`. This user's email
-must be set in the environment variable `GOOGLEWORKSPACE_IMPERSONATED_USER_EMAIL` or in the `impersonated_user_email`
-attribute in the provider. Additionally, the user must have logged in at least once and accepted the Google Workspace
-Terms of Service.
+Only users with access to the Admin APIs can access the Admin SDK Directory API, therefore your service account needs to impersonate one of those users to access the Admin SDK Directory API. This user's email
+must be set in the environment variable `GOOGLEWORKSPACE_IMPERSONATED_USER_EMAIL` or in the `impersonated_user_email` attribute in the provider. Additionally, the user must have logged in at least once and accepted the Google Workspace Terms of Service.
 
 ### Using Specific Administrator Roles
 You do not need to set up domain-wide delegation if you are granting more specific administrator roles to the service account. If the Terraform pipeline execution environment provides an appropriate token as Application Default Credentials (ADC), you can use the provider without any further setup. 
 
 When using gcloud locally, you can provide the required scopes for ADC login by adding the `--scopes` parameter to [`gcloud auth application-default login`](https://cloud.google.com/sdk/gcloud/reference/auth/application-default/login). For example, you can [provide additional scopes](https://cloud.google.com/sdk/gcloud/reference/beta/compute/instances/set-scopes) on Compute Engine. You can do this to configure access for both service accounts and end users. 
+
 ```terraform
 provider "googleworkspace" {
-  customer_id             = "A01b123xz"
+  customer_id = "A01b123xz"
 }
 ```
 
-The approach outlined above won't work on Cloud Build, as it doesn't (yet) support specifying additional scopes for Service Account tokens accessible during builds. Other pipeline setups rely on Service Account impersonation using `google_service_account_access_token` to let them use a single identity regardless of who is initiating the execution. In this case, you can specify the `access_token` parameter.
+The approach outlined above does not work on Cloud Build because it does not (yet) support specifying additional scopes for service account tokens accessible during builds. Other pipeline setups use the `google_service_account_access_token` to impersonate a service account. This allows them to use a single identity regardless of who is initiating the execution. For these cases, set the `access_token` parameter to the appropriate credentials.
 
 ```terraform
 provider "googleworkspace" {
-  customer_id             = "A01b123xz"
-  access_token            = data.google_service_account_access_token.default.access_token
+  customer_id  = "A01b123xz"
+  access_token = data.google_service_account_access_token.default.access_token
 }
 ```
 
