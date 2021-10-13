@@ -1,21 +1,21 @@
-## 0.5.0 (Unreleased)
+## 0.5.0 (October 13, 2021)
 
 FEATURES:
 
-* **New Resource:**   `googleworkspace_group_members` [GH-155]
+* **New Resource:**   `googleworkspace_group_members` ([#155](https://github.com/hashicorp/terraform-provider-googleworkspace/issues/155))
 
-* **New Datasource:** `googleworkspace_group_members` [GH-155]
+* **New Datasource:** `googleworkspace_group_members` ([#155](https://github.com/hashicorp/terraform-provider-googleworkspace/issues/155))
 
 IMPROVEMENTS:
 
-* provider: added ability to authenticate using user credentials [GH-156]
-* provider: added ability to authenticate using `access_token` rather than just credentials [GH-165]
-* provider: added retryTransport that will retry after common Google errors (like network errors, rate limiting errors, etc) [GH-163]
+* provider: added ability to authenticate using user credentials ([#156](https://github.com/hashicorp/terraform-provider-googleworkspace/issues/156))
+* provider: added ability to authenticate using `access_token` rather than just credentials ([#165](https://github.com/hashicorp/terraform-provider-googleworkspace/issues/165))
+* provider: added retryTransport that will retry after common Google errors (like network errors, rate limiting errors, etc) ([#163](https://github.com/hashicorp/terraform-provider-googleworkspace/issues/163))
 
 BUG FIXES:
 
-* directory: fixed bug where `googleworkspace_group_member` would not force new change on change of email [GH-152]
-* directory: fixed bug where `googleworkspace_user` would show permadiff on user alias emails from secondary domains [GH-154]
+* directory: fixed bug where `googleworkspace_group_member` would not force new change on change of email ([#152](https://github.com/hashicorp/terraform-provider-googleworkspace/issues/152))
+* directory: fixed bug where `googleworkspace_user` would show permadiff on user alias emails from secondary domains ([#154](https://github.com/hashicorp/terraform-provider-googleworkspace/issues/154))
 
 ## 0.4.1 (August 16, 2021)
 
