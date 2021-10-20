@@ -22,9 +22,10 @@ func TestAccResourceRole_basic(t *testing.T) {
 				),
 			},
 			{
-				ResourceName:      "googleworkspace_role.test",
-				ImportState:       true,
-				ImportStateVerify: true,
+				ResourceName:            "googleworkspace_role.test",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"etag"},
 			},
 		},
 	})
@@ -44,9 +45,10 @@ func TestAccResourceRole_full(t *testing.T) {
 				),
 			},
 			{
-				ResourceName:      "googleworkspace_role.test",
-				ImportState:       true,
-				ImportStateVerify: true,
+				ResourceName:            "googleworkspace_role.test",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"etag"},
 			},
 			{
 				Config: testAccRole_update(fmt.Sprintf("tf-test-%s", acctest.RandString(10)), "update"),
@@ -55,9 +57,10 @@ func TestAccResourceRole_full(t *testing.T) {
 				),
 			},
 			{
-				ResourceName:      "googleworkspace_role.test",
-				ImportState:       true,
-				ImportStateVerify: true,
+				ResourceName:            "googleworkspace_role.test",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"etag"},
 			},
 		},
 	})

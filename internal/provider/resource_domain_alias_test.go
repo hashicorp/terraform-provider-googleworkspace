@@ -27,9 +27,10 @@ func TestAccResourceDomainAlias(t *testing.T) {
 				Config: testAccResourceDomainAlias(domainName, domainAlias),
 			},
 			{
-				ResourceName:      "googleworkspace_domain_alias.my-domain-alias",
-				ImportState:       true,
-				ImportStateVerify: true,
+				ResourceName:            "googleworkspace_domain_alias.my-domain-alias",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"etag"},
 			},
 		},
 	})

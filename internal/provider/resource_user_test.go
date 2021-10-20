@@ -36,7 +36,7 @@ func TestAccResourceUser_basic(t *testing.T) {
 				ResourceName:            "googleworkspace_user.my-new-user",
 				ImportState:             true,
 				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"password"},
+				ImportStateVerifyIgnore: []string{"etag", "password"},
 			},
 		},
 	})
@@ -93,7 +93,7 @@ func TestAccResourceUser_full(t *testing.T) {
 				ResourceName:            "googleworkspace_user.my-new-user",
 				ImportState:             true,
 				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"password", "hash_function"},
+				ImportStateVerifyIgnore: []string{"etag", "password", "hash_function"},
 			},
 			{
 				Config: testAccResourceUser_fullUpdate(testUserVals),
@@ -102,7 +102,7 @@ func TestAccResourceUser_full(t *testing.T) {
 				ResourceName:            "googleworkspace_user.my-new-user",
 				ImportState:             true,
 				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"password", "hash_function"},
+				ImportStateVerifyIgnore: []string{"etag", "password", "hash_function"},
 			},
 		},
 	})
@@ -134,7 +134,7 @@ func TestAccResourceUser_isAdmin(t *testing.T) {
 				ResourceName:            "googleworkspace_user.my-new-user",
 				ImportState:             true,
 				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"password"},
+				ImportStateVerifyIgnore: []string{"etag", "password"},
 			},
 			{
 				Config: testAccResourceUser_isAdmin(testUserVals, "false"),
@@ -143,7 +143,7 @@ func TestAccResourceUser_isAdmin(t *testing.T) {
 				ResourceName:            "googleworkspace_user.my-new-user",
 				ImportState:             true,
 				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"password"},
+				ImportStateVerifyIgnore: []string{"etag", "password"},
 			},
 		},
 	})
@@ -274,6 +274,10 @@ resource "googleworkspace_user" "my-new-user" {
   name {
     family_name = "Scott"
     given_name = "Michael"
+  }
+
+  timeouts {
+    update = "15m"
   }
 }
 `, testUserVals)

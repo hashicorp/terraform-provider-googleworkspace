@@ -40,9 +40,10 @@ func TestAccResourceGroup_noImpersonation(t *testing.T) {
 				Config: testAccResourceGroup_basic(testGroupVals),
 			},
 			{
-				ResourceName:      "googleworkspace_group.my-group",
-				ImportState:       true,
-				ImportStateVerify: true,
+				ResourceName:            "googleworkspace_group.my-group",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"etag"},
 			},
 		},
 	})
@@ -70,9 +71,10 @@ func TestAccResourceGroup_basic(t *testing.T) {
 				Config: testAccResourceGroup_basic(testGroupVals),
 			},
 			{
-				ResourceName:      "googleworkspace_group.my-group",
-				ImportState:       true,
-				ImportStateVerify: true,
+				ResourceName:            "googleworkspace_group.my-group",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"etag"},
 			},
 		},
 	})
@@ -100,17 +102,19 @@ func TestAccResourceGroup_full(t *testing.T) {
 				Config: testAccResourceGroup_full(testGroupVals),
 			},
 			{
-				ResourceName:      "googleworkspace_group.my-group",
-				ImportState:       true,
-				ImportStateVerify: true,
+				ResourceName:            "googleworkspace_group.my-group",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"etag"},
 			},
 			{
 				Config: testAccResourceGroup_fullUpdate(testGroupVals),
 			},
 			{
-				ResourceName:      "googleworkspace_group.my-group",
-				ImportState:       true,
-				ImportStateVerify: true,
+				ResourceName:            "googleworkspace_group.my-group",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"etag"},
 			},
 		},
 	})
