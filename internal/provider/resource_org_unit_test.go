@@ -25,9 +25,10 @@ func TestAccResourceOrgUnit_basic(t *testing.T) {
 				Config: testAccResourceOrgUnit_basic(ouName),
 			},
 			{
-				ResourceName:      "googleworkspace_org_unit.my-org-unit",
-				ImportState:       true,
-				ImportStateVerify: true,
+				ResourceName:            "googleworkspace_org_unit.my-org-unit",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"etag"},
 			},
 		},
 	})
@@ -49,17 +50,19 @@ func TestAccResourceOrgUnit_full(t *testing.T) {
 				Config: testAccResourceOrgUnit_full(ouName),
 			},
 			{
-				ResourceName:      "googleworkspace_org_unit.my-org-unit",
-				ImportState:       true,
-				ImportStateVerify: true,
+				ResourceName:            "googleworkspace_org_unit.my-org-unit",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"etag"},
 			},
 			{
 				Config: testAccResourceOrgUnit_fullUpdate(ouName),
 			},
 			{
-				ResourceName:      "googleworkspace_org_unit.my-org-unit",
-				ImportState:       true,
-				ImportStateVerify: true,
+				ResourceName:            "googleworkspace_org_unit.my-org-unit",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"etag"},
 			},
 		},
 	})

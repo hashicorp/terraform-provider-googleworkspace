@@ -3,8 +3,10 @@ package googleworkspace
 import (
 	"context"
 	"fmt"
+	"google.golang.org/api/googleapi"
 	"log"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -23,6 +25,11 @@ func resourceGroupMember() *schema.Resource {
 		ReadContext:   resourceGroupMemberRead,
 		UpdateContext: resourceGroupMemberUpdate,
 		DeleteContext: resourceGroupMemberDelete,
+
+		Timeouts: &schema.ResourceTimeout{
+			Create: schema.DefaultTimeout(5 * time.Minute),
+			Update: schema.DefaultTimeout(5 * time.Minute),
+		},
 
 		Importer: &schema.ResourceImporter{
 			StateContext: resourceGroupMemberImport,
@@ -147,6 +154,36 @@ func resourceGroupMemberCreate(ctx context.Context, d *schema.ResourceData, meta
 	d.Set("member_id", member.Id)
 	d.SetId(fmt.Sprintf("groups/%s/members/%s", groupId, member.Id))
 
+	// INSERT will respond with the Group Member that will be created, however, it is eventually consistent
+	// After INSERT, the etag is updated along with the Group Member,
+	// once we get a consistent etag, we can feel confident that our Group Member is also consistent
+	cc := consistencyCheck{
+		resourceType: "group_member",
+		timeout:      d.Timeout(schema.TimeoutCreate),
+	}
+	err = retryTimeDuration(ctx, d.Timeout(schema.TimeoutCreate), func() error {
+		var retryErr error
+
+		if cc.reachedConsistency(1) {
+			return nil
+		}
+
+		newMember, retryErr := membersService.Get(groupId, member.Id).IfNoneMatch(cc.lastEtag).Do()
+		if googleapi.IsNotModified(retryErr) {
+			cc.currConsistent += 1
+		} else if retryErr != nil {
+			return fmt.Errorf("unexpected error during retries of %s: %s", cc.resourceType, retryErr)
+		} else {
+			cc.handleNewEtag(newMember.Etag)
+		}
+
+		return fmt.Errorf("timed out while waiting for %s to be inserted", cc.resourceType)
+	})
+
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
 	log.Printf("[DEBUG] Finished creating Group Member %q: %#v", member.Id, email)
 
 	return resourceGroupMemberRead(ctx, d, meta)
@@ -236,6 +273,36 @@ func resourceGroupMemberUpdate(ctx context.Context, d *schema.ResourceData, meta
 		}
 
 		d.SetId(fmt.Sprintf("groups/%s/members/%s", groupId, member.Id))
+
+		// UPDATE will respond with the Group Member that will be created, however, it is eventually consistent
+		// After UPDATE, the etag is updated along with the Group Member,
+		// once we get a consistent etag, we can feel confident that our Group Member is also consistent
+		cc := consistencyCheck{
+			resourceType: "group_member",
+			timeout:      d.Timeout(schema.TimeoutUpdate),
+		}
+		err = retryTimeDuration(ctx, d.Timeout(schema.TimeoutUpdate), func() error {
+			var retryErr error
+
+			if cc.reachedConsistency(1) {
+				return nil
+			}
+
+			newMember, retryErr := membersService.Get(groupId, member.Id).IfNoneMatch(cc.lastEtag).Do()
+			if googleapi.IsNotModified(retryErr) {
+				cc.currConsistent += 1
+			} else if retryErr != nil {
+				return fmt.Errorf("unexpected error during retries of %s: %s", cc.resourceType, retryErr)
+			} else {
+				cc.handleNewEtag(newMember.Etag)
+			}
+
+			return fmt.Errorf("timed out while waiting for %s to be updated", cc.resourceType)
+		})
+
+		if err != nil {
+			return diag.FromErr(err)
+		}
 	}
 
 	log.Printf("[DEBUG] Finished creating Group Member %q: %#v", memberId, email)

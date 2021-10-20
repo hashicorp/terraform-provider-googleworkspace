@@ -32,9 +32,10 @@ func TestAccResourceRoleAssignment_basic(t *testing.T) {
 				Config: testAccRoleAssignment_basic(data),
 			},
 			{
-				ResourceName:      "googleworkspace_role_assignment.test",
-				ImportState:       true,
-				ImportStateVerify: true,
+				ResourceName:            "googleworkspace_role_assignment.test",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"etag"},
 			},
 		},
 	})
@@ -91,9 +92,10 @@ func TestAccResourceRoleAssignment_orgUnit(t *testing.T) {
 				Config: testAccRoleAssignment_orgUnit(data),
 			},
 			{
-				ResourceName:      "googleworkspace_role_assignment.test",
-				ImportState:       true,
-				ImportStateVerify: true,
+				ResourceName:            "googleworkspace_role_assignment.test",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"etag"},
 			},
 		},
 	})

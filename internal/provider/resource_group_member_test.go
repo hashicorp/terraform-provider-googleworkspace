@@ -38,9 +38,10 @@ func TestAccResourceGroupMember_basic(t *testing.T) {
 				Config: testAccResourceGroupMember_basic(testGroupVals),
 			},
 			{
-				ResourceName:      "googleworkspace_group_member.my-group-member",
-				ImportState:       true,
-				ImportStateVerify: true,
+				ResourceName:            "googleworkspace_group_member.my-group-member",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"etag"},
 			},
 		},
 	})
@@ -73,17 +74,19 @@ func TestAccResourceGroupMember_full(t *testing.T) {
 				Config: testAccResourceGroupMember_full(testGroupVals),
 			},
 			{
-				ResourceName:      "googleworkspace_group_member.my-group-member",
-				ImportState:       true,
-				ImportStateVerify: true,
+				ResourceName:            "googleworkspace_group_member.my-group-member",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"etag"},
 			},
 			{
 				Config: testAccResourceGroupMember_fullUpdate(testGroupVals),
 			},
 			{
-				ResourceName:      "googleworkspace_group_member.my-group-member",
-				ImportState:       true,
-				ImportStateVerify: true,
+				ResourceName:            "googleworkspace_group_member.my-group-member",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"etag"},
 			},
 		},
 	})
