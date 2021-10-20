@@ -176,7 +176,7 @@ func TestAccResourceUser_gone(t *testing.T) {
 				ResourceName:            "googleworkspace_user.my-new-user",
 				ImportState:             true,
 				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"password"},
+				ImportStateVerifyIgnore: []string{"etag", "password"},
 			},
 			{
 				Config: testAccResourceUser_suspended(testUserVals),
@@ -185,7 +185,7 @@ func TestAccResourceUser_gone(t *testing.T) {
 				ResourceName:            "googleworkspace_user.my-new-user",
 				ImportState:             true,
 				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"password"},
+				ImportStateVerifyIgnore: []string{"etag", "password"},
 			},
 			// We need to buy Archived User Licenses in order to test this
 			//{
@@ -195,7 +195,7 @@ func TestAccResourceUser_gone(t *testing.T) {
 			//	ResourceName:            "googleworkspace_user.my-new-user",
 			//	ImportState:             true,
 			//	ImportStateVerify:       true,
-			//	ImportStateVerifyIgnore: []string{"password"},
+			//	ImportStateVerifyIgnore: []string{"etag", "password"},
 			//},
 		},
 	})
@@ -227,7 +227,7 @@ func TestAccResourceUser_customSchemasAllTypes(t *testing.T) {
 				ResourceName:            "googleworkspace_user.my-new-user",
 				ImportState:             true,
 				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"password"},
+				ImportStateVerifyIgnore: []string{"etag", "password"},
 			},
 		},
 	})
@@ -259,7 +259,7 @@ func TestAccResourceUser_customSchemasMultiple(t *testing.T) {
 				ResourceName:            "googleworkspace_user.my-new-user",
 				ImportState:             true,
 				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"password"},
+				ImportStateVerifyIgnore: []string{"etag", "password"},
 			},
 		},
 	})
