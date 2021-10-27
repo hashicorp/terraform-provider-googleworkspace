@@ -49,8 +49,7 @@ func resourceGroupMembers() *schema.Resource {
 			"members": {
 				Description: "The members of the group",
 				Type:        schema.TypeSet,
-				Required:    true,
-				MinItems:    1,
+				Optional:    true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"email": {
