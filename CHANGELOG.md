@@ -1,3 +1,11 @@
+## 0.6.0 (Unreleased)
+
+BUG FIXES:
+
+* directory: fixed eventual consistency for `googleworkspace_group_member` [GH-186]
+* directory: fixed bug where `googleworkspace_group_members` would error if a member already existed [GH-194]
+* directory: fixed bug where `googleworkspace_group_members` would error if a `members` was empty [GH-193]
+
 ## 0.5.0 (October 13, 2021)
 
 FEATURES:
