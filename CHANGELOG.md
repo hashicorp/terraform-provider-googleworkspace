@@ -1,10 +1,10 @@
-## 0.5.1 (Unreleased)
+## 0.5.1 (October 27, 2021)
 
 BUG FIXES:
 
-* directory: fixed eventual consistency for `googleworkspace_group_member` [GH-186]
-* directory: fixed bug where `googleworkspace_group_members` would error if a member already existed [GH-194]
-* directory: fixed bug where `googleworkspace_group_members` would error if a `members` was empty [GH-193]
+* directory: fixed eventual consistency for `googleworkspace_group_member` ([#186](https://github.com/hashicorp/terraform-provider-googleworkspace/issues/186))
+* directory: fixed bug where `googleworkspace_group_members` would error if a member already existed ([#194](https://github.com/hashicorp/terraform-provider-googleworkspace/issues/194))
+* directory: fixed bug where `googleworkspace_group_members` would error if a `members` was empty ([#193](https://github.com/hashicorp/terraform-provider-googleworkspace/issues/193))
 
 ## 0.5.0 (October 13, 2021)
 
