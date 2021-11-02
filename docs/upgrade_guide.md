@@ -34,7 +34,7 @@ regard to user schemas.
 - [Data Sources](#data-sources)
 - [Data_Source: `gsuite_user_attributes`](#data-source-gsuite_user_attributes)
 - [Resource: `gsuite_user_attributes`](#resource-gsuite_user_attributes)
-- [Resource: `gsuite_group_members`](#resource-gsuite_group_members)
+- [Resource: `googleworkspace_group_members`](#resource-googleworkspace_group_members)
 - [Resource: `googleworkspace_group_member`](#resource-googleworkspace_group_member)
 - [Resource: `googleworkspace_group_settings`](#resource-googleworkspace_group_settings)
 - [Resource: `googleworkspace_user`](#resource-googleworkspace_user)
@@ -99,45 +99,13 @@ added, removed or changed.
 We removed the above data source and resource in favor of a different approach to defining user custom schemas. 
 See how `googleworkspace_user.custom_schemas` are defined [below](#user-attributes).
 
-## Resource: `gsuite_group_members`
+## Resource: `googleworkspace_group_members`
 
-We removed this resource in favor of defining multiple `googleworkspace_group_member` resources. 
-For example, given this previous configuration:
+There are some very minor changes to `googleworkspace_group_members`. The attribute `group_email` is now `group_id` and
+accepts only a group's `group_id`. The attribute `member` which listed each member, is now plural `members`. And the
+read-only field, `kind`, is no longer available.
 
-```hcl
-resource "gsuite_group_members" "testing_team_members" {
-  group_email = gsuite_group.testing_team.email
-
-  member {
-    email = "a@xxx.com"
-    role  = "MEMBER"
-  }
-
-  member {
-    email = "b@xxx.com"
-    role  = "OWNER"
-  }
-}
-```
-
-An updated configuration could look like this:
-
-```hcl
-locals {
-  members = {
-    "a@xxx.com" = "MEMBER"
-    "b@xxx.com" = "OWNER"
-  }
-}
-
-resource "googleworkspace_group_member" "testing_team_members" {
-  for_each = local.members
-  group_id = googleworkspace_group.testing_team.id
-
-  email = each.key
-  role  = each.value
-}
-```
+This resource was originally removed, but re-added in the `0.5.0` release.
 
 ## Resource: `googleworkspace_group_member`
 
