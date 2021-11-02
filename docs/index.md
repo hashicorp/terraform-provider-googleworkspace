@@ -41,7 +41,7 @@ Terraform uses a GCP service account to manage resources created by the provider
 #### Configuring the Service Account
 
 To access user data on a Google Workspace domain, the service account that you created needs to be granted access
-by a super administrator for the domain. Follow the instructions in the 
+by a super administrator for the domain. Follow the instructions in the
 [delegate domain-wide authority documentation](https://developers.google.com/admin-sdk/directory/v1/guides/delegation#delegate_domain-wide_authority_to_your_service_account).
 
 * Note: The Oauth scopes granted to your service account must match, or be a superset, of the `oauth_scopes` granted to
@@ -53,9 +53,9 @@ Only users with access to the Admin APIs can access the Admin SDK Directory API,
 must be set in the environment variable `GOOGLEWORKSPACE_IMPERSONATED_USER_EMAIL` or in the `impersonated_user_email` attribute in the provider. Additionally, the user must have logged in at least once and accepted the Google Workspace Terms of Service.
 
 ### Using Specific Administrator Roles
-You do not need to set up domain-wide delegation if you are granting more specific administrator roles to the service account. If the Terraform pipeline execution environment provides an appropriate token as Application Default Credentials (ADC), you can use the provider without any further setup. 
+You do not need to set up domain-wide delegation if you are granting more specific administrator roles to the service account. If the Terraform pipeline execution environment provides an appropriate token as Application Default Credentials (ADC), you can use the provider without any further setup.
 
-When using gcloud locally, you can provide the required scopes for ADC login by adding the `--scopes` parameter to [`gcloud auth application-default login`](https://cloud.google.com/sdk/gcloud/reference/auth/application-default/login). For example, you can [provide additional scopes](https://cloud.google.com/sdk/gcloud/reference/beta/compute/instances/set-scopes) on Compute Engine. You can do this to configure access for both service accounts and end users. 
+When using gcloud locally, you can provide the required scopes for ADC login by adding the `--scopes` parameter to [`gcloud auth application-default login`](https://cloud.google.com/sdk/gcloud/reference/auth/application-default/login). For example, you can [provide additional scopes](https://cloud.google.com/sdk/gcloud/reference/beta/compute/instances/set-scopes) on Compute Engine. You can do this to configure access for both service accounts and end users.
 
 ```terraform
 provider "googleworkspace" {
