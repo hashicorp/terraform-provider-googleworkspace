@@ -80,3 +80,6 @@ If you have other development questions we don't cover, please file an issue!
 ## Special Recognition
 
 * [Chase](https://github.com/DeviaVir) - for the excellent work creating the `DeviaVir/terraform-provider-gsuite` provider, the inspiration for this project.
+
+## General Feedback
+* How can we best support you ? - [feeback](https://forms.gle/5iUUobDk3G9zpDaR6)
