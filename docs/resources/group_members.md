@@ -60,7 +60,10 @@ resource "googleworkspace_group_members" "sales" {
 ### Required
 
 - **group_id** (String) Identifies the group in the API request. The value can be the group's email address, group alias, or the unique group ID.
-- **members** (Block Set, Min: 1) The members of the group (see [below for nested schema](#nestedblock--members))
+
+### Optional
+
+- **members** (Block Set) The members of the group (see [below for nested schema](#nestedblock--members))
 
 ### Read-Only
 
