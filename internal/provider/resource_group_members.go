@@ -194,16 +194,27 @@ func resourceGroupMembersRead(ctx context.Context, d *schema.ResourceData, meta 
 	}
 
 	groupId := d.Get("group_id").(string)
-
-	membersObj, err := membersService.List(groupId).Do()
-	if err != nil {
-		return handleNotFoundError(err, d, d.Id())
+	pageToken := ""
+	haveNextPage := true
+	groupMembers := make([]*directory.Member, 0)
+	for haveNextPage {
+		membersObj, err := membersService.List(groupId).PageToken(pageToken).Do()
+		if err != nil {
+			return handleNotFoundError(err, d, d.Id())
+		}
+		for _, v := range membersObj.Members {
+			groupMembers = append(groupMembers, v)
+		}
+		pageToken = membersObj.NextPageToken
+		if pageToken == "" {
+			haveNextPage = false
+		}
 	}
 
 	configMembers := d.Get("members").(*schema.Set)
 
-	members := make([]interface{}, len(membersObj.Members))
-	for i, member := range membersObj.Members {
+	members := make([]interface{}, len(groupMembers))
+	for i, member := range groupMembers {
 
 		// Use value if present or default as "delivery_settings" is not provided by API
 		deliverySettings := deliverySettingsDefault
