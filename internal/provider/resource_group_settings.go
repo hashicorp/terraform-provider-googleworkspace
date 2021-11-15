@@ -68,24 +68,27 @@ func resourceGroupSettings() *schema.Resource {
 					"`ALL_IN_DOMAIN_CAN_VIEW`: Anyone in the account can view the group members list. " +
 					"If a group already has external members, those members can still send email to this group. " +
 					"`ALL_MEMBERS_CAN_VIEW`: The group members can view the group members list. " +
-					"`ALL_MANAGERS_CAN_VIEW`: The group managers can view group members list.",
+					"`ALL_MANAGERS_CAN_VIEW`: The group managers can view group members list. " +
+					"`ALL_OWNERS_CAN_VIEW`: The group owners can view group members list.",
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "ALL_MEMBERS_CAN_VIEW",
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"ALL_IN_DOMAIN_CAN_VIEW",
-					"ALL_MEMBERS_CAN_VIEW", "ALL_MANAGERS_CAN_VIEW"}, true)),
+					"ALL_MEMBERS_CAN_VIEW", "ALL_MANAGERS_CAN_VIEW", "ALL_OWNERS_CAN_VIEW"}, true)),
 			},
 			"who_can_view_group": {
 				Description: "Permissions to view group messages. Possible values are: " +
 					"`ANYONE_CAN_VIEW`: Any Internet user can view the group's messages. " +
 					"`ALL_IN_DOMAIN_CAN_VIEW`: Anyone in your account can view this group's messages. " +
 					"`ALL_MEMBERS_CAN_VIEW`: All group members can view the group's messages. " +
-					"`ALL_MANAGERS_CAN_VIEW`: Any group manager can view this group's messages.",
+					"`ALL_MANAGERS_CAN_VIEW`: Any group manager can view this group's messages. " +
+					"`ALL_OWNERS_CAN_VIEW`: The group owners can view this group's messages.",
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "ALL_MEMBERS_CAN_VIEW",
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"ANYONE_CAN_VIEW",
-					"ALL_IN_DOMAIN_CAN_VIEW", "ALL_MEMBERS_CAN_VIEW", "ALL_MANAGERS_CAN_VIEW"}, true)),
+					"ALL_IN_DOMAIN_CAN_VIEW", "ALL_MEMBERS_CAN_VIEW", "ALL_MANAGERS_CAN_VIEW", "ALL_OWNERS_CAN_VIEW"},
+					true)),
 			},
 			"allow_external_members": {
 				Description: "Identifies whether members external to your organization can join the group. If true, " +
@@ -263,12 +266,12 @@ func resourceGroupSettings() *schema.Resource {
 			},
 			"who_can_contact_owner": {
 				Description: "Permission to contact owner of the group via web UI. Possible values are: " +
-					"`ALL_IN_DOMAIN_CAN_CONTACT`, `ALL_MANAGERS_CAN_CONTACT`, `ALL_MEMBERS_CAN_CONTACT`, `ANYONE_CAN_CONTACT`",
+					"`ALL_IN_DOMAIN_CAN_CONTACT`, `ALL_MANAGERS_CAN_CONTACT`, `ALL_MEMBERS_CAN_CONTACT`, `ANYONE_CAN_CONTACT`, `ALL_OWNERS_CAN_CONTACT`",
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "ANYONE_CAN_CONTACT",
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"ALL_IN_DOMAIN_CAN_CONTACT",
-					"ALL_MANAGERS_CAN_CONTACT", "ALL_MEMBERS_CAN_CONTACT", "ANYONE_CAN_CONTACT"}, true)),
+					"ALL_MANAGERS_CAN_CONTACT", "ALL_MEMBERS_CAN_CONTACT", "ANYONE_CAN_CONTACT", "ALL_OWNERS_CAN_CONTACT"}, true)),
 			},
 			"who_can_moderate_members": {
 				Description: "Specifies who can manage members. Possible values are: " +

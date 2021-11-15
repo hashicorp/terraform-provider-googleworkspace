@@ -123,6 +123,38 @@ func TestAccResourceGroupSettings_archive(t *testing.T) {
 	})
 }
 
+// Some of the values are undocumented, this test will let us know
+// if it's because they intend to be removed
+func TestAccResourceGroupSettings_undocumented(t *testing.T) {
+	t.Parallel()
+
+	domainName := os.Getenv("GOOGLEWORKSPACE_DOMAIN")
+
+	if domainName == "" {
+		t.Skip("GOOGLEWORKSPACE_DOMAIN needs to be set to run this test")
+	}
+
+	testGroupVals := map[string]interface{}{
+		"domainName": domainName,
+		"email":      fmt.Sprintf("tf-test-%s", acctest.RandString(10)),
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: providerFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceGroupSettings_undocumented(testGroupVals),
+			},
+			{
+				ResourceName:      "googleworkspace_group_settings.my-group-settings",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
 func testAccResourceGroupSettings_basic(testGroupVals map[string]interface{}) string {
 	return Nprintf(`
 resource "googleworkspace_group" "my-group" {
@@ -271,6 +303,22 @@ resource "googleworkspace_group_settings" "my-group-settings" {
 
   is_archived = true
   archive_only = true
+}
+`, testGroupVals)
+}
+
+func testAccResourceGroupSettings_undocumented(testGroupVals map[string]interface{}) string {
+	return Nprintf(`
+resource "googleworkspace_group" "my-group" {
+  email = "%{email}@%{domainName}"
+}
+
+resource "googleworkspace_group_settings" "my-group-settings" {
+  email = googleworkspace_group.my-group.email
+
+  who_can_contact_owner   = "ALL_OWNERS_CAN_CONTACT"
+  who_can_view_group      = "ALL_OWNERS_CAN_VIEW"
+  who_can_view_membership = "ALL_OWNERS_CAN_VIEW"
 }
 `, testGroupVals)
 }
