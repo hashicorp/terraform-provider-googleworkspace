@@ -147,7 +147,9 @@ func resourceGroupMemberCreate(ctx context.Context, d *schema.ResourceData, meta
 	}
 
 	member, err := membersService.Insert(groupId, &memberObj).Do()
-	if err != nil {
+
+	// If we receive a 409 that the member already exists, ignore it, we'll import it next
+	if err != nil && !memberExistsError(err) {
 		return diag.FromErr(err)
 	}
 
