@@ -195,15 +195,24 @@ func resourceGroupMembersRead(ctx context.Context, d *schema.ResourceData, meta 
 
 	groupId := d.Get("group_id").(string)
 
-	membersObj, err := membersService.List(groupId).Do()
+	var result []*directory.Member
+	membersCall := membersService.List(groupId).MaxResults(200)
+
+	err := membersCall.Pages(ctx, func(resp *directory.Members) error {
+		for _, member := range resp.Members {
+			result = append(result, member)
+		}
+
+		return nil
+	})
 	if err != nil {
 		return handleNotFoundError(err, d, d.Id())
 	}
 
 	configMembers := d.Get("members").(*schema.Set)
 
-	members := make([]interface{}, len(membersObj.Members))
-	for i, member := range membersObj.Members {
+	members := make([]interface{}, len(result))
+	for i, member := range result {
 
 		// Use value if present or default as "delivery_settings" is not provided by API
 		deliverySettings := deliverySettingsDefault
