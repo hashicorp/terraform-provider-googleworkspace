@@ -614,7 +614,7 @@ func resourceUser() *schema.Resource {
 								"representation for language. Illegal values cause SchemaException.",
 							Type:     schema.TypeString,
 							Optional: true,
-							Computed: true,
+							Default:  "en",
 							// TODO: (mbang) https://github.com/hashicorp/terraform-plugin-sdk/issues/470
 							//ExactlyOneOf: []string{"custom_language", "language_code"},
 						},
