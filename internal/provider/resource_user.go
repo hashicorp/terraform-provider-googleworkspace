@@ -598,6 +598,7 @@ func resourceUser() *schema.Resource {
 				Description: "A list of the user's languages. The maximum allowed data size is 1Kb.",
 				Type:        schema.TypeList,
 				Optional:    true,
+				Computed:    true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"custom_language": {
@@ -613,6 +614,7 @@ func resourceUser() *schema.Resource {
 								"representation for language. Illegal values cause SchemaException.",
 							Type:     schema.TypeString,
 							Optional: true,
+							Default:  "en",
 							// TODO: (mbang) https://github.com/hashicorp/terraform-plugin-sdk/issues/470
 							//ExactlyOneOf: []string{"custom_language", "language_code"},
 						},
@@ -1069,44 +1071,7 @@ func resourceUserCreate(ctx context.Context, d *schema.ResourceData, meta interf
 		return diag.FromErr(err)
 	}
 
-	// The etag changes with each insert, so we want to monitor how many changes we should see
-	// when we're checking for eventual consistency
-	numInserts := 1
-
 	d.SetId(user.Id)
-
-	aliases := d.Get("aliases.#").(int)
-
-	if aliases > 0 {
-		aliasesService, diags := GetUserAliasService(usersService)
-		if diags.HasError() {
-			return diags
-		}
-
-		for i := 0; i < aliases; i++ {
-			aliasObj := directory.Alias{
-				Alias: d.Get(fmt.Sprintf("aliases.%d", i)).(string),
-			}
-
-			_, err := aliasesService.Insert(d.Id(), &aliasObj).Do()
-			if err != nil {
-				return diag.FromErr(err)
-			}
-			numInserts += 1
-		}
-	}
-
-	if d.Get("is_admin").(bool) {
-		makeAdminObj := directory.UserMakeAdmin{
-			Status: d.Get("is_admin").(bool),
-		}
-
-		err = usersService.MakeAdmin(d.Id(), &makeAdminObj).Do()
-		if err != nil {
-			return diag.FromErr(err)
-		}
-		numInserts += 1
-	}
 
 	// INSERT will respond with the User that will be created, however, it is eventually consistent
 	// After INSERT, the etag is updated along with the User (and any aliases),
@@ -1118,7 +1083,7 @@ func resourceUserCreate(ctx context.Context, d *schema.ResourceData, meta interf
 	err = retryTimeDuration(ctx, d.Timeout(schema.TimeoutCreate), func() error {
 		var retryErr error
 
-		if cc.reachedConsistency(numInserts) {
+		if cc.reachedConsistency(1) {
 			return nil
 		}
 
@@ -1136,6 +1101,11 @@ func resourceUserCreate(ctx context.Context, d *schema.ResourceData, meta interf
 
 	if err != nil {
 		return diag.FromErr(err)
+	}
+
+	diags = resourceUserUpdate(ctx, d, meta)
+	if diags.HasError() {
+		return diags
 	}
 
 	log.Printf("[DEBUG] Finished creating User %q: %#v", d.Id(), primaryEmail)
