@@ -4,6 +4,8 @@ BUG FIXES:
 
 * directory: fixed bug where `googleworkspace_group_member` would error if a member already existed [GH-211]
 * directory: fixed bug where `googleworkspace_group_members` would only show the first 200 members [GH-209]
+* directory: fixed bug where `googleworkspace_user` showed a perma-diff on `languages.language_code` [GH-208]
+* directory: fixed bug where `googleworkspace_user` errored when adding `aliases` on initial create [GH-208]
 * groups settings: added validation options `ALL_OWNERS_CAN_CONTACT` validation to `who_can_contact_owner` and `ALL_OWNERS_CAN_VIEW` to `who_can_view_membership` and `who_can_view_group`. [GH-207]
 
 ## 0.5.1 (October 27, 2021)
