@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	directory "google.golang.org/api/admin/directory/v1"
 	"strconv"
 )
 
@@ -70,14 +71,27 @@ func dataSourceRoleAssignmentsRead(ctx context.Context, d *schema.ResourceData, 
 		return diags
 	}
 
-	roleAssignments, err := roleAssignmentsService.List(client.Customer).Do()
-	if err != nil {
-		return diag.FromErr(err)
+	pageToken := ""
+	haveNextPage := true
+	roleAssignments := make([]*directory.RoleAssignment, 0)
+
+	for haveNextPage {
+		page, err := roleAssignmentsService.List(client.Customer).PageToken(pageToken).Do()
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		d.SetId(page.Etag)
+		for _, v := range page.Items {
+			roleAssignments = append(roleAssignments, v)
+		}
+		pageToken = page.NextPageToken
+		if pageToken == "" {
+			haveNextPage = false
+		}
 	}
 
-	d.SetId(roleAssignments.Etag)
 	var result []interface{}
-	for _, v := range roleAssignments.Items {
+	for _, v := range roleAssignments {
 		result = append(result, map[string]interface{}{
 			"role_id":            strconv.FormatInt(v.RoleId, 10),
 			"etag":               v.Etag,
