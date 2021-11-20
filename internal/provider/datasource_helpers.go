@@ -73,7 +73,7 @@ func addRequiredFieldsToSchema(schema map[string]*schema.Schema, keys ...string)
 // example) and the datasource could take one multiple inputs (say a unique name or a unique id)
 func addExactlyOneOfFieldsToSchema(schema map[string]*schema.Schema, keys ...string) {
 	for _, v := range keys {
-		schema[v].Computed = false
+		schema[v].Computed = true
 		schema[v].Optional = true
 		schema[v].Required = false
 		schema[v].ExactlyOneOf = keys
