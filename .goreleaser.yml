@@ -72,7 +72,6 @@ signs:
       sign
       --dearmor
       --file ${artifact}
-      --signer {{ .Env.SIGNER }}
       --out ${signature}
     artifacts: checksum
 snapshot:
