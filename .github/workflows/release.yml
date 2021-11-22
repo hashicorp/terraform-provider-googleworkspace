@@ -8,12 +8,6 @@ on:
 permissions:
   contents: write
 
-env:
-  GOPROXY: https://proxy.golang.org/
-  PROTOCOL_VERSION: "5.0"
-  PROTOCOL_VERSIONS: "5.0"
-  SIGNER: interim_signing_subkey_7685B676
-
 jobs:
   go-version:
     runs-on: ubuntu-latest
