@@ -3,7 +3,6 @@ package googleworkspace
 import (
 	"context"
 	"fmt"
-	"google.golang.org/api/googleapi"
 	"log"
 	"reflect"
 	"strings"
@@ -166,8 +165,7 @@ func resourceGroupMembersCreate(ctx context.Context, d *schema.ResourceData, met
 		log.Printf("[DEBUG] Creating Group Member %q in group %s: %#v", memberObj.Email, groupId, memberObj.Email)
 
 		_, err := membersService.Insert(groupId, &memberObj).Do()
-		// If we receive a 409 that the member already exists, ignore it, we'll import it next
-		if err != nil && !memberExistsError(err) {
+		if err != nil {
 			return diag.FromErr(err)
 		}
 	}
@@ -386,17 +384,4 @@ func resourceGroupMembersImport(ctx context.Context, d *schema.ResourceData, met
 	d.Set("group_id", parts[1])
 
 	return []*schema.ResourceData{d}, nil
-}
-
-func memberExistsError(err error) bool {
-	gerr, ok := err.(*googleapi.Error)
-	if !ok {
-		return false
-	}
-
-	if gerr.Code == 409 && strings.Contains(gerr.Body, "Member already exists") {
-		log.Printf("[DEBUG] Dismissed an error based on error code: %s", err)
-		return true
-	}
-	return false
 }
