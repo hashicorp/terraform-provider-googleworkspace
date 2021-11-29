@@ -28,8 +28,8 @@ builds:
     mod_timestamp: '{{ .CommitTimestamp }}'
 checksum:
   extra_files:
-    # Cannot use templates (e.g. {{ .ProjectName }}_{{ .Version }}_manifest.json)
-    - glob: 'terraform-provider-*_*_manifest.json'
+    - glob: 'terraform-registry-manifest.json'
+      name_template: '{{ .ProjectName }}_{{ .Version }}_manifest.json'
   name_template: '{{ .ProjectName }}_{{ .Version }}_SHA256SUMS'
   algorithm: sha256
 publishers:
@@ -45,8 +45,8 @@ publishers:
       - AWS_SESSION_TOKEN={{ .Env.AWS_SESSION_TOKEN }}
 release:
   extra_files:
-    # Cannot use templates (e.g. {{ .ProjectName }}_{{ .Version }}_manifest.json)
-    - glob: 'terraform-provider-*_*_manifest.json'
+    - glob: 'terraform-registry-manifest.json'
+      name_template: '{{ .ProjectName }}_{{ .Version }}_manifest.json'
   ids:
     - none
 signs:
