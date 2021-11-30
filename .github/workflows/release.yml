@@ -47,4 +47,3 @@ jobs:
     with:
       release-notes: true
       setup-go-version: '${{ needs.go-version.outputs.version }}'
-      terraform-registry-manifest-source: 'terraform-registry-manifest.json'
