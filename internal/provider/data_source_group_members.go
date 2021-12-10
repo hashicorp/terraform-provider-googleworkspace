@@ -11,6 +11,11 @@ func dataSourceGroupMembers() *schema.Resource {
 	// Generate datasource schema from resource
 	dsSchema := datasourceSchemaFromResourceSchema(resourceGroupMembers().Schema)
 	addRequiredFieldsToSchema(dsSchema, "group_id")
+	dsSchema["include_derived_membership"] = &schema.Schema{
+		Description: "If true, lists indirect group memberships",
+		Type:        schema.TypeBool,
+		Optional:    true,
+	}
 
 	return &schema.Resource{
 		// This description is used by the documentation generator and the language server.

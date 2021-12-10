@@ -44,7 +44,6 @@ func resourceGroupMembers() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
-
 			"members": {
 				Description: "The members of the group",
 				Type:        schema.TypeSet,
@@ -192,9 +191,9 @@ func resourceGroupMembersRead(ctx context.Context, d *schema.ResourceData, meta 
 	}
 
 	groupId := d.Get("group_id").(string)
-
+	includeDerivedMembership := d.Get("include_derived_membership").(bool)
 	var result []*directory.Member
-	membersCall := membersService.List(groupId).MaxResults(200)
+	membersCall := membersService.List(groupId).MaxResults(200).IncludeDerivedMembership(includeDerivedMembership)
 
 	err := membersCall.Pages(ctx, func(resp *directory.Members) error {
 		for _, member := range resp.Members {
