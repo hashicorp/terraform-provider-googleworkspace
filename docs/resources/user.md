@@ -133,7 +133,7 @@ resource "googleworkspace_user" "dwight" {
 - **org_unit_path** (String) The full path of the parent organization associated with the user. If the parent organization is the top-level, it is represented as a forward slash (/).
 - **organizations** (Block List) A list of organizations the user belongs to. The maximum allowed data size is 10Kb. (see [below for nested schema](#nestedblock--organizations))
 - **password** (String, Sensitive) Stores the password for the user account. A password can contain any combination of ASCII characters. A minimum of 8 characters is required. The maximum length is 100 characters. As the API does not return the value of password, this field is write-only, and the value stored in the state will be what is provided in the configuration. The field is required on create and will be empty on import.
-- **phones** (Block List) Holds the given and family names of the user, and the read-only fullName value. The maximum number of characters in the givenName and in the familyName values is 60. In addition, name values support unicode/UTF-8 characters, and can contain spaces, letters (a-z), numbers (0-9), dashes (-), forward slashes (/), and periods (.). Maximum allowed data size for this field is 1Kb. (see [below for nested schema](#nestedblock--phones))
+- **phones** (Block List) A list of the user's phone numbers. The maximum allowed data size is 1Kb. (see [below for nested schema](#nestedblock--phones))
 - **posix_accounts** (Block List) A list of POSIX account information for the user. (see [below for nested schema](#nestedblock--posix_accounts))
 - **recovery_email** (String) Recovery email of the user.
 - **recovery_phone** (String) Recovery phone of the user. The phone number must be in the E.164 format, starting with the plus sign (+). Example: +16506661212.
@@ -271,8 +271,8 @@ Optional:
 Optional:
 
 - **custom_language** (String) Other language. A user can provide their own language name if there is no corresponding Google III language code. If this is set, LanguageCode can't be set.
-- **language_code** (String) Language Code. Should be used for storing Google III LanguageCode string representation for language. Illegal values cause SchemaException.
-- **preference** (String) If present, controls whether the specified languageCode is the user's preferred language. Allowed values are `preferred` and `not_preferred`. Default is `preferred`. Defaults to `preferred`.
+- **language_code** (String) Language Code. Should be used for storing Google III LanguageCode string representation for language. Illegal values cause SchemaException. Defaults to `en`.
+- **preference** (String) If present, controls whether the specified languageCode is the user's preferred language. Allowed values are `preferred` and `not_preferred`. Defaults to `preferred`.
 
 
 <a id="nestedblock--locations"></a>
@@ -324,7 +324,7 @@ Required:
 
 Optional:
 
-- **custom_type** (String) If the value of type is custom, this property contains the custom type.
+- **custom_type** (String) If the phone number type is custom, this property contains the custom value and must be set.
 - **primary** (Boolean) Indicates if this is the user's primary phone number. A user may only have one primary phone number.
 
 
