@@ -154,6 +154,7 @@ Read-Only:
 
 - **custom_language** (String)
 - **language_code** (String)
+- **preference** (String)
 
 
 <a id="nestedatt--locations"></a>
