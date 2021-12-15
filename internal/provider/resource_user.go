@@ -608,6 +608,7 @@ func resourceUser() *schema.Resource {
 							Optional: true,
 							// TODO: (mbang) https://github.com/hashicorp/terraform-plugin-sdk/issues/470
 							//ExactlyOneOf: []string{"custom_language", "language_code"},
+							//ConflictsWith: []string{"custom_language", "preference"},
 						},
 						"language_code": {
 							Description: "Language Code. Should be used for storing Google III LanguageCode string " +
@@ -617,6 +618,16 @@ func resourceUser() *schema.Resource {
 							Default:  "en",
 							// TODO: (mbang) https://github.com/hashicorp/terraform-plugin-sdk/issues/470
 							//ExactlyOneOf: []string{"custom_language", "language_code"},
+						},
+						"preference": {
+							Description: "If present, controls whether the specified languageCode is the user's " +
+								"preferred language. Allowed values are `preferred` and `not_preferred`. " +
+								"Default is `preferred`.",
+							Type:     schema.TypeString,
+							Optional: true,
+							Default:  "preferred",
+							// TODO: (mbang) https://github.com/hashicorp/terraform-plugin-sdk/issues/470
+							//ConflictsWith: []string{"custom_language", "preference"},
 						},
 					},
 				},
