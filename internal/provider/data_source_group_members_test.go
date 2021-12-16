@@ -19,9 +19,16 @@ func TestAccDataSourceGroupMembers(t *testing.T) {
 	}
 
 	testGroupVals := map[string]interface{}{
-		"userEmail":  fmt.Sprintf("tf-test-%s@%s", acctest.RandString(10), domainName),
-		"groupEmail": fmt.Sprintf("tf-test-%s@%s", acctest.RandString(10), domainName),
+		"userEmail":  fmt.Sprintf("tf-user-%s@%s", acctest.RandString(10), domainName),
+		"groupEmail": fmt.Sprintf("tf-group-%s@%s", acctest.RandString(10), domainName),
 		"password":   acctest.RandString(10),
+	}
+	testNestedGroupVals := map[string]interface{}{
+		"userEmail":     fmt.Sprintf("tf-user-%s@%s", acctest.RandString(10), domainName),
+		"subUserEmail":  fmt.Sprintf("tf-subuser-%s@%s", acctest.RandString(10), domainName),
+		"groupEmail":    fmt.Sprintf("tf-group-%s@%s", acctest.RandString(10), domainName),
+		"subGroupEmail": fmt.Sprintf("tf-subgroup-%s@%s", acctest.RandString(10), domainName),
+		"password":      acctest.RandString(10),
 	}
 
 	resource.Test(t, resource.TestCase{
@@ -36,6 +43,31 @@ func TestAccDataSourceGroupMembers(t *testing.T) {
 					resource.TestCheckTypeSetElemNestedAttrs(
 						"data.googleworkspace_group_members.my-group-members", "members.*", map[string]string{
 							"email": Nprintf("%{userEmail}", testGroupVals),
+							"role":  "MEMBER",
+							"type":  "USER",
+						}),
+				),
+			},
+			{
+				Config: testAccDataSourceNestedGroupMembers(testNestedGroupVals),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"data.googleworkspace_group_members.nested-group-members", "members.#", "3"),
+					resource.TestCheckTypeSetElemNestedAttrs(
+						"data.googleworkspace_group_members.nested-group-members", "members.*", map[string]string{
+							"email": Nprintf("%{userEmail}", testNestedGroupVals),
+							"role":  "MEMBER",
+							"type":  "USER",
+						}),
+					resource.TestCheckTypeSetElemNestedAttrs(
+						"data.googleworkspace_group_members.nested-group-members", "members.*", map[string]string{
+							"email": Nprintf("%{subGroupEmail}", testNestedGroupVals),
+							"role":  "MEMBER",
+							"type":  "GROUP",
+						}),
+					resource.TestCheckTypeSetElemNestedAttrs(
+						"data.googleworkspace_group_members.nested-group-members", "members.*", map[string]string{
+							"email": Nprintf("%{subUserEmail}", testNestedGroupVals),
 							"role":  "MEMBER",
 							"type":  "USER",
 						}),
@@ -70,6 +102,63 @@ data "googleworkspace_group_members" "my-group-members" {
   group_id = googleworkspace_group.my-group.id
 
   depends_on = [googleworkspace_group_member.my-group-member]
+}
+`, testGroupVals)
+}
+
+func testAccDataSourceNestedGroupMembers(testGroupVals map[string]interface{}) string {
+	return Nprintf(`
+resource "googleworkspace_group" "parent-group" {
+  email = "%{groupEmail}"
+}
+
+resource "googleworkspace_group" "sub-group" {
+  email = "%{subGroupEmail}"
+}
+resource "googleworkspace_user" "user" {
+  primary_email = "%{userEmail}"
+  password = "%{password}"
+
+  name {
+    family_name = "Scott"
+    given_name = "Michael"
+  }
+}
+
+resource "googleworkspace_user" "sub-user" {
+  primary_email = "%{subUserEmail}"
+  password = "%{password}"
+
+  name {
+    family_name = "Schrute"
+    given_name = "Dwight"
+  }
+}
+
+resource "googleworkspace_group_member" "user-member" {
+  group_id = googleworkspace_group.parent-group.id
+  email = googleworkspace_user.user.primary_email
+}
+
+resource "googleworkspace_group_member" "user-sub-member" {
+  group_id = googleworkspace_group.sub-group.id
+  email = googleworkspace_user.sub-user.primary_email
+}
+
+resource "googleworkspace_group_member" "sub-group-member" {
+  group_id = googleworkspace_group.parent-group.id
+  email = googleworkspace_group.sub-group.email
+  type = "GROUP"
+}
+
+data "googleworkspace_group_members" "nested-group-members" {
+  group_id = googleworkspace_group.parent-group.id
+  include_derived_membership = true
+  depends_on = [
+    googleworkspace_group_member.user-member,
+    googleworkspace_group_member.user-sub-member,
+    googleworkspace_group_member.sub-group-member,
+  ]
 }
 `, testGroupVals)
 }

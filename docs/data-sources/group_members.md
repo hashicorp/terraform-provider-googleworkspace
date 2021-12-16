@@ -33,6 +33,10 @@ output "group_members" {
 
 - **group_id** (String) Identifies the group in the API request. The value can be the group's email address, group alias, or the unique group ID.
 
+### Optional
+
+- **include_derived_membership** (Boolean) If true, lists indirect group memberships
+
 ### Read-Only
 
 - **etag** (String) ETag of the resource.
