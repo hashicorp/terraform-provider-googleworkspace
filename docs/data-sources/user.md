@@ -62,7 +62,7 @@ output "is_user_admin" {
 - **org_unit_path** (String) The full path of the parent organization associated with the user. If the parent organization is the top-level, it is represented as a forward slash (/).
 - **organizations** (List of Object) A list of organizations the user belongs to. The maximum allowed data size is 10Kb. (see [below for nested schema](#nestedatt--organizations))
 - **password** (String) Stores the password for the user account. A password can contain any combination of ASCII characters. A minimum of 8 characters is required. The maximum length is 100 characters. As the API does not return the value of password, this field is write-only, and the value stored in the state will be what is provided in the configuration. The field is required on create and will be empty on import.
-- **phones** (List of Object) Holds the given and family names of the user, and the read-only fullName value. The maximum number of characters in the givenName and in the familyName values is 60. In addition, name values support unicode/UTF-8 characters, and can contain spaces, letters (a-z), numbers (0-9), dashes (-), forward slashes (/), and periods (.). Maximum allowed data size for this field is 1Kb. (see [below for nested schema](#nestedatt--phones))
+- **phones** (List of Object) A list of the user's phone numbers. The maximum allowed data size is 1Kb. (see [below for nested schema](#nestedatt--phones))
 - **posix_accounts** (List of Object) A list of POSIX account information for the user. (see [below for nested schema](#nestedatt--posix_accounts))
 - **recovery_email** (String) Recovery email of the user.
 - **recovery_phone** (String) Recovery phone of the user. The phone number must be in the E.164 format, starting with the plus sign (+). Example: +16506661212.
@@ -154,6 +154,7 @@ Read-Only:
 
 - **custom_language** (String)
 - **language_code** (String)
+- **preference** (String)
 
 
 <a id="nestedatt--locations"></a>

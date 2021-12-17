@@ -538,19 +538,16 @@ func resourceUser() *schema.Resource {
 			// TODO: (mbang) Add ValidateDiagFunc for max size when it's allowed on lists
 			// (https://github.com/hashicorp/terraform-plugin-sdk/issues/156)
 			"phones": {
-				Description: "Holds the given and family names of the user, and the read-only fullName value. " +
-					"The maximum number of characters in the givenName and in the familyName values is 60. " +
-					"In addition, name values support unicode/UTF-8 characters, and can contain spaces, letters (a-z), " +
-					"numbers (0-9), dashes (-), forward slashes (/), and periods (.). " +
-					"Maximum allowed data size for this field is 1Kb.",
-				Type:     schema.TypeList,
-				Optional: true,
+				Description: "A list of the user's phone numbers. The maximum allowed data size is 1Kb.",
+				Type:        schema.TypeList,
+				Optional:    true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"custom_type": {
-							Description: "If the value of type is custom, this property contains the custom type.",
-							Type:        schema.TypeString,
-							Optional:    true,
+							Description: "If the phone number type is custom, this property contains the custom value " +
+								"and must be set.",
+							Type:     schema.TypeString,
+							Optional: true,
 						},
 						"primary": {
 							Description: "Indicates if this is the user's primary phone number. " +
@@ -608,6 +605,7 @@ func resourceUser() *schema.Resource {
 							Optional: true,
 							// TODO: (mbang) https://github.com/hashicorp/terraform-plugin-sdk/issues/470
 							//ExactlyOneOf: []string{"custom_language", "language_code"},
+							//ConflictsWith: []string{"custom_language", "preference"},
 						},
 						"language_code": {
 							Description: "Language Code. Should be used for storing Google III LanguageCode string " +
@@ -617,6 +615,15 @@ func resourceUser() *schema.Resource {
 							Default:  "en",
 							// TODO: (mbang) https://github.com/hashicorp/terraform-plugin-sdk/issues/470
 							//ExactlyOneOf: []string{"custom_language", "language_code"},
+						},
+						"preference": {
+							Description: "If present, controls whether the specified languageCode is the user's " +
+								"preferred language. Allowed values are `preferred` and `not_preferred`.",
+							Type:     schema.TypeString,
+							Optional: true,
+							Default:  "preferred",
+							// TODO: (mbang) https://github.com/hashicorp/terraform-plugin-sdk/issues/470
+							//ConflictsWith: []string{"custom_language", "preference"},
 						},
 					},
 				},
