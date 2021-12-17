@@ -1,3 +1,19 @@
+## 0.6.0 (Unreleased)
+
+FEATURES:
+
+* **New Datasource:** `googleworkspace_users` ([#240](https://github.com/hashicorp/terraform-provider-googleworkspace/issues/240))
+
+IMPROVEMENTS:
+
+* directory: added `include_derived_membership` attribute to `data.googleworkspace_group_members` ([#234](https://github.com/hashicorp/terraform-provider-googleworkspace/issues/234))
+* directory: added `preference` attribute to `googleworkspace_user.languages` ([#238](https://github.com/hashicorp/terraform-provider-googleworkspace/issues/238))
+
+BUG FIXES:
+
+* directory: fixed bug where data sources that allow exactly one field to be defined would drop the `id` field when the data source was recomputed. ([#218](https://github.com/hashicorp/terraform-provider-googleworkspace/issues/218))
+* directory: fixed bug where `googleworkspace_group_member` would crash instead of surfacing an error if needed ([#220](https://github.com/hashicorp/terraform-provider-googleworkspace/issues/220))
+
 ## 0.5.2 (November 17, 2021)
 
 BUG FIXES:
