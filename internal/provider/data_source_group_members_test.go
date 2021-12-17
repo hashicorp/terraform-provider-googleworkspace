@@ -19,16 +19,9 @@ func TestAccDataSourceGroupMembers(t *testing.T) {
 	}
 
 	testGroupVals := map[string]interface{}{
-		"userEmail":  fmt.Sprintf("tf-user-%s@%s", acctest.RandString(10), domainName),
-		"groupEmail": fmt.Sprintf("tf-group-%s@%s", acctest.RandString(10), domainName),
+		"userEmail":  fmt.Sprintf("tf-test-%s@%s", acctest.RandString(10), domainName),
+		"groupEmail": fmt.Sprintf("tf-test-%s@%s", acctest.RandString(10), domainName),
 		"password":   acctest.RandString(10),
-	}
-	testNestedGroupVals := map[string]interface{}{
-		"userEmail":     fmt.Sprintf("tf-user-%s@%s", acctest.RandString(10), domainName),
-		"subUserEmail":  fmt.Sprintf("tf-subuser-%s@%s", acctest.RandString(10), domainName),
-		"groupEmail":    fmt.Sprintf("tf-group-%s@%s", acctest.RandString(10), domainName),
-		"subGroupEmail": fmt.Sprintf("tf-subgroup-%s@%s", acctest.RandString(10), domainName),
-		"password":      acctest.RandString(10),
 	}
 
 	resource.Test(t, resource.TestCase{
@@ -48,6 +41,31 @@ func TestAccDataSourceGroupMembers(t *testing.T) {
 						}),
 				),
 			},
+		},
+	})
+}
+
+func TestAccDataSourceGroupMembersNested(t *testing.T) {
+	t.Parallel()
+
+	domainName := os.Getenv("GOOGLEWORKSPACE_DOMAIN")
+
+	if domainName == "" {
+		t.Skip("GOOGLEWORKSPACE_DOMAIN needs to be set to run this test")
+	}
+
+	testNestedGroupVals := map[string]interface{}{
+		"userEmail":     fmt.Sprintf("tf-test-%s@%s", acctest.RandString(10), domainName),
+		"subUserEmail":  fmt.Sprintf("tf-test-%s@%s", acctest.RandString(10), domainName),
+		"groupEmail":    fmt.Sprintf("tf-test-%s@%s", acctest.RandString(10), domainName),
+		"subGroupEmail": fmt.Sprintf("tf-test-%s@%s", acctest.RandString(10), domainName),
+		"password":      acctest.RandString(10),
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: providerFactories,
+		Steps: []resource.TestStep{
 			{
 				Config: testAccDataSourceNestedGroupMembers(testNestedGroupVals),
 				Check: resource.ComposeTestCheckFunc(
