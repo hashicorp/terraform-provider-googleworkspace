@@ -6,6 +6,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 
 	directory "google.golang.org/api/admin/directory/v1"
+	licensing "google.golang.org/api/licensing/v1"
 	"google.golang.org/api/chromepolicy/v1"
 	"google.golang.org/api/gmail/v1"
 	"google.golang.org/api/groupssettings/v1"
@@ -213,6 +214,22 @@ func GetRoleAssignmentsService(directoryService *directory.Service) (*directory.
 	}
 
 	return roleAssignmentsService, diags
+}
+
+func GetLicenseAssignmentsService(licensingService *licensing.Service) (*licensing.LicenseAssignmentsService, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	licenseAssignmentService := licensingService.LicenseAssignments
+	if licenseAssignmentService == nil {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Error,
+			Summary:  "LicenseAssignments Service could not be created.",
+		})
+
+		return nil, diags
+	}
+
+	return licenseAssignmentService, diags
 }
 
 func GetRolesService(directoryService *directory.Service) (*directory.RolesService, diag.Diagnostics) {
