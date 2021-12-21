@@ -36,7 +36,6 @@ func resourceLicenseAssignment() *schema.Resource {
                  Description: "A product's unique identifier.",
                  Type:        schema.TypeString,
                  Required:    true,
-                 ForceNew:    true,
             },
 		},
 	}
