@@ -30,7 +30,7 @@ jobs:
     steps:
 
     - name: Set up Go
-      uses: actions/setup-go@37335c7bb261b353407cff977110895fa0b4f7d8
+      uses: actions/setup-go@424fc82d43fa5a37540bae62709ddcc23d9520d4
       with:
         go-version: '1.15'
       id: go
@@ -65,7 +65,7 @@ jobs:
           - '1.0.3'
     steps:
     - name: Set up Go
-      uses: actions/setup-go@37335c7bb261b353407cff977110895fa0b4f7d8
+      uses: actions/setup-go@424fc82d43fa5a37540bae62709ddcc23d9520d4
       with:
         go-version: '1.16'
       id: go
