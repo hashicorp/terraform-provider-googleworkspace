@@ -30,7 +30,7 @@ jobs:
     steps:
 
     - name: Set up Go
-      uses: actions/setup-go@37335c7bb261b353407cff977110895fa0b4f7d8
+      uses: actions/setup-go@v2.1.5
       with:
         go-version: '1.15'
       id: go
@@ -65,7 +65,7 @@ jobs:
           - '1.0.3'
     steps:
     - name: Set up Go
-      uses: actions/setup-go@37335c7bb261b353407cff977110895fa0b4f7d8
+      uses: actions/setup-go@v2.1.5
       with:
         go-version: '1.16'
       id: go
@@ -79,7 +79,7 @@ jobs:
 
     - name: Get credentials
       id: vault
-      uses: hashicorp/vault-action@v2.3.0
+      uses: hashicorp/vault-action@v2.4.0
       with:
         url: ${{ secrets.VAULT_ADDR }}
         method: approle
