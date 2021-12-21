@@ -3,9 +3,11 @@ package googleworkspace
 import (
 	"context"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	licensing "google.golang.org/api/licensing/v1"
 )
 
@@ -64,10 +66,19 @@ func resourceLicenseAssignmentCreate(ctx context.Context, d *schema.ResourceData
 		UserId: userId,
 	}
 
-	_, err := licenseAssignmentsService.Insert(productId, skuId, la).Do()
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	retryErr := resource.Retry(5*time.Minute, func() *resource.RetryError {
+	    _, err := licenseAssignmentsService.Insert(productId, skuId, la).Do()
+	    if err != nil {
+	        if strings.Contains(err.Error(), "Error 403") == true {
+	            return resource.RetryableError(err)
+	        }
+	        return resource.NonRetryableError(err)
+	    }
+	    return nil
+	})
+	if retryErr != nil {
+    	return diag.FromErr(retryErr)
+    }
 
 	d.SetId(productId + "/" + skuId + "/" + userId)
 
@@ -90,18 +101,27 @@ func resourceLicenseAssignmentRead(ctx context.Context, d *schema.ResourceData, 
     	return diags
     }
 
-    la, err := licenseAssignmentsService.Get(parts[0], parts[1], parts[2]).Do()
-    if err != nil {
-        if strings.Contains(err.Error(), "404") == true {
+    retryErr := resource.Retry(5*time.Minute, func() *resource.RetryError {
+        la, err := licenseAssignmentsService.Get(parts[0], parts[1], parts[2]).Do()
+        if err != nil {
+            if strings.Contains(err.Error(), "Error 403") == true {
+                return resource.RetryableError(err)
+            }
+            return resource.NonRetryableError(err)
+        }
+        d.Set("user_email", la.UserId)
+        d.Set("sku_id", la.SkuId)
+        d.Set("product_id", la.ProductId)
+        return nil
+    })
+
+    if retryErr != nil {
+        if strings.Contains(retryErr.Error(), "Error 404") == true {
             d.SetId("")
             return diags
         }
-    	return diag.FromErr(err)
+    	return diag.FromErr(retryErr)
     }
-
-    d.Set("user_email", la.UserId)
-    d.Set("sku_id", la.SkuId)
-    d.Set("product_id", la.ProductId)
 
     return diags
 }
@@ -136,9 +156,18 @@ func resourceLicenseAssignmentUpdate(ctx context.Context, d *schema.ResourceData
 
     parts := strings.Split(d.Id(), "/")
 
-    _, err := licenseAssignmentsService.Update(parts[0], parts[1], parts[2], la).Do()
-    if err != nil {
-    	return diag.FromErr(err)
+    retryErr := resource.Retry(5*time.Minute, func() *resource.RetryError {
+        _, err := licenseAssignmentsService.Update(parts[0], parts[1], parts[2], la).Do()
+        if err != nil {
+            if strings.Contains(err.Error(), "Error 403") == true {
+                return resource.RetryableError(err)
+            }
+            return resource.NonRetryableError(err)
+        }
+        return nil
+    })
+    if retryErr != nil {
+       	return diag.FromErr(retryErr)
     }
 
     if d.HasChange("sku_id") {
@@ -164,13 +193,21 @@ func resourceLicenseAssignmentDelete(ctx context.Context, d *schema.ResourceData
     	return diags
     }
 
-    _, err := licenseAssignmentsService.Delete(parts[0], parts[1], parts[2]).Do()
-    if err != nil {
-    	return diag.FromErr(err)
+    retryErr := resource.Retry(5*time.Minute, func() *resource.RetryError {
+        _, err := licenseAssignmentsService.Delete(parts[0], parts[1], parts[2]).Do()
+        if err != nil {
+            if strings.Contains(err.Error(), "Error 403") == true {
+                return resource.RetryableError(err)
+            }
+            return resource.NonRetryableError(err)
+        }
+        return nil
+    })
+    if retryErr != nil {
+       	return diag.FromErr(retryErr)
     }
 
     d.SetId("")
 
     return diags
 }
-
