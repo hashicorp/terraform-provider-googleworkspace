@@ -95,6 +95,7 @@ func resourceLicenseAssignmentRead(ctx context.Context, d *schema.ResourceData, 
     if err != nil {
         if strings.Contains(err.Error(), "404") == true {
             d.SetId("")
+            return diags
         }
     	return diag.FromErr(err)
     }
