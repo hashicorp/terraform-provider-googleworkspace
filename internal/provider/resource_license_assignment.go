@@ -102,7 +102,6 @@ func resourceLicenseAssignmentRead(ctx context.Context, d *schema.ResourceData, 
     d.Set("user_email", la.UserId)
     d.Set("sku_id", la.SkuId)
     d.Set("product_id", la.ProductId)
-    d.SetId(la.ProductId + "/" + la.SkuId + "/" + la.UserId)
 
     return diags
 }
