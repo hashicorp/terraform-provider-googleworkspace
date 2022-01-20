@@ -3,12 +3,12 @@
 page_title: "googleworkspace_users Data Source - terraform-provider-googleworkspace"
 subcategory: ""
 description: |-
-  Users data source in the Terraform Googleworkspace provider. Users resides under the https://www.googleapis.com/auth/admin.directory.users client scope.
+  Users data source in the Terraform Googleworkspace provider. Users resides under the https://www.googleapis.com/auth/admin.directory.user client scope.
 ---
 
 # googleworkspace_users (Data Source)
 
-Users data source in the Terraform Googleworkspace provider. Users resides under the `https://www.googleapis.com/auth/admin.directory.users` client scope.
+Users data source in the Terraform Googleworkspace provider. Users resides under the `https://www.googleapis.com/auth/admin.directory.user` client scope.
 
 ## Example Usage
 
