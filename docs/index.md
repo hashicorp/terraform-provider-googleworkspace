@@ -35,8 +35,9 @@ This provider uses [Admin SDK](https://developers.google.com/admin-sdk) API meth
 
 Terraform uses a GCP service account to manage resources created by the provider. To create the service account and generate a service account key:
 
- 1.  Follow the instructions in the [create service account and credentials documentation](https://developers.google.com/admin-sdk/directory/v1/guides/delegation#create_the_service_account_and_credentials).
+1. Follow the instructions in the [create service account and credentials documentation](https://developers.google.com/admin-sdk/directory/v1/guides/delegation#create_the_service_account_and_credentials).
 2. Save the json file containing your service account key credentials locally and set the `GOOGLEWORKSPACE_CREDENTIALS` environment variable to the path of that file. Terraform will now use that key for authentication.
+   * Other environment variable options include: `GOOGLEWORKSPACE_CLOUD_KEYFILE_JSON` or `GOOGLE_CREDENTIALS` (>= 0.2.0)
 
 #### Configuring the Service Account
 
