@@ -73,7 +73,6 @@ func isConnectionResetNetworkError(err error) (bool, string) {
 }
 
 // Retry on common googleapi error codes for retryable errors.
-// TODO(#5609): This may not need to be applied globally - figure out
 // what retryable error codes apply to which API.
 func isCommonRetryableErrorCode(err error) (bool, string) {
 	gerr, ok := err.(*googleapi.Error)
@@ -82,6 +81,11 @@ func isCommonRetryableErrorCode(err error) (bool, string) {
 	}
 
 	if gerr.Code == 500 || gerr.Code == 502 || gerr.Code == 503 {
+		log.Printf("[DEBUG] Dismissed an error as retryable based on error code: %s", err)
+		return true, fmt.Sprintf("Retryable error code %d", gerr.Code)
+	}
+
+	if gerr.Code == 401 && strings.Contains(gerr.Body, "Login Required") {
 		log.Printf("[DEBUG] Dismissed an error as retryable based on error code: %s", err)
 		return true, fmt.Sprintf("Retryable error code %d", gerr.Code)
 	}
