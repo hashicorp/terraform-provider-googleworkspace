@@ -551,7 +551,6 @@ resource "googleworkspace_user" "my-new-user" {
   locations {
     area = "Scranton"
     building_id = "123"
-    desk_code = "1"
     floor_name = "2"
     floor_section = "B"
     type ="desk"
@@ -580,7 +579,6 @@ resource "googleworkspace_user" "my-new-user" {
   }
 
   include_in_global_address_list = true
-  recovery_email = "dwight.schrute@example.com"
   recovery_phone = "+16506661212"
   change_password_at_next_login = false
   ip_allowlist = false
