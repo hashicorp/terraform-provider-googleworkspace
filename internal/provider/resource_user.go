@@ -1230,6 +1230,7 @@ func resourceUserUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 	}
 
 	userObj := directory.User{}
+	forceSendFields := []string{}
 
 	// Strings
 
@@ -1239,10 +1240,18 @@ func resourceUserUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 
 	if d.HasChange("password") {
 		userObj.Password = d.Get("password").(string)
+
+		if userObj.Password == "" {
+			forceSendFields = append(forceSendFields, "Password")
+		}
 	}
 
 	if d.HasChange("hash_function") {
 		userObj.HashFunction = d.Get("hash_function").(string)
+
+		if userObj.HashFunction == "" {
+			forceSendFields = append(forceSendFields, "HashFunction")
+		}
 	}
 
 	if d.HasChange("org_unit_path") {
@@ -1251,14 +1260,21 @@ func resourceUserUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 
 	if d.HasChange("recovery_email") {
 		userObj.RecoveryEmail = d.Get("recovery_email").(string)
+
+		if userObj.RecoveryEmail == "" {
+			forceSendFields = append(forceSendFields, "RecoveryEmail")
+		}
 	}
 
 	if d.HasChange("recovery_phone") {
 		userObj.RecoveryPhone = d.Get("recovery_phone").(string)
+
+		if userObj.RecoveryPhone == "" {
+			forceSendFields = append(forceSendFields, "RecoveryPhone")
+		}
 	}
 
-	// Booleans (need to send ForceNewFields)
-	forceSendFields := []string{}
+	// Booleans
 
 	if d.HasChange("suspended") {
 		userObj.Suspended = d.Get("suspended").(bool)
