@@ -1,4 +1,4 @@
-## 0.6.0 (Unreleased)
+## 0.6.0 (December 20, 2021)
 
 FEATURES:
 
