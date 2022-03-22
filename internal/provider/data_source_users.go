@@ -45,7 +45,7 @@ func dataSourceUsersRead(ctx context.Context, d *schema.ResourceData, meta inter
 	}
 
 	var result []*directory.User
-	err := usersService.List().Customer(client.Customer).Pages(ctx, func(resp *directory.Users) error {
+	err := usersService.List().Customer(client.Customer).Projection("full").Pages(ctx, func(resp *directory.Users) error {
 		for _, user := range resp.Users {
 			result = append(result, user)
 		}

@@ -43,7 +43,7 @@ func TestAccDataSourceUsers(t *testing.T) {
 }
 
 func testAccDataSourceUsers(testUserVals map[string]interface{}) string {
-	return testAccResourceUser_basic(testUserVals) + `
+	return testAccResourceUser_full(testUserVals) + `
 
 data "googleworkspace_users" "users" {
   depends_on = [googleworkspace_user.my-new-user]
