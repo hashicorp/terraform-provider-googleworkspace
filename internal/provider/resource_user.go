@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net/http"
 	"net/mail"
 	"reflect"
 	"strconv"
@@ -41,6 +42,18 @@ func diffSuppressEmails(k, old, new string, d *schema.ResourceData) bool {
 	}
 
 	return reflect.DeepEqual(subsetEmails, configEmails.([]interface{}))
+}
+
+// IsNotFound reports whether err is the result of the
+// server replying with http.StatusNotFound.
+// Such error values are sometimes returned by "Do" methods
+// on calls when creation of ressource was too recent to return values
+func IsNotFound(err error) bool {
+	if err == nil {
+		return false
+	}
+	ae, ok := err.(*googleapi.Error)
+	return ok && ae.Code == http.StatusNotFound
 }
 
 func diffSuppressCustomSchemas(_, _, _ string, d *schema.ResourceData) bool {
@@ -1097,6 +1110,9 @@ func resourceUserCreate(ctx context.Context, d *schema.ResourceData, meta interf
 		newUser, retryErr := usersService.Get(d.Id()).IfNoneMatch(cc.lastEtag).Do()
 		if googleapi.IsNotModified(retryErr) {
 			cc.currConsistent += 1
+		} else if IsNotFound(retryErr) {
+			// user was not found yet therefore setting currConsistent back to null value
+			cc.currConsistent = 0
 		} else if retryErr != nil {
 			return fmt.Errorf("unexpected error during retries of %s: %s", cc.resourceType, retryErr)
 		} else {
