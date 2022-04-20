@@ -54,11 +54,11 @@ for any changes you would need to make to your environment variables
 
 ~> Note: `GOOGLE_CREDENTIALS` was added as an option in version `0.2.0` of the Google Workspace provider.
 
-|                         | GSuite Provider                                                                                               | Google Workspace Provider                                                                                    |
-|-------------------------|---------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------|
-| Credentials             | `GOOGLE_CREDENTIALS`,  `GOOGLE_CLOUD_KEYFILE_JSON`,  `GOOGLE_KEYFILE_JSON`,  `GOOGLE_APPLICATION_CREDENTIALS` | `GOOGLEWORKSPACE_CREDENTIALS`, `GOOGLEWORKSPACE_CLOUD_KEYFILE_JSON`, `GOOGLE_CREDENTIALS` (>= 0.2.0) |
-| Impersonated User Email | `IMPERSONATED_USER_EMAIL`                                                                                     | `GOOGLEWORKSPACE_IMPERSONATED_USER_EMAIL`                                                        |
-| Customer Id             | N/A                                                                                                           | `GOOGLEWORKSPACE_CUSTOMER_ID`                                                                    |
+|                         | GSuite Provider                                                                                               | Google Workspace Provider                                                                                                              |
+|-------------------------|---------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------|
+| Credentials             | `GOOGLE_CREDENTIALS`,  `GOOGLE_CLOUD_KEYFILE_JSON`,  `GOOGLE_KEYFILE_JSON`,  `GOOGLE_APPLICATION_CREDENTIALS` | `GOOGLEWORKSPACE_CREDENTIALS`, `GOOGLEWORKSPACE_CLOUD_KEYFILE_JSON`, `GOOGLE_CREDENTIALS` (>= 0.2.0), `GOOGLE_APPLICATION_CREDENTIALS` |
+| Impersonated User Email | `IMPERSONATED_USER_EMAIL`                                                                                     | `GOOGLEWORKSPACE_IMPERSONATED_USER_EMAIL`                                                                                              |
+| Customer Id             | N/A                                                                                                           | `GOOGLEWORKSPACE_CUSTOMER_ID`                                                                                                          |
 
 While we removed `timeout_minutes`, the Google Workspace provider now allows a timeout block 
 to be set on each particular resource. For example, given this previous configuration:
