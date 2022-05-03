@@ -3,60 +3,74 @@ package googleworkspace
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"io/ioutil"
 	"os"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 
 	"google.golang.org/api/iamcredentials/v1"
 	"google.golang.org/api/option"
 )
 
+var testOauthScopesDirectory = types.List{
+	Elems: []attr.Value{
+		types.String{Value: "https://www.googleapis.com/auth/admin.directory.customer"},
+	},
+	ElemType: types.StringType,
+}
+
 func TestConfigLoadAndValidate_credsInvalidJSON(t *testing.T) {
-	config := &apiClient{
-		Credentials:           "{this is not json}",
-		ImpersonatedUserEmail: "my-fake-email@example.com",
+	diags := diag.Diagnostics{}
+	config := &providerData{
+		Credentials:           types.String{Value: "{this is not json}"},
+		ImpersonatedUserEmail: types.String{Value: "my-fake-email@example.com"},
+		OauthScopes:           testOauthScopesDirectory,
 	}
 
-	diags := config.loadAndValidate(context.Background())
+	_ = authenticateClient(context.Background(), *config, &diags)
 	if !diags.HasError() {
 		t.Fatalf("expected error, but got nil")
 	}
 }
 
 func TestConfigLoadAndValidate_credsJSON(t *testing.T) {
+	diags := diag.Diagnostics{}
 	contents, err := ioutil.ReadFile(testFakeCredentialsPath)
 	if err != nil {
 		t.Fatalf("error: %v", err)
 	}
 
-	config := &apiClient{
-		Credentials:           string(contents),
-		ImpersonatedUserEmail: "my-fake-email@example.com",
+	config := &providerData{
+		Credentials:           types.String{Value: string(contents)},
+		ImpersonatedUserEmail: types.String{Value: "my-fake-email@example.com"},
+		OauthScopes:           testOauthScopesDirectory,
 	}
 
-	diags := config.loadAndValidate(context.Background())
-	err = checkDiags(diags)
-	if err != nil {
-		t.Fatalf(err.Error())
+	_ = authenticateClient(context.Background(), *config, &diags)
+	if diags.HasError() {
+		t.Fatalf(getDiagErrors(diags))
 	}
 }
 
 func TestConfigLoadAndValidate_credsFromFile(t *testing.T) {
-	config := &apiClient{
-		Credentials:           testFakeCredentialsPath,
-		ImpersonatedUserEmail: "my-fake-email@example.com",
+	diags := diag.Diagnostics{}
+	config := &providerData{
+		Credentials:           types.String{Value: testFakeCredentialsPath},
+		ImpersonatedUserEmail: types.String{Value: "my-fake-email@example.com"},
+		OauthScopes:           testOauthScopesDirectory,
 	}
 
-	diags := config.loadAndValidate(context.Background())
-	err := checkDiags(diags)
-	if err != nil {
-		t.Fatalf(err.Error())
+	_ = authenticateClient(context.Background(), *config, &diags)
+	if diags.HasError() {
+		t.Fatalf(getDiagErrors(diags))
 	}
 }
 
 func TestAccConfigLoadAndValidate_credsFromEnv(t *testing.T) {
+	diags := diag.Diagnostics{}
 	if os.Getenv("TF_ACC") == "" {
 		t.Skip(fmt.Sprintf("Network access not allowed; use TF_ACC=1 to enable"))
 	}
@@ -64,75 +78,91 @@ func TestAccConfigLoadAndValidate_credsFromEnv(t *testing.T) {
 	testAccPreCheck(t)
 
 	creds := getTestCredsFromEnv()
-	config := &apiClient{
-		Credentials:           creds,
-		Customer:              os.Getenv("GOOGLEWORKSPACE_CUSTOMER_ID"),
-		ImpersonatedUserEmail: os.Getenv("GOOGLEWORKSPACE_IMPERSONATED_USER_EMAIL"),
+	config := &providerData{
+		Credentials:           types.String{Value: creds},
+		Customer:              types.String{Value: os.Getenv("GOOGLEWORKSPACE_CUSTOMER_ID")},
+		ImpersonatedUserEmail: types.String{Value: os.Getenv("GOOGLEWORKSPACE_IMPERSONATED_USER_EMAIL")},
+		OauthScopes:           testOauthScopesDirectory,
 	}
 
-	diags := config.loadAndValidate(context.Background())
-	err := checkDiags(diags)
-	if err != nil {
-		t.Fatalf(err.Error())
+	testClient := authenticateClient(context.Background(), *config, &diags)
+	if diags.HasError() {
+		t.Fatalf(getDiagErrors(diags))
 	}
 
-	diags = checkValidCreds(config)
-	err = checkDiags(diags)
-	if err != nil {
-		t.Fatalf(err.Error())
+	testProv := provider{
+		client:   testClient,
+		customer: os.Getenv("GOOGLEWORKSPACE_CUSTOMER_ID"),
+	}
+
+	checkValidCreds(&testProv, &diags)
+	if diags.HasError() {
+		t.Fatalf(getDiagErrors(diags))
 	}
 }
 
 func TestConfigLoadAndValidate_credsNoImpersonation(t *testing.T) {
-	config := &apiClient{
-		Credentials: testFakeCredentialsPath,
+	diags := diag.Diagnostics{}
+	config := &providerData{
+		Credentials: types.String{Value: testFakeCredentialsPath},
+		OauthScopes: testOauthScopesDirectory,
 	}
 
-	diags := config.loadAndValidate(context.Background())
-	err := checkDiags(diags)
-	if err != nil {
-		t.Fatalf(err.Error())
+	_ = authenticateClient(context.Background(), *config, &diags)
+	if diags.HasError() {
+		t.Fatalf(getDiagErrors(diags))
 	}
 }
 
 func TestConfigOauthScopes_custom(t *testing.T) {
-	config := &apiClient{
-		Credentials:           testFakeCredentialsPath,
-		ClientScopes:          []string{"https://www.googleapis.com/auth/admin/directory"},
-		ImpersonatedUserEmail: "my-fake-email@example.com",
+	diags := diag.Diagnostics{}
+	config := &providerData{
+		Credentials:           types.String{Value: testFakeCredentialsPath},
+		ImpersonatedUserEmail: types.String{Value: "my-fake-email@example.com"},
+		OauthScopes:           testOauthScopesDirectory,
 	}
 
-	diags := config.loadAndValidate(context.Background())
-	err := checkDiags(diags)
-	if err != nil {
-		t.Fatalf(err.Error())
+	_ = authenticateClient(context.Background(), *config, &diags)
+	if diags.HasError() {
+		t.Fatalf(getDiagErrors(diags))
 	}
 
-	if len(config.ClientScopes) != 1 {
-		t.Fatalf("expected 1 scope, got %d scopes: %v", len(config.ClientScopes), config.ClientScopes)
+	if len(config.OauthScopes.Elems) != 1 {
+		t.Fatalf("expected 1 scope, got %d scopes: %v", len(config.OauthScopes.Elems), config.OauthScopes)
 	}
-	if config.ClientScopes[0] != "https://www.googleapis.com/auth/admin/directory" {
-		t.Fatalf("expected scope to be %q, got %q", "https://www.googleapis.com/auth/admin/directory", config.ClientScopes[0])
+	if config.OauthScopes.Elems[0].(types.String).Value != "https://www.googleapis.com/auth/admin/directory" {
+		t.Fatalf("expected scope to be %s, got %s", "https://www.googleapis.com/auth/admin/directory", config.OauthScopes.Elems[0].(types.String).Value)
 	}
 }
 
 func TestConfigLoadAndValidate_accessTokenInvalid(t *testing.T) {
-	config := &apiClient{
-		AccessToken:           "abcdefghijklmnopqrstuvwxyz",
-		Customer:              os.Getenv("GOOGLEWORKSPACE_CUSTOMER_ID"),
-		ImpersonatedUserEmail: os.Getenv("GOOGLEWORKSPACE_IMPERSONATED_USER_EMAIL"),
-		ClientScopes:          []string{"https://www.googleapis.com/auth/admin.directory.domain"},
+	diags := diag.Diagnostics{}
+	config := &providerData{
+		Credentials:           types.String{Value: "abcdefghijklmnopqrstuvwxyz"},
+		Customer:              types.String{Value: os.Getenv("GOOGLEWORKSPACE_CUSTOMER_ID")},
+		ImpersonatedUserEmail: types.String{Value: os.Getenv("GOOGLEWORKSPACE_IMPERSONATED_USER_EMAIL")},
+		OauthScopes: types.List{
+			Elems: []attr.Value{
+				types.String{Value: "https://www.googleapis.com/auth/admin.directory.domain"},
+			},
+			ElemType: types.StringType,
+		},
 	}
 
-	config.loadAndValidate(context.Background())
-	diags := checkValidCreds(config)
-	err := checkDiags(diags)
-	if err == nil {
+	testClient := authenticateClient(context.Background(), *config, &diags)
+	testProv := &provider{
+		client:   testClient,
+		customer: os.Getenv("GOOGLEWORKSPACE_CUSTOMER_ID"),
+	}
+
+	checkValidCreds(testProv, &diags)
+	if !diags.HasError() {
 		t.Fatalf("expected error, but got nil")
 	}
 }
 
 func TestConfigLoadAndValidate_accessToken(t *testing.T) {
+	diags := diag.Diagnostics{}
 	if os.Getenv("TF_ACC") == "" {
 		t.Skip(fmt.Sprintf("Network access not allowed; use TF_ACC=1 to enable"))
 	}
@@ -140,18 +170,21 @@ func TestConfigLoadAndValidate_accessToken(t *testing.T) {
 	testAccPreCheck(t)
 
 	creds := getTestCredsFromEnv()
-	gcpConfig := &apiClient{
-		Credentials:  creds,
-		ClientScopes: []string{"https://www.googleapis.com/auth/cloud-platform"},
+	gcpConfig := &providerData{
+		Credentials: types.String{Value: creds},
+		OauthScopes: types.List{
+			Elems: []attr.Value{
+				types.String{Value: "https://www.googleapis.com/auth/cloud-platform"},
+			},
+		},
 	}
 
-	diags := gcpConfig.loadAndValidate(context.Background())
-	err := checkDiags(diags)
-	if err != nil {
-		t.Fatalf(err.Error())
+	gcpClient := authenticateClient(context.Background(), *gcpConfig, &diags)
+	if diags.HasError() {
+		t.Fatalf(getDiagErrors(diags))
 	}
 
-	iamCredsService, err := iamcredentials.NewService(context.Background(), option.WithHTTPClient(gcpConfig.client))
+	iamCredsService, err := iamcredentials.NewService(context.Background(), option.WithHTTPClient(gcpClient))
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
@@ -165,38 +198,40 @@ func TestConfigLoadAndValidate_accessToken(t *testing.T) {
 		t.Fatalf(err.Error())
 	}
 
-	config := &apiClient{
-		AccessToken:           at.AccessToken,
-		Customer:              os.Getenv("GOOGLEWORKSPACE_CUSTOMER_ID"),
-		ImpersonatedUserEmail: os.Getenv("GOOGLEWORKSPACE_IMPERSONATED_USER_EMAIL"),
-		ServiceAccount:        os.Getenv("GOOGLEWORKSPACE_IMPERSONATED_SERVICE_ACCOUNT"),
+	gwConfig := &providerData{
+		AccessToken:           types.String{Value: at.AccessToken},
+		Customer:              types.String{Value: os.Getenv("GOOGLEWORKSPACE_CUSTOMER_ID")},
+		ImpersonatedUserEmail: types.String{Value: os.Getenv("GOOGLEWORKSPACE_IMPERSONATED_USER_EMAIL")},
+		ServiceAccount:        types.String{Value: os.Getenv("GOOGLEWORKSPACE_IMPERSONATED_SERVICE_ACCOUNT")},
 	}
 
-	diags = config.loadAndValidate(context.Background())
-	err = checkDiags(diags)
-	if err != nil {
+	gwClient := authenticateClient(context.Background(), *gwConfig, &diags)
+	if diags.HasError() {
 		t.Fatalf(err.Error())
 	}
 
-	diags = checkValidCreds(config)
-	err = checkDiags(diags)
-	if err != nil {
-		t.Fatalf(err.Error())
+	testProv := &provider{
+		client:   gwClient,
+		customer: os.Getenv("GOOGLEWORKSPACE_CUSTOMER_ID"),
+	}
+
+	checkValidCreds(testProv, &diags)
+	if diags.HasError() {
+		t.Fatalf(getDiagErrors(diags))
 	}
 }
 
-func checkValidCreds(config *apiClient) diag.Diagnostics {
-	var diags diag.Diagnostics
-
-	directoryService, diags := config.NewDirectoryService()
+func checkValidCreds(prov *provider, diags *diag.Diagnostics) {
+	directoryService := prov.NewDirectoryService(diags)
 	if diags.HasError() {
-		return diags
+		return
 	}
 
-	_, err := directoryService.Customers.Get(config.Customer).Do()
+	_, err := directoryService.Customers.Get(prov.customer).Do()
 	if err != nil {
-		return diag.FromErr(err)
+		diags.AddError("get customer failed", err.Error())
+		return
 	}
 
-	return diags
+	return
 }

@@ -2,58 +2,64 @@ package googleworkspace
 
 import (
 	"context"
+	"fmt"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
+	"google.golang.org/api/googleapi"
 	"log"
-	"time"
-
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	directory "google.golang.org/api/admin/directory/v1"
+	"strings"
 )
 
-func resourceOrgUnit() *schema.Resource {
-	return &schema.Resource{
-		// This description is used by the documentation generator and the language server.
+// GetOrgUnitId returns the org unit id that is prefixed with "id:..."
+// We save it un-prefixed in state since some resources don't want the prefix
+// but we want it for org resource calls
+func GetOrgUnitId(orgUnitId string) string {
+	if !strings.HasPrefix(orgUnitId, "id:") {
+		orgUnitId = "id:" + orgUnitId
+	}
+
+	return orgUnitId
+}
+
+type resourceOrgUnitType struct{}
+
+// GetSchema OrgUnit Resource
+func (r resourceOrgUnitType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
+	return tfsdk.Schema{
 		Description: "OrgUnit resource manages Google Workspace OrgUnits. Org Unit resides " +
 			"under the `https://www.googleapis.com/auth/admin.directory.orgunit` client scope.",
-
-		CreateContext: resourceOrgUnitCreate,
-		ReadContext:   resourceOrgUnitRead,
-		UpdateContext: resourceOrgUnitUpdate,
-		DeleteContext: resourceOrgUnitDelete,
-
-		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
-		},
-
-		Schema: map[string]*schema.Schema{
+		Attributes: map[string]tfsdk.Attribute{
 			"name": {
 				Description: "The organizational unit's path name. For example, an organizational unit's name within the " +
 					"/corp/support/sales_support parent path is sales_support.",
-				Type:     schema.TypeString,
+				Type:     types.StringType,
 				Required: true,
 			},
 			"description": {
 				Description: "Description of the organizational unit.",
-				Type:        schema.TypeString,
+				Type:        types.StringType,
 				Optional:    true,
-			},
-			"etag": {
-				Description: "ETag of the resource.",
-				Type:        schema.TypeString,
-				Computed:    true,
 			},
 			"block_inheritance": {
 				Description: "Determines if a sub-organizational unit can inherit the settings of the parent organization. " +
 					"False means a sub-organizational unit inherits the settings of the nearest parent organizational unit. " +
 					"For more information on inheritance and users in an organization structure, see the " +
 					"[administration help center](https://support.google.com/a/answer/4352075).",
-				Type:     schema.TypeBool,
+				Type:     types.BoolType,
 				Optional: true,
-				Default:  false,
+				Computed: true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					DefaultModifier{
+						ValType:    types.BoolType,
+						DefaultVal: false,
+					},
+				},
 			},
 			"org_unit_id": {
 				Description: "The unique ID of the organizational unit.",
-				Type:        schema.TypeString,
+				Type:        types.StringType,
 				Computed:    true,
 			},
 			"org_unit_path": {
@@ -66,194 +72,253 @@ func resourceOrgUnit() *schema.Resource {
 					"For more information about organization structures, see the [administration help center](https://support.google.com/a/answer/4352075). " +
 					"For more information about moving a user to a different organization, see " +
 					"[chromeosdevices.update a user](https://developers.google.com/admin-sdk/directory/v1/guides/manage-users#update_user).",
-				Type:     schema.TypeString,
+				Type:     types.StringType,
 				Computed: true,
 			},
 			"parent_org_unit_id": {
-				Description:  "The unique ID of the parent organizational unit.",
-				Type:         schema.TypeString,
-				Optional:     true,
-				Computed:     true,
-				ExactlyOneOf: []string{"parent_org_unit_id", "parent_org_unit_path"},
+				Description: "The unique ID of the parent organizational unit.",
+				Type:        types.StringType,
+				Optional:    true,
+				Computed:    true,
+				Validators: []tfsdk.AttributeValidator{
+					exactlyOneOfValidator{
+						requiredAttrs: []string{"parent_org_unit_id", "parent_org_unit_path"},
+					},
+				},
 			},
 			"parent_org_unit_path": {
 				Description: "The organizational unit's parent path. For example, /corp/sales is the parent path for " +
 					"/corp/sales/sales_support organizational unit.",
-				Type:         schema.TypeString,
-				Optional:     true,
-				Computed:     true,
-				ExactlyOneOf: []string{"parent_org_unit_id", "parent_org_unit_path"},
+				Type:     types.StringType,
+				Optional: true,
+				Computed: true,
+				Validators: []tfsdk.AttributeValidator{
+					exactlyOneOfValidator{
+						requiredAttrs: []string{"parent_org_unit_id", "parent_org_unit_path"},
+					},
+				},
 			},
-			// Adding a computed id simply to override the `optional` id that gets added in the SDK
-			// that will then display improperly in the docs
 			"id": {
-				Description: "The ID of this resource.",
-				Type:        schema.TypeString,
-				Computed:    true,
+				Computed:            true,
+				MarkdownDescription: "Org Unit identifier",
+				PlanModifiers: tfsdk.AttributePlanModifiers{
+					tfsdk.UseStateForUnknown(),
+				},
+				Type: types.StringType,
 			},
 		},
-	}
+	}, nil
 }
 
-func resourceOrgUnitCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	var diags diag.Diagnostics
+type orgUnitResourceData struct {
+	ID                types.String `tfsdk:"id"`
+	BlockInheritance  types.Bool   `tfsdk:"block_inheritance"`
+	Description       types.String `tfsdk:"description"`
+	Name              types.String `tfsdk:"name"`
+	OrgUnitId         types.String `tfsdk:"org_unit_id"`
+	OrgUnitPath       types.String `tfsdk:"org_unit_path"`
+	ParentOrgUnitId   types.String `tfsdk:"parent_org_unit_id"`
+	ParentOrgUnitPath types.String `tfsdk:"parent_org_unit_path"`
+}
 
-	// use the meta value to retrieve your client from the provider configure method
-	client := meta.(*apiClient)
+type orgUnitResource struct {
+	provider provider
+}
 
-	ouName := d.Get("name").(string)
-	log.Printf("[DEBUG] Creating OrgUnit %q: %#v", ouName, ouName)
+func (r resourceOrgUnitType) NewResource(_ context.Context, in tfsdk.Provider) (tfsdk.Resource, diag.Diagnostics) {
+	p, diags := convertProviderType(in)
 
-	directoryService, diags := client.NewDirectoryService()
-	if diags.HasError() {
-		return diags
+	return orgUnitResource{
+		provider: p,
+	}, diags
+}
+
+// Create a new org unit
+func (r orgUnitResource) Create(ctx context.Context, req tfsdk.CreateResourceRequest, resp *tfsdk.CreateResourceResponse) {
+	if !r.provider.configured {
+		resp.Diagnostics.AddError(
+			"Provider not configured",
+			"The provider hasn't been configured before apply, likely because it depends on an unknown value from "+
+				"another resource. This leads to weird stuff happening, so we'd prefer if you didn't do that. Thanks!",
+		)
+		return
 	}
 
-	orgUnitsService, diags := GetOrgUnitsService(directoryService)
-	if diags.HasError() {
-		return diags
+	// Retrieve values from plan
+	var plan orgUnitResourceData
+	diags := req.Plan.Get(ctx, &plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
-	orgUnitObj := directory.OrgUnit{
-		Name:             d.Get("name").(string),
-		Description:      d.Get("description").(string),
-		BlockInheritance: d.Get("block_inheritance").(bool),
+	orgUnitReq := OrgUnitPlanToObj(&plan)
+
+	log.Printf("[DEBUG] Creating Org Unit %s", plan.Name.Value)
+	orgUnitsService := GetOrgUnitsService(&r.provider, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
-	if v, ok := d.GetOk("parent_org_unit_id"); ok {
-		orgUnitObj.ParentOrgUnitId = v.(string)
-	} else {
-		orgUnitObj.ParentOrgUnitPath = d.Get("parent_org_unit_path").(string)
-	}
-
-	var orgUnit *directory.OrgUnit
-	err := retryTimeDuration(ctx, time.Minute, func() error {
-		var retryErr error
-		orgUnit, retryErr = orgUnitsService.Insert(client.Customer, &orgUnitObj).Do()
-		return retryErr
-	})
+	orgUnitObj, err := orgUnitsService.Insert(r.provider.customer, &orgUnitReq).Do()
 	if err != nil {
-		return diag.FromErr(err)
+		resp.Diagnostics.AddError("error while trying to create org unit", err.Error())
+		return
 	}
 
-	d.SetId(orgUnit.OrgUnitId)
-	log.Printf("[DEBUG] Finished creating OrgUnit %q: %#v", d.Id(), ouName)
-
-	return resourceOrgUnitRead(ctx, d, meta)
-}
-
-func resourceOrgUnitRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	var diags diag.Diagnostics
-
-	// use the meta value to retrieve your client from the provider configure method
-	client := meta.(*apiClient)
-
-	directoryService, diags := client.NewDirectoryService()
-	if diags.HasError() {
-		return diags
+	if orgUnitObj == nil {
+		resp.Diagnostics.AddError(fmt.Sprintf("no org unit was returned for %s", plan.Name.Value), "object returned was nil")
+		return
 	}
 
-	orgUnitsService, diags := GetOrgUnitsService(directoryService)
-	if diags.HasError() {
-		return diags
+	orgUnitId := strings.TrimPrefix(orgUnitObj.OrgUnitId, "id:")
+	numInserts := 1
+
+	// INSERT will respond with the Org Unit that will be created, however, it is eventually consistent
+	// After INSERT, the etag is updated along with the Org Unit,
+	// once we get a consistent etag, we can feel confident that our Org Unit is also consistent
+	cc := consistencyCheck{
+		resourceType: "org_unit",
+		timeout:      CreateTimeout,
 	}
-
-	orgUnit, err := orgUnitsService.Get(client.Customer, d.Id()).Do()
-	if err != nil {
-		return handleNotFoundError(err, d, d.Id())
-	}
-
-	d.Set("name", orgUnit.Name)
-	d.Set("description", orgUnit.Description)
-	d.Set("etag", orgUnit.Etag)
-	d.Set("block_inheritance", orgUnit.BlockInheritance)
-	d.Set("org_unit_id", orgUnit.OrgUnitId)
-	d.Set("org_unit_path", orgUnit.OrgUnitPath)
-	d.Set("parent_org_unit_id", orgUnit.ParentOrgUnitId)
-	d.Set("parent_org_unit_path", orgUnit.ParentOrgUnitPath)
-
-	d.SetId(orgUnit.OrgUnitId)
-
-	return diags
-}
-
-func resourceOrgUnitUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	var diags diag.Diagnostics
-
-	// use the meta value to retrieve your client from the provider configure method
-	client := meta.(*apiClient)
-
-	ouName := d.Get("name").(string)
-	log.Printf("[DEBUG] Updating OrgUnit %q: %#v", d.Id(), ouName)
-
-	directoryService, diags := client.NewDirectoryService()
-	if diags.HasError() {
-		return diags
-	}
-
-	orgUnitsService, diags := GetOrgUnitsService(directoryService)
-	if diags.HasError() {
-		return diags
-	}
-
-	orgUnitObj := directory.OrgUnit{}
-
-	if d.HasChange("name") {
-		orgUnitObj.Name = d.Get("name").(string)
-	}
-
-	if d.HasChange("description") {
-		orgUnitObj.Description = d.Get("description").(string)
-	}
-
-	forceSendFields := []string{}
-
-	if d.HasChange("block_inheritance") {
-		orgUnitObj.BlockInheritance = d.Get("block_inheritance").(bool)
-		forceSendFields = append(forceSendFields, "BlockInheritance")
-	}
-
-	orgUnitObj.ForceSendFields = forceSendFields
-
-	if &orgUnitObj != new(directory.OrgUnit) {
-		orgUnit, err := orgUnitsService.Update(client.Customer, d.Id(), &orgUnitObj).Do()
-		if err != nil {
-			return diag.FromErr(err)
+	err = retryTimeDuration(ctx, CreateTimeout, func() error {
+		if cc.reachedConsistency(numInserts) {
+			return nil
 		}
 
-		d.SetId(orgUnit.OrgUnitId)
+		newOU, retryErr := orgUnitsService.Get(r.provider.customer, GetOrgUnitId(orgUnitId)).IfNoneMatch(cc.lastEtag).Do()
+		if googleapi.IsNotModified(retryErr) {
+			cc.currConsistent += 1
+		} else if retryErr != nil {
+			return cc.is404(retryErr)
+		} else {
+			cc.handleNewEtag(newOU.Etag)
+		}
+
+		return fmt.Errorf("timed out while waiting for %s to be inserted", cc.resourceType)
+	})
+	if err != nil {
+		return
 	}
 
-	log.Printf("[DEBUG] Finished creating OrgUnit %q: %#v", d.Id(), ouName)
+	plan.ID.Value = orgUnitId
+	orgUnit := GetOrgUnitData(&r.provider, plan, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
-	return resourceOrgUnitRead(ctx, d, meta)
+	diags = resp.State.Set(ctx, orgUnit)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	log.Printf("[DEBUG] Finished creating Org Unit %s: %s", orgUnit.ID.Value, orgUnit.Name.Value)
 }
 
-func resourceOrgUnitDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	var diags diag.Diagnostics
-
-	// use the meta value to retrieve your client from the provider configure method
-	client := meta.(*apiClient)
-
-	ouName := d.Get("name").(string)
-	log.Printf("[DEBUG] Deleting OrgUnit %q: %#v", d.Id(), ouName)
-
-	directoryService, diags := client.NewDirectoryService()
-	if diags.HasError() {
-		return diags
+// Read org unit information
+func (r orgUnitResource) Read(ctx context.Context, req tfsdk.ReadResourceRequest, resp *tfsdk.ReadResourceResponse) {
+	var state orgUnitResourceData
+	diags := req.State.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
-	orgUnitsService, diags := GetOrgUnitsService(directoryService)
-	if diags.HasError() {
-		return diags
+	orgUnit := GetOrgUnitData(&r.provider, state, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	if orgUnit.ID.Null {
+		resp.State.RemoveResource(ctx)
+		log.Printf("[DEBUG] Removed Org Unit from state because it was not found %s", state.ID.Value)
+		return
 	}
 
-	err := orgUnitsService.Delete(client.Customer, d.Id()).Do()
+	diags = resp.State.Set(ctx, orgUnit)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	log.Printf("[DEBUG] Finished getting Org Unit %s: %s", state.ID.Value, orgUnit.Name.Value)
+}
+
+// Update org unit
+func (r orgUnitResource) Update(ctx context.Context, req tfsdk.UpdateResourceRequest, resp *tfsdk.UpdateResourceResponse) {
+	// Retrieve values from plan
+	var plan orgUnitResourceData
+	diags := req.Plan.Get(ctx, &plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Retrieve values from plan
+	var state orgUnitResourceData
+	diags = req.State.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	orgUnitReq := OrgUnitPlanToObj(&plan)
+
+	log.Printf("[DEBUG] Updating Org Unit %q: %#v", plan.ID.Value, plan.Name.Value)
+	orgUnitsService := GetOrgUnitsService(&r.provider, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	orgUnitObj, err := orgUnitsService.Update(r.provider.customer, GetOrgUnitId(state.ID.Value), &orgUnitReq).Do()
+
 	if err != nil {
-		return handleNotFoundError(err, d, d.Id())
+		diags.AddError("error while trying to update org unit", err.Error())
 	}
 
-	log.Printf("[DEBUG] Finished deleting OrgUnit %q: %#v", d.Id(), ouName)
+	if orgUnitObj == nil {
+		diags.AddError(fmt.Sprintf("no org unit was returned for %s", plan.Name.Value), "object returned was nil")
+		return
+	}
 
-	return diags
+	orgUnit := SetOrgUnitData(orgUnitObj, plan)
+
+	diags = resp.State.Set(ctx, orgUnit)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	log.Printf("[DEBUG] Finished updating OrgUnit %q: %#v", state.ID.Value, plan.Name.Value)
+}
+
+// Delete org unit
+func (r orgUnitResource) Delete(ctx context.Context, req tfsdk.DeleteResourceRequest, resp *tfsdk.DeleteResourceResponse) {
+	var state orgUnitResourceData
+	diags := req.State.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	log.Printf("[DEBUG] Deleting Org Unit %s: %s", state.ID.Value, state.Name.Value)
+	orgUnitsService := GetOrgUnitsService(&r.provider, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	err := orgUnitsService.Delete(r.provider.customer, GetOrgUnitId(state.ID.Value)).Do()
+	if err != nil {
+		state.ID = types.String{Value: handleNotFoundError(err, state.ID.Value, &resp.Diagnostics)}
+		if resp.Diagnostics.HasError() {
+			return
+		}
+	}
+
+	resp.State.RemoveResource(ctx)
+	log.Printf("[DEBUG] Finished deleting Org Unit %s: %s", state.ID.Value, state.Name.Value)
+}
+
+// ImportState org unit
+func (r orgUnitResource) ImportState(ctx context.Context, req tfsdk.ImportResourceStateRequest, resp *tfsdk.ImportResourceStateResponse) {
+	tfsdk.ResourceImportStatePassthroughID(ctx, tftypes.NewAttributePath().WithAttributeName("id"), req, resp)
 }

@@ -3,12 +3,10 @@ package googleworkspace
 import (
 	"bytes"
 	"encoding/json"
-	"log"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"net/http"
 	"net/http/httputil"
 	"strings"
-
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/logging"
 )
 
 func getValuesToScrub() []string {
@@ -23,17 +21,16 @@ type loggingTransport struct {
 }
 
 func (t *loggingTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	if logging.IsDebugOrHigher() {
-		reqData, err := httputil.DumpRequestOut(req, true)
-		if err == nil {
-			prettyPrint, err := prettyPrintJsonLines(reqData)
-			if err != nil {
-				return nil, err
-			}
-			log.Printf("[DEBUG] "+logReqMsg, t.name, prettyPrint)
-		} else {
-			log.Printf("[ERROR] %s API Request error: %#v", t.name, err)
+	ctx := req.Context()
+	reqData, err := httputil.DumpRequestOut(req, true)
+	if err == nil {
+		prettyPrint, err := prettyPrintJsonLines(reqData)
+		if err != nil {
+			return nil, err
 		}
+		tflog.Debug(ctx, logReqMsg, t.name, prettyPrint)
+	} else {
+		tflog.Error(ctx, "%s API Request error: %#v", t.name, err)
 	}
 
 	resp, err := t.transport.RoundTrip(req)
@@ -41,23 +38,21 @@ func (t *loggingTransport) RoundTrip(req *http.Request) (*http.Response, error) 
 		return resp, err
 	}
 
-	if logging.IsDebugOrHigher() {
-		respData, err := httputil.DumpResponse(resp, true)
-		if err == nil {
-			prettyPrint, err := prettyPrintJsonLines(respData)
-			if err != nil {
-				return nil, err
-			}
-			log.Printf("[DEBUG] "+logRespMsg, t.name, prettyPrint)
-		} else {
-			log.Printf("[ERROR] %s API Response error: %#v", t.name, err)
+	respData, err := httputil.DumpResponse(resp, true)
+	if err == nil {
+		prettyPrint, err := prettyPrintJsonLines(respData)
+		if err != nil {
+			return nil, err
 		}
+		tflog.Debug(ctx, logRespMsg, t.name, prettyPrint)
+	} else {
+		tflog.Error(ctx, "%s API Response error: %#v", t.name, err)
 	}
 
 	return resp, nil
 }
 
-func NewTransportWithScrubbedLogs(name string, t http.RoundTripper) *loggingTransport {
+func /**/ NewTransportWithScrubbedLogs(name string, t http.RoundTripper) *loggingTransport {
 	return &loggingTransport{name, t}
 }
 

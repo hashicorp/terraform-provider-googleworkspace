@@ -4,142 +4,32 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
+	directory "google.golang.org/api/admin/directory/v1"
+	"google.golang.org/api/googleapi"
 	"log"
 	"net/mail"
 	"reflect"
 	"strconv"
 	"time"
-
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
-
-	directory "google.golang.org/api/admin/directory/v1"
-	"google.golang.org/api/googleapi"
 )
 
-func diffSuppressEmails(k, old, new string, d *schema.ResourceData) bool {
-	stateEmails, configEmails := d.GetChange("emails")
+type resourceUserType struct{}
 
-	// User aliases and other alternate emails (added by Google and denoted by no `type`),
-	// are auto-added to the email list, even if it's not configured that way.
-	// Only show a diff if the other emails differ.
-	subsetEmails := []interface{}{}
-
-	aliases := listOfInterfacestoStrings(d.Get("aliases").([]interface{}))
-
-	for _, se := range stateEmails.([]interface{}) {
-		email := se.(map[string]interface{})
-		emailAddress := email["address"].(string)
-		emailType := email["type"].(string)
-
-		if emailType == "" || stringInSlice(aliases, emailAddress) {
-			continue
-		}
-
-		subsetEmails = append(subsetEmails, se)
-	}
-
-	return reflect.DeepEqual(subsetEmails, configEmails.([]interface{}))
-}
-
-func diffSuppressCustomSchemas(_, _, _ string, d *schema.ResourceData) bool {
-	old, new := d.GetChange("custom_schemas")
-	customSchemasOld := old.([]interface{})
-	customSchemasNew := new.([]interface{})
-
-	// transform the blocks
-	//
-	// custom_schemas {
-	// 	schema_name = "a"
-	//
-	// 	schema_values = {
-	// 	  "bar" = jsonencode("Bar")
-	// 	}
-	// }
-	//
-	// custom_schemas {
-	// 	schema_name = "b"
-	//
-	// 	schema_values = {
-	// 	  "baz" = jsonencode("Baz")
-	// 	}
-	// }
-	//
-	// into a 2 dimentional map[string]map[string]string
-	//
-	// {
-	// 	"a": {
-	// 		"bar": "Bar",
-	// 	},
-	// 	"b": {
-	// 		"baz": "Baz",
-	// 	},
-	// }
-	//
-	// and use reflect.DeepEqual to compare
-
-	oldMap := transformCustomSchemasTo2DMap(customSchemasOld)
-	newMap := transformCustomSchemasTo2DMap(customSchemasNew)
-
-	return reflect.DeepEqual(oldMap, newMap)
-}
-
-func transformCustomSchemasTo2DMap(customSchemas []interface{}) map[string]map[string]string {
-	result := make(map[string]map[string]string)
-	for _, schema := range customSchemas {
-		s := schema.(map[string]interface{})
-		schemaValues := make(map[string]string)
-		for k, v := range s["schema_values"].(map[string]interface{}) {
-			// ensure if field is list that it is sorted for comparison
-			// google stores unordered multi-value fields
-			var list []interface{}
-			if err := json.Unmarshal([]byte(v.(string)), &list); err == nil {
-				sorted := sortListOfInterfaces(list)
-				encoded, err := json.Marshal(sorted)
-				if err != nil {
-					panic(err)
-				}
-				schemaValues[k] = string(encoded)
-			} else {
-				schemaValues[k] = v.(string)
-			}
-		}
-		result[s["schema_name"].(string)] = schemaValues
-	}
-	return result
-}
-
-func resourceUser() *schema.Resource {
-	return &schema.Resource{
-		// This description is used by the documentation generator and the language server.
+// GetSchema User Resource
+func (r resourceUserType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
+	return tfsdk.Schema{
 		Description: "User resource manages Google Workspace Users. User resides " +
 			"under the `https://www.googleapis.com/auth/admin.directory.user` client scope.",
-
-		CreateContext: resourceUserCreate,
-		ReadContext:   resourceUserRead,
-		UpdateContext: resourceUserUpdate,
-		DeleteContext: resourceUserDelete,
-
-		Timeouts: &schema.ResourceTimeout{
-			Create: schema.DefaultTimeout(5 * time.Minute),
-			Update: schema.DefaultTimeout(5 * time.Minute),
-		},
-
-		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
-		},
-
-		Schema: map[string]*schema.Schema{
-			"id": {
-				Description: "The unique ID for the user.",
-				Type:        schema.TypeString,
-				Computed:    true,
-			},
+		Attributes: map[string]tfsdk.Attribute{
 			"primary_email": {
 				Description: "The user's primary email address. The primaryEmail must be unique and cannot be an alias " +
 					"of another user.",
-				Type:     schema.TypeString,
+				Type:     types.StringType,
 				Required: true,
 			},
 			"password": {
@@ -148,50 +38,80 @@ func resourceUser() *schema.Resource {
 					"As the API does not return the value of password, this field is write-only, and the value stored " +
 					"in the state will be what is provided in the configuration. The field is required on create and will " +
 					"be empty on import.",
-				Type:             schema.TypeString,
-				Optional:         true,
-				Sensitive:        true,
-				ValidateDiagFunc: validation.ToDiagFunc(validation.StringLenBetween(8, 100)),
+				Type:      types.StringType,
+				Required:  true,
+				Sensitive: true,
+				Validators: []tfsdk.AttributeValidator{
+					stringLenBetweenValidator{
+						min: 8,
+						max: 100,
+					},
+				},
 			},
 			"hash_function": {
 				Description: "Stores the hash format of the password property. We recommend sending the password " +
 					"property value as a base 16 bit hexadecimal-encoded hash value. Set the hashFunction values " +
 					"as either the SHA-1, MD5, or crypt hash format.",
-				Type:     schema.TypeString,
+				Type:     types.StringType,
 				Optional: true,
+				Computed: true,
+				PlanModifiers: tfsdk.AttributePlanModifiers{
+					tfsdk.UseStateForUnknown(),
+				},
 			},
 			"is_admin": {
-				Description: "Indicates a user with super admininistrator privileges.",
-				Type:        schema.TypeBool,
+				Description: "Indicates a user with super administrator privileges.",
+				Type:        types.BoolType,
 				Optional:    true,
 				Computed:    true,
 			},
 			"is_delegated_admin": {
 				Description: "Indicates if the user is a delegated administrator.",
-				Type:        schema.TypeBool,
+				Type:        types.BoolType,
 				Computed:    true,
 			},
 			"agreed_to_terms": {
 				Description: "This property is true if the user has completed an initial login and accepted the " +
 					"Terms of Service agreement.",
-				Type:     schema.TypeBool,
+				Type:     types.BoolType,
 				Computed: true,
 			},
 			"suspended": {
 				Description: "Indicates if user is suspended.",
-				Type:        schema.TypeBool,
+				Type:        types.BoolType,
 				Optional:    true,
+				Computed:    true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					DefaultModifier{
+						ValType:    types.BoolType,
+						DefaultVal: false,
+					},
+				},
 			},
 			"change_password_at_next_login": {
 				Description: "Indicates if the user is forced to change their password at next login. This setting " +
 					"doesn't apply when the user signs in via a third-party identity provider.",
-				Type:     schema.TypeBool,
+				Type:     types.BoolType,
 				Optional: true,
+				Computed: true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					DefaultModifier{
+						ValType:    types.BoolType,
+						DefaultVal: false,
+					},
+				},
 			},
 			"ip_allowlist": {
 				Description: "If true, the user's IP address is added to the allow list.",
-				Type:        schema.TypeBool,
+				Type:        types.BoolType,
 				Optional:    true,
+				Computed:    true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					DefaultModifier{
+						ValType:    types.BoolType,
+						DefaultVal: false,
+					},
+				},
 			},
 			// TODO: (mbang) Add ValidateDiagFunc for max size when it's allowed on lists
 			// (https://github.com/hashicorp/terraform-plugin-sdk/issues/156)
@@ -201,160 +121,165 @@ func resourceUser() *schema.Resource {
 					"In addition, name values support unicode/UTF-8 characters, and can contain spaces, letters (a-z), " +
 					"numbers (0-9), dashes (-), forward slashes (/), and periods (.). " +
 					"Maximum allowed data size for this field is 1Kb.",
-				Type:     schema.TypeList,
-				Required: true,
-				MaxItems: 1,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"full_name": {
-							Description: "The user's full name formed by concatenating the first and last name values.",
-							Type:        schema.TypeString,
-							Computed:    true,
-						},
-						"family_name": {
-							Description:      "The user's last name.",
-							Type:             schema.TypeString,
-							Required:         true,
-							ValidateDiagFunc: validation.ToDiagFunc(validation.StringLenBetween(1, 60)),
-						},
-						"given_name": {
-							Description:      "The user's first name.",
-							Type:             schema.TypeString,
-							Optional:         true,
-							ValidateDiagFunc: validation.ToDiagFunc(validation.StringLenBetween(1, 60)),
+				Attributes: tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
+					"full_name": {
+						Description: "The user's full name formed by concatenating the first and last name values.",
+						Type:        types.StringType,
+						Computed:    true,
+					},
+					"family_name": {
+						Description: "The user's last name.",
+						Type:        types.StringType,
+						Required:    true,
+						Validators: []tfsdk.AttributeValidator{
+							stringLenBetweenValidator{
+								min: 1,
+								max: 60,
+							},
 						},
 					},
-				},
-			},
-			"etag": {
-				Description: "ETag of the resource.",
-				Type:        schema.TypeString,
-				Computed:    true,
+					"given_name": {
+						Description: "The user's first name.",
+						Type:        types.StringType,
+						Required:    true,
+						Validators: []tfsdk.AttributeValidator{
+							stringLenBetweenValidator{
+								min: 1,
+								max: 60,
+							},
+						},
+					},
+				}),
+				Optional: true,
 			},
 			// TODO: (mbang) Add ValidateDiagFunc for max size when it's allowed on lists
 			// (https://github.com/hashicorp/terraform-plugin-sdk/issues/156)
 			"emails": {
-				Description:      "A list of the user's email addresses. The maximum allowed data size is 10Kb.",
-				Type:             schema.TypeList,
-				Optional:         true,
-				Computed:         true,
-				DiffSuppressFunc: diffSuppressEmails,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"address": {
-							Description: "The user's email address. Also serves as the email ID. " +
-								"This value can be the user's primary email address or an alias.",
-							Type:     schema.TypeString,
-							Optional: true,
-						},
-						"custom_type": {
-							Description: "If the value of type is custom, this property contains " +
-								"the custom type string.",
-							Type:     schema.TypeString,
-							Optional: true,
-						},
-						"primary": {
-							Description: "Indicates if this is the user's primary email. " +
-								"Only one entry can be marked as primary.",
-							Type:     schema.TypeBool,
-							Optional: true,
-							Default:  false,
-						},
-						"type": {
-							Description: "The type of the email account. " +
-								"Acceptable values: `custom`, `home`, `other`, `work`.",
-							Type:     schema.TypeString,
-							Required: true,
-							ValidateDiagFunc: validation.ToDiagFunc(
-								validation.StringInSlice([]string{"custom", "home", "other", "work"}, false),
-							),
+				Description: "A list of the user's email addresses. The maximum allowed data size is 10Kb.",
+				Optional:    true,
+				Computed:    true,
+				PlanModifiers: tfsdk.AttributePlanModifiers{
+					UserEmailsModifier{},
+				},
+				Attributes: tfsdk.ListNestedAttributes(map[string]tfsdk.Attribute{
+					"address": {
+						Description: "The user's email address. Also serves as the email ID. " +
+							"This value can be the user's primary email address or an alias.",
+						Type:     types.StringType,
+						Required: true,
+					},
+					"custom_type": {
+						Description: "If the value of type is custom, this property contains " +
+							"the custom type string.",
+						Type:     types.StringType,
+						Optional: true,
+					},
+					"primary": {
+						Description: "Indicates if this is the user's primary email. " +
+							"Only one entry can be marked as primary.",
+						Type:     types.BoolType,
+						Optional: true,
+						Computed: true,
+						PlanModifiers: []tfsdk.AttributePlanModifier{
+							DefaultModifier{
+								ValType:    types.BoolType,
+								DefaultVal: false,
+							},
 						},
 					},
-				},
+					"type": {
+						Description: "The type of the email account. " +
+							"Acceptable values: `custom`, `home`, `other`, `work`.",
+						Type:     types.StringType,
+						Required: true,
+						Validators: []tfsdk.AttributeValidator{
+							stringInSliceValidator{
+								stringOptions: []string{"custom", "home", "other", "work"},
+							},
+						},
+					},
+				}, tfsdk.ListNestedAttributesOptions{}),
 			},
 			// TODO: (mbang) Add ValidateDiagFunc for max size when it's allowed on lists
 			// (https://github.com/hashicorp/terraform-plugin-sdk/issues/156)
 			"external_ids": {
 				Description: "A list of external IDs for the user, such as an employee or network ID. " +
 					"The maximum allowed data size is 2Kb.",
-				Type:     schema.TypeList,
 				Optional: true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"custom_type": {
-							Description: "If the external ID type is custom, this property contains the custom value and " +
-								"must be set.",
-							Type:     schema.TypeString,
-							Optional: true,
-						},
-						"type": {
-							Description: "The type of external ID. If set to custom, customType must also be set. " +
-								"Acceptable values: `account`, `custom`, `customer`, `login_id`, `network`, `organization`.",
-							Type:     schema.TypeString,
-							Required: true,
-							ValidateDiagFunc: validation.ToDiagFunc(
-								validation.StringInSlice([]string{"account", "custom", "customer", "login_id",
-									"network", "organization"}, false),
-							),
-						},
-						"value": {
-							Description: "The value of the ID.",
-							Type:        schema.TypeString,
-							Required:    true,
+				Attributes: tfsdk.ListNestedAttributes(map[string]tfsdk.Attribute{
+					"custom_type": {
+						Description: "If the external ID type is custom, this property contains the custom value and " +
+							"must be set.",
+						Type:     types.StringType,
+						Optional: true,
+					},
+					"type": {
+						Description: "The type of external ID. If set to custom, customType must also be set. " +
+							"Acceptable values: `account`, `custom`, `customer`, `login_id`, `network`, `organization`.",
+						Type:     types.StringType,
+						Required: true,
+						Validators: []tfsdk.AttributeValidator{
+							stringInSliceValidator{
+								stringOptions: []string{"account", "custom", "customer", "login_id",
+									"network", "organization"},
+							},
 						},
 					},
-				},
+					"value": {
+						Description: "The value of the ID.",
+						Type:        types.StringType,
+						Required:    true,
+					},
+				}, tfsdk.ListNestedAttributesOptions{}),
 			},
 			// TODO: (mbang) Add ValidateDiagFunc for max size when it's allowed on lists
 			// (https://github.com/hashicorp/terraform-plugin-sdk/issues/156)
 			"relations": {
 				Description: "A list of the user's relationships to other users. " +
 					"The maximum allowed data size for this field is 2Kb.",
-				Type:     schema.TypeList,
 				Optional: true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"custom_type": {
-							Description: "If the value of type is custom, this property contains " +
-								"the custom type string.",
-							Type:     schema.TypeString,
-							Optional: true,
-						},
-						"type": {
-							Description: "The type of relation. " +
-								"Acceptable values: `admin_assistant`, `assistant`, `brother`, `child`, `custom`, " +
-								"`domestic_partner`, `dotted_line_manager`, `exec_assistant`, `father`, `friend`, " +
-								"`manager`, `mother`, `parent`, `partner`, `referred_by`, `relative`, `sister`, " +
-								"`spouse`.",
-							Type:     schema.TypeString,
-							Required: true,
-							ValidateDiagFunc: validation.ToDiagFunc(
-								validation.StringInSlice([]string{"admin_assistant", "assistant", "brother", "child",
+				Attributes: tfsdk.ListNestedAttributes(map[string]tfsdk.Attribute{
+					"custom_type": {
+						Description: "If the value of type is custom, this property contains " +
+							"the custom type string.",
+						Type:     types.StringType,
+						Optional: true,
+					},
+					"type": {
+						Description: "The type of relation." +
+							"Acceptable values: `admin_assistant`, `assistant`, `brother`, `child`, `custom`, " +
+							"`domestic_partner`, `dotted_line_manager`, `exec_assistant`, `father`, `friend`, " +
+							"`manager`, `mother`, `parent`, `partner`, `referred_by`, `relative`, `sister`, " +
+							"`spouse`.",
+						Type:     types.StringType,
+						Required: true,
+						Validators: []tfsdk.AttributeValidator{
+							stringInSliceValidator{
+								stringOptions: []string{"admin_assistant", "assistant", "brother", "child",
 									"custom", "domestic_partner", "dotted_line_manager", "exec_assistant", "father",
 									"friend", "manager", "mother", "parent", "partner", "referred_by", "relative",
-									"sister"}, false),
-							),
-						},
-						"value": {
-							Description: "The name of the person the user is related to.",
-							Type:        schema.TypeString,
-							Required:    true,
+									"sister"},
+							},
 						},
 					},
-				},
+					"value": {
+						Description: "The name of the person the user is related to.",
+						Type:        types.StringType,
+						Required:    true,
+					},
+				}, tfsdk.ListNestedAttributesOptions{}),
 			},
 			"aliases": {
 				Description: "asps.list of the user's alias email addresses.",
-				Type:        schema.TypeList,
-				Optional:    true,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
+				Type: types.ListType{
+					ElemType: types.StringType,
 				},
+				Optional: true,
 			},
 			"is_mailbox_setup": {
 				Description: "Indicates if the user's Google mailbox is created. This property is only applicable " +
 					"if the user has been assigned a Gmail license.",
-				Type:     schema.TypeBool,
+				Type:     types.BoolType,
 				Computed: true,
 			},
 			"customer_id": {
@@ -362,524 +287,524 @@ func resourceUser() *schema.Resource {
 					"represent your account's customerId. As a reseller administrator, you can use the resold " +
 					"customer account's customerId. To get a customerId, use the account's primary domain in the " +
 					"domain parameter of a users.list request.",
-				Type:     schema.TypeString,
+				Type:     types.StringType,
 				Computed: true,
 			},
-			// TODO: (mbang) AtLeastOneOf (https://github.com/hashicorp/terraform-plugin-sdk/issues/470)
 			// And add ValidateDiagFunc for max size when it's allowed on lists
 			// (https://github.com/hashicorp/terraform-plugin-sdk/issues/156)
 			"addresses": {
 				Description: "A list of the user's addresses. The maximum allowed data size is 10Kb.",
-				Type:        schema.TypeList,
 				Optional:    true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"country": {
-							Description: "Country",
-							Type:        schema.TypeString,
-							Optional:    true,
-						},
-						"country_code": {
-							Description: "The country code. Uses the ISO 3166-1 standard.",
-							Type:        schema.TypeString,
-							Optional:    true,
-						},
-						"custom_type": {
-							Description: "If the address type is custom, this property contains the custom value.",
-							Type:        schema.TypeString,
-							Optional:    true,
-						},
-						"extended_address": {
-							Description: "For extended addresses, such as an address that includes a sub-region.",
-							Type:        schema.TypeString,
-							Optional:    true,
-						},
-						"formatted": {
-							Description: "A full and unstructured postal address. This is not synced with the " +
-								"structured address fields.",
-							Type:     schema.TypeString,
-							Optional: true,
-						},
-						"locality": {
-							Description: "The town or city of the address.",
-							Type:        schema.TypeString,
-							Optional:    true,
-						},
-						"po_box": {
-							Description: "The post office box, if present.",
-							Type:        schema.TypeString,
-							Optional:    true,
-						},
-						"postal_code": {
-							Description: "The ZIP or postal code, if applicable.",
-							Type:        schema.TypeString,
-							Optional:    true,
-						},
-						"primary": {
-							Description: "If this is the user's primary address. The addresses list may contain " +
-								"only one primary address.",
-							Type:     schema.TypeBool,
-							Optional: true,
-						},
-						"region": {
-							Description: "The abbreviated province or state.",
-							Type:        schema.TypeString,
-							Optional:    true,
-						},
-						"source_is_structured": {
-							Description: "Indicates if the user-supplied address was formatted. " +
-								"Formatted addresses are not currently supported.",
-							Type:     schema.TypeBool,
-							Optional: true,
-						},
-						"street_address": {
-							Description: "The street address, such as 1600 Amphitheatre Parkway. " +
-								"Whitespace within the string is ignored; however, newlines are significant.",
-							Type:     schema.TypeString,
-							Optional: true,
-						},
-						"type": {
-							Description: "The address type. " +
-								"Acceptable values: `custom`, `home`, `other`, `work`.",
-							Type:     schema.TypeString,
-							Required: true,
-							ValidateDiagFunc: validation.ToDiagFunc(
-								validation.StringInSlice([]string{"custom", "home", "other", "work"}, false),
-							),
+				Attributes: tfsdk.ListNestedAttributes(map[string]tfsdk.Attribute{
+					"country": {
+						Description: "Country",
+						Type:        types.StringType,
+						Optional:    true,
+					},
+					"country_code": {
+						Description: "The country code. Uses the ISO 3166-1 standard.",
+						Type:        types.StringType,
+						Optional:    true,
+					},
+					"custom_type": {
+						Description: "If the address type is custom, this property contains the custom value.",
+						Type:        types.StringType,
+						Optional:    true,
+					},
+					"extended_address": {
+						Description: "For extended addresses, such as an address that includes a sub-region.",
+						Type:        types.StringType,
+						Optional:    true,
+					},
+					"formatted": {
+						Description: "A full and unstructured postal address. This is not synced with the " +
+							"structured address fields.",
+						Type:     types.StringType,
+						Optional: true,
+					},
+					"locality": {
+						Description: "The town or city of the address.",
+						Type:        types.StringType,
+						Optional:    true,
+					},
+					"po_box": {
+						Description: "The post office box, if present.",
+						Type:        types.StringType,
+						Optional:    true,
+					},
+					"postal_code": {
+						Description: "The ZIP or postal code, if applicable.",
+						Type:        types.StringType,
+						Optional:    true,
+					},
+					"primary": {
+						Description: "If this is the user's primary address. The addresses list may contain " +
+							"only one primary address.",
+						Type:     types.BoolType,
+						Optional: true,
+					},
+					"region": {
+						Description: "The abbreviated province or state.",
+						Type:        types.StringType,
+						Optional:    true,
+					},
+					"source_is_structured": {
+						Description: "Indicates if the user-supplied address was formatted. " +
+							"Formatted addresses are not currently supported.",
+						Type:     types.BoolType,
+						Optional: true,
+					},
+					"street_address": {
+						Description: "The street address, such as 1600 Amphitheatre Parkway. " +
+							"Whitespace within the string is ignored; however, newlines are significant.",
+						Type:     types.StringType,
+						Optional: true,
+					},
+					"type": {
+						Description: "The address type." +
+							"Acceptable values: `custom`, `home`, `other`, `work`.",
+						Type:     types.StringType,
+						Required: true,
+						Validators: []tfsdk.AttributeValidator{
+							stringInSliceValidator{
+								stringOptions: []string{"custom", "home", "other", "work"},
+							},
 						},
 					},
-				},
+				}, tfsdk.ListNestedAttributesOptions{}),
 			},
 			// TODO: (mbang) Add ValidateDiagFunc for max size when it's allowed on lists
 			// (https://github.com/hashicorp/terraform-plugin-sdk/issues/156)
 			"organizations": {
 				Description: "A list of organizations the user belongs to. The maximum allowed data size is 10Kb.",
-				Type:        schema.TypeList,
 				Optional:    true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"cost_center": {
-							Description: "The cost center of the user's organization.",
-							Type:        schema.TypeString,
-							Optional:    true,
-						},
-						"custom_type": {
-							Description: "If the value of type is custom, this property contains the custom value.",
-							Type:        schema.TypeString,
-							Optional:    true,
-						},
-						"department": {
-							Description: "Specifies the department within the organization, such as sales or engineering.",
-							Type:        schema.TypeString,
-							Optional:    true,
-						},
-						"description": {
-							Description: "The description of the organization.",
-							Type:        schema.TypeString,
-							Optional:    true,
-						},
-						"domain": {
-							Description: "The domain the organization belongs to.",
-							Type:        schema.TypeString,
-							Optional:    true,
-						},
-						"full_time_equivalent": {
-							Description: "The full-time equivalent millipercent within the organization (100000 = 100%)",
-							Type:        schema.TypeInt,
-							Optional:    true,
-						},
-						"location": {
-							Description: "The physical location of the organization. " +
-								"This does not need to be a fully qualified address.",
-							Type:     schema.TypeString,
-							Optional: true,
-						},
-						"name": {
-							Description: "The name of the organization.",
-							Type:        schema.TypeString,
-							Optional:    true,
-						},
-						"primary": {
-							Description: "Indicates if this is the user's primary organization. A user may only have " +
-								"one primary organization.",
-							Type:     schema.TypeBool,
-							Optional: true,
-						},
-						"symbol": {
-							Description: "Text string symbol of the organization. For example, " +
-								"the text symbol for Google is GOOG.",
-							Type:     schema.TypeString,
-							Optional: true,
-						},
-						"title": {
-							Description: "The user's title within the organization. For example, member or engineer.",
-							Type:        schema.TypeString,
-							Optional:    true,
-						},
-						"type": {
-							Description: "The type of organization. " +
-								"Acceptable values: `domain_only`, `school`, `unknown`, `work`.",
-							Type:     schema.TypeString,
-							Required: true,
-							ValidateDiagFunc: validation.ToDiagFunc(
-								validation.StringInSlice([]string{"domain_only", "school", "unknown", "work"}, false),
-							),
+				Attributes: tfsdk.ListNestedAttributes(map[string]tfsdk.Attribute{
+					"cost_center": {
+						Description: "The cost center of the user's organization.",
+						Type:        types.StringType,
+						Optional:    true,
+					},
+					"custom_type": {
+						Description: "If the value of type is custom, this property contains the custom value.",
+						Type:        types.StringType,
+						Optional:    true,
+					},
+					"department": {
+						Description: "Specifies the department within the organization, such as sales or engineering.",
+						Type:        types.StringType,
+						Optional:    true,
+					},
+					"description": {
+						Description: "The description of the organization.",
+						Type:        types.StringType,
+						Optional:    true,
+					},
+					"domain": {
+						Description: "The domain the organization belongs to.",
+						Type:        types.StringType,
+						Optional:    true,
+					},
+					"full_time_equivalent": {
+						Description: "The full-time equivalent millipercent within the organization (100000 = 100%)",
+						Type:        types.StringType,
+						Optional:    true,
+					},
+					"location": {
+						Description: "The physical location of the organization. " +
+							"This does not need to be a fully qualified address.",
+						Type:     types.StringType,
+						Optional: true,
+					},
+					"name": {
+						Description: "The name of the organization.",
+						Type:        types.StringType,
+						Optional:    true,
+					},
+					"primary": {
+						Description: "Indicates if this is the user's primary organization. A user may only have " +
+							"one primary organization.",
+						Type:     types.BoolType,
+						Optional: true,
+					},
+					"symbol": {
+						Description: "Text string symbol of the organization. For example, " +
+							"the text symbol for Google is GOOG.",
+						Type:     types.StringType,
+						Optional: true,
+					},
+					"title": {
+						Description: "The user's title within the organization. For example, member or engineer.",
+						Type:        types.StringType,
+						Optional:    true,
+					},
+					"type": {
+						Description: "The type of organization." +
+							"Acceptable values: `domain_only`, `school`, `unknown`, `work`.",
+						Type:     types.StringType,
+						Required: true,
+						Validators: []tfsdk.AttributeValidator{
+							stringInSliceValidator{
+								stringOptions: []string{"domain_only", "school", "unknown", "work"},
+							},
 						},
 					},
-				},
+				}, tfsdk.ListNestedAttributesOptions{}),
 			},
 			"last_login_time": {
 				Description: "The last time the user logged into the user's account. The value is in ISO 8601 date " +
 					"and time format. The time is the complete date plus hours, minutes, and seconds " +
 					"in the form YYYY-MM-DDThh:mm:ssTZD. For example, 2010-04-05T17:30:04+01:00.",
-				Type:     schema.TypeString,
+				Type:     types.StringType,
 				Computed: true,
 			},
 			// TODO: (mbang) Add ValidateDiagFunc for max size when it's allowed on lists
 			// (https://github.com/hashicorp/terraform-plugin-sdk/issues/156)
 			"phones": {
 				Description: "A list of the user's phone numbers. The maximum allowed data size is 1Kb.",
-				Type:        schema.TypeList,
 				Optional:    true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"custom_type": {
-							Description: "If the phone number type is custom, this property contains the custom value " +
-								"and must be set.",
-							Type:     schema.TypeString,
-							Optional: true,
-						},
-						"primary": {
-							Description: "Indicates if this is the user's primary phone number. " +
-								"A user may only have one primary phone number.",
-							Type:     schema.TypeBool,
-							Optional: true,
-						},
-						"type": {
-							Description: "The type of phone number. " +
-								"Acceptable values: `assistant`, `callback`, `car`, `company_main` " +
-								", `custom`, `grand_central`, `home`, `home_fax`, `isdn`, `main`, `mobile`, `other`, " +
-								"`other_fax`, `pager`, `radio`, `telex`, `tty_tdd`, `work`, `work_fax`, `work_mobile`, " +
-								"`work_pager`.",
-							Type:     schema.TypeString,
-							Required: true,
-							ValidateDiagFunc: validation.ToDiagFunc(
-								validation.StringInSlice([]string{"assistant", "callback", "car", "company_main",
+				Attributes: tfsdk.ListNestedAttributes(map[string]tfsdk.Attribute{
+					"custom_type": {
+						Description: "If the phone number type is custom, this property contains the custom value " +
+							"and must be set.",
+						Type:     types.StringType,
+						Optional: true,
+					},
+					"primary": {
+						Description: "Indicates if this is the user's primary phone number. " +
+							"A user may only have one primary phone number.",
+						Type:     types.BoolType,
+						Optional: true,
+					},
+					"type": {
+						Description: "The type of phone number." +
+							"Acceptable values: `assistant`, `callback`, `car`, `company_main` " +
+							", `custom`, `grand_central`, `home`, `home_fax`, `isdn`, `main`, `mobile`, `other`, " +
+							"`other_fax`, `pager`, `radio`, `telex`, `tty_tdd`, `work`, `work_fax`, `work_mobile`, " +
+							"`work_pager`.",
+						Type:     types.StringType,
+						Required: true,
+						Validators: []tfsdk.AttributeValidator{
+							stringInSliceValidator{
+								stringOptions: []string{"assistant", "callback", "car", "company_main",
 									"custom", "grand_central", "home", "home_fax", "isdn", "main", "mobile", "other",
 									"other_fax", "pager", "radio", "telex", "tty_tdd", "work", "work_fax",
-									"work_mobile", "work_pager"}, false),
-							),
-						},
-						"value": {
-							Description: "A human-readable phone number. It may be in any telephone number format.",
-							Type:        schema.TypeString,
-							Required:    true,
+									"work_mobile", "work_pager"},
+							},
 						},
 					},
-				},
+					"value": {
+						Description: "A human-readable phone number. It may be in any telephone number format.",
+						Type:        types.StringType,
+						Required:    true,
+					},
+				}, tfsdk.ListNestedAttributesOptions{}),
 			},
 			"suspension_reason": {
 				Description: "Has the reason a user account is suspended either by the administrator or by Google at " +
 					"the time of suspension. The property is returned only if the suspended property is true.",
-				Type:     schema.TypeString,
+				Type:     types.StringType,
 				Computed: true,
 			},
 			"thumbnail_photo_url": {
 				Description: "Photo Url of the user.",
-				Type:        schema.TypeString,
+				Type:        types.StringType,
 				Computed:    true,
 			},
 			// TODO: (mbang) Add ValidateDiagFunc for max size when it's allowed on lists
 			// (https://github.com/hashicorp/terraform-plugin-sdk/issues/156)
 			"languages": {
 				Description: "A list of the user's languages. The maximum allowed data size is 1Kb.",
-				Type:        schema.TypeList,
 				Optional:    true,
 				Computed:    true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"custom_language": {
-							Description: "Other language. A user can provide their own language name if there is no " +
-								"corresponding Google III language code. If this is set, LanguageCode can't be set.",
-							Type:     schema.TypeString,
-							Optional: true,
-							// TODO: (mbang) https://github.com/hashicorp/terraform-plugin-sdk/issues/470
-							//ExactlyOneOf: []string{"custom_language", "language_code"},
-							//ConflictsWith: []string{"custom_language", "preference"},
-						},
-						"language_code": {
-							Description: "Language Code. Should be used for storing Google III LanguageCode string " +
-								"representation for language. Illegal values cause SchemaException.",
-							Type:     schema.TypeString,
-							Optional: true,
-							Default:  "en",
-							// TODO: (mbang) https://github.com/hashicorp/terraform-plugin-sdk/issues/470
-							//ExactlyOneOf: []string{"custom_language", "language_code"},
-						},
-						"preference": {
-							Description: "If present, controls whether the specified languageCode is the user's " +
-								"preferred language. Allowed values are `preferred` and `not_preferred`.",
-							Type:     schema.TypeString,
-							Optional: true,
-							Default:  "preferred",
-							// TODO: (mbang) https://github.com/hashicorp/terraform-plugin-sdk/issues/470
-							//ConflictsWith: []string{"custom_language", "preference"},
-						},
+				Attributes: tfsdk.ListNestedAttributes(map[string]tfsdk.Attribute{
+					"custom_language": {
+						Description: "Other language. A user can provide their own language name if there is no " +
+							"corresponding Google III language code. If this is set, LanguageCode can't be set.",
+						Type:     types.StringType,
+						Optional: true,
 					},
+					"language_code": {
+						Description: "Language Code. Should be used for storing Google III LanguageCode string " +
+							"representation for language. Illegal values cause SchemaException.",
+						Type:     types.StringType,
+						Optional: true,
+						Computed: true,
+						PlanModifiers: []tfsdk.AttributePlanModifier{
+							DefaultModifier{
+								ValType:    types.StringType,
+								DefaultVal: "en",
+							},
+						},
+						// TODO: (mbang) https://github.com/hashicorp/terraform-plugin-sdk/issues/470
+						//ExactlyOneOf: []string{"custom_language", "language_code"},
+					},
+					"preference": {
+						Description: "If present, controls whether the specified languageCode is the user's " +
+							"preferred language. Allowed values are `preferred` and `not_preferred`.",
+						Type:     types.StringType,
+						Optional: true,
+						Computed: true,
+						PlanModifiers: []tfsdk.AttributePlanModifier{
+							DefaultModifier{
+								ValType:    types.StringType,
+								DefaultVal: "preferred",
+							},
+						},
+						// TODO: (mbang) https://github.com/hashicorp/terraform-plugin-sdk/issues/470
+						//ConflictsWith: []string{"custom_language", "preference"},
+					},
+				}, tfsdk.ListNestedAttributesOptions{}),
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					UserLanguagesModifier{},
 				},
 			},
 			// TODO: (mbang) AtLeastOneOf (https://github.com/hashicorp/terraform-plugin-sdk/issues/470)
 			"posix_accounts": {
 				Description: "A list of POSIX account information for the user.",
-				Type:        schema.TypeList,
 				Optional:    true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"account_id": {
-							Description: "A POSIX account field identifier.",
-							Type:        schema.TypeString,
-							Optional:    true,
-						},
-						"gecos": {
-							Description: "The GECOS (user information) for this account.",
-							Type:        schema.TypeString,
-							Optional:    true,
-						},
-						"gid": {
-							Description: "The default group ID.",
-							Type:        schema.TypeString,
-							Optional:    true,
-						},
-						"home_directory": {
-							Description: "The path to the home directory for this account.",
-							Type:        schema.TypeString,
-							Optional:    true,
-						},
-						"operating_system_type": {
-							Description: "The operating system type for this account. " +
-								"Acceptable values: `linux`, `unspecified`, `windows`.",
-							Type:     schema.TypeString,
-							Optional: true,
-							ValidateDiagFunc: validation.ToDiagFunc(
-								validation.StringInSlice([]string{"linux", "unspecified", "windows"}, false),
-							),
-						},
-						"primary": {
-							Description: "If this is user's primary account within the SystemId.",
-							Type:        schema.TypeBool,
-							Optional:    true,
-						},
-						"shell": {
-							Description: "The path to the login shell for this account.",
-							Type:        schema.TypeString,
-							Optional:    true,
-						},
-						"system_id": {
-							Description: "System identifier for which account Username or Uid apply to.",
-							Type:        schema.TypeString,
-							Optional:    true,
-						},
-						"uid": {
-							Description: "The POSIX compliant user ID.",
-							Type:        schema.TypeString,
-							Optional:    true,
-						},
-						"username": {
-							Description: "The username of the account.",
-							Type:        schema.TypeString,
-							Optional:    true,
+				Attributes: tfsdk.ListNestedAttributes(map[string]tfsdk.Attribute{
+					"account_id": {
+						Description: "A POSIX account field identifier.",
+						Type:        types.StringType,
+						Optional:    true,
+					},
+					"gecos": {
+						Description: "The GECOS (user information) for this account.",
+						Type:        types.StringType,
+						Optional:    true,
+					},
+					"gid": {
+						Description: "The default group ID.",
+						Type:        types.StringType,
+						Optional:    true,
+					},
+					"home_directory": {
+						Description: "The path to the home directory for this account.",
+						Type:        types.StringType,
+						Optional:    true,
+					},
+					"operating_system_type": {
+						Description: "The operating system type for this account. " +
+							"Acceptable values: `linux`, `unspecified`, `windows`.",
+						Type:     types.StringType,
+						Optional: true,
+						Validators: []tfsdk.AttributeValidator{
+							stringInSliceValidator{
+								stringOptions: []string{"linux", "unspecified", "windows"},
+							},
 						},
 					},
-				},
+					"primary": {
+						Description: "If this is user's primary account within the SystemId.",
+						Type:        types.BoolType,
+						Optional:    true,
+					},
+					"shell": {
+						Description: "The path to the login shell for this account.",
+						Type:        types.StringType,
+						Optional:    true,
+					},
+					"system_id": {
+						Description: "System identifier for which account Username or Uid apply to.",
+						Type:        types.StringType,
+						Optional:    true,
+					},
+					"uid": {
+						Description: "The POSIX compliant user ID.",
+						Type:        types.StringType,
+						Optional:    true,
+					},
+					"username": {
+						Description: "The username of the account.",
+						Type:        types.StringType,
+						Optional:    true,
+					},
+				}, tfsdk.ListNestedAttributesOptions{}),
 			},
 			"creation_time": {
 				Description: "The time the user's account was created. The value is in ISO 8601 date and time format. " +
 					"The time is the complete date plus hours, minutes, and seconds in the form " +
 					"YYYY-MM-DDThh:mm:ssTZD. For example, 2010-04-05T17:30:04+01:00.",
-				Type:     schema.TypeString,
+				Type:     types.StringType,
 				Computed: true,
 			},
 			"non_editable_aliases": {
 				Description: "asps.list of the user's non-editable alias email addresses. These are typically outside " +
 					"the account's primary domain or sub-domain.",
-				Type:     schema.TypeList,
-				Computed: true,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
+				Type: types.ListType{
+					ElemType: types.StringType,
 				},
+				Computed: true,
 			},
 			// TODO: (mbang) Add ValidateDiagFunc for max size when it's allowed on lists
 			// (https://github.com/hashicorp/terraform-plugin-sdk/issues/156)
 			"ssh_public_keys": {
 				Description: "A list of SSH public keys. The maximum allowed data size is 10Kb.",
-				Type:        schema.TypeList,
 				Optional:    true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"expiration_time_usec": {
-							Description: "An expiration time in microseconds since epoch.",
-							Type:        schema.TypeString,
-							Optional:    true,
-						},
-						"fingerprint": {
-							Description: "A SHA-256 fingerprint of the SSH public key.",
-							Type:        schema.TypeString,
-							Computed:    true,
-						},
-						"key": {
-							Description: "An SSH public key.",
-							Type:        schema.TypeString,
-							Required:    true,
-						},
+				Attributes: tfsdk.ListNestedAttributes(map[string]tfsdk.Attribute{
+					"expiration_time_usec": {
+						Description: "An expiration time in microseconds since epoch.",
+						Type:        types.StringType,
+						Optional:    true,
 					},
-				},
+					"fingerprint": {
+						Description: "A SHA-256 fingerprint of the SSH public key.",
+						Type:        types.StringType,
+						Computed:    true,
+					},
+					"key": {
+						Description: "An SSH public key.",
+						Type:        types.StringType,
+						Required:    true,
+					},
+				}, tfsdk.ListNestedAttributesOptions{}),
 			},
 			// TODO: (mbang) Add ValidateDiagFunc for max size when it's allowed on lists
 			// (https://github.com/hashicorp/terraform-plugin-sdk/issues/156)
 			"websites": {
 				Description: "A list of the user's websites. The maximum allowed data size is 2Kb.",
-				Type:        schema.TypeList,
 				Optional:    true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"custom_type": {
-							Description: "The custom type. Only used if the type is custom.",
-							Type:        schema.TypeString,
-							Optional:    true,
-						},
-						"primary": {
-							Description: "If this is user's primary website or not.",
-							Type:        schema.TypeBool,
-							Optional:    true,
-						},
-						"type": {
-							Description: "The type or purpose of the website. For example, a website could be labeled " +
-								"as home or blog. Alternatively, an entry can have a custom type " +
-								"Custom types must have a customType value. " +
-								"Acceptable values: `app_install_page`, `blog`, `custom`, `ftp` " +
-								", `home`, `home_page`, `other`, `profile`, `reservations`, `resume`, `work`.",
-							Type:     schema.TypeString,
-							Required: true,
-							ValidateDiagFunc: validation.ToDiagFunc(
-								validation.StringInSlice([]string{"app_install_page", "blog", "custom", "ftp",
+				Attributes: tfsdk.ListNestedAttributes(map[string]tfsdk.Attribute{
+					"custom_type": {
+						Description: "The custom type. Only used if the type is custom.",
+						Type:        types.StringType,
+						Optional:    true,
+					},
+					"primary": {
+						Description: "If this is user's primary website or not.",
+						Type:        types.BoolType,
+						Optional:    true,
+					},
+					"type": {
+						Description: "The type or purpose of the website. For example, a website could be labeled " +
+							"as home or blog. Alternatively, an entry can have a custom type " +
+							"Custom types must have a customType value. " +
+							"Acceptable values: `app_install_page`, `blog`, `custom`, `ftp` " +
+							", `home`, `home_page`, `other`, `profile`, `reservations`, `resume`, `work`.",
+						Type:     types.StringType,
+						Required: true,
+						Validators: []tfsdk.AttributeValidator{
+							stringInSliceValidator{
+								stringOptions: []string{"app_install_page", "blog", "custom", "ftp",
 									"home", "home_page", "other", "profile", "reservations", "resume", "work"},
-									false),
-							),
-						},
-						"value": {
-							Description: "The URL of the website.",
-							Type:        schema.TypeString,
-							Required:    true,
+							},
 						},
 					},
-				},
+					"value": {
+						Description: "The URL of the website.",
+						Type:        types.StringType,
+						Required:    true,
+					},
+				}, tfsdk.ListNestedAttributesOptions{}),
 			},
 			// TODO: (mbang) Add ValidateDiagFunc for max size when it's allowed on lists
 			// (https://github.com/hashicorp/terraform-plugin-sdk/issues/156)
 			"locations": {
 				Description: "A list of the user's locations. The maximum allowed data size is 10Kb.",
-				Type:        schema.TypeList,
 				Optional:    true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"area": {
-							Description: "Textual location. This is most useful for display purposes to concisely " +
-								"describe the location. For example, Mountain View, CA or Near Seattle.",
-							Type:     schema.TypeString,
-							Optional: true,
-						},
-						"building_id": {
-							Description: "Building identifier.",
-							Type:        schema.TypeString,
-							Optional:    true,
-						},
-						"custom_type": {
-							Description: "If the location type is custom, this property contains the custom value.",
-							Type:        schema.TypeString,
-							Optional:    true,
-						},
-						"desk_code": {
-							Description: "Most specific textual code of individual desk location.",
-							Type:        schema.TypeString,
-							Optional:    true,
-						},
-						"floor_name": {
-							Description: "Floor name/number.",
-							Type:        schema.TypeString,
-							Optional:    true,
-						},
-						"floor_section": {
-							Description: "Floor section. More specific location within the floor. For example, " +
-								"if a floor is divided into sections A, B, and C, this field would identify one " +
-								"of those values.",
-							Type:     schema.TypeString,
-							Optional: true,
-						},
-						"type": {
-							Description: "The location type. " +
-								"Acceptable values: `custom`, `default`, `desk`",
-							Type:     schema.TypeString,
-							Required: true,
-							ValidateDiagFunc: validation.ToDiagFunc(
-								validation.StringInSlice([]string{"custom", "default", "desk"},
-									false),
-							),
+				Attributes: tfsdk.ListNestedAttributes(map[string]tfsdk.Attribute{
+					"area": {
+						Description: "Textual location. This is most useful for display purposes to concisely " +
+							"describe the location. For example, Mountain View, CA or Near Seattle.",
+						Type:     types.StringType,
+						Optional: true,
+					},
+					"building_id": {
+						Description: "Building identifier.",
+						Type:        types.StringType,
+						Optional:    true,
+					},
+					"custom_type": {
+						Description: "If the location type is custom, this property contains the custom value.",
+						Type:        types.StringType,
+						Optional:    true,
+					},
+					"desk_code": {
+						Description: "Most specific textual code of individual desk location.",
+						Type:        types.StringType,
+						Optional:    true,
+					},
+					"floor_name": {
+						Description: "Floor name/number.",
+						Type:        types.StringType,
+						Optional:    true,
+					},
+					"floor_section": {
+						Description: "Floor section. More specific location within the floor. For example, " +
+							"if a floor is divided into sections A, B, and C, this field would identify one " +
+							"of those values.",
+						Type:     types.StringType,
+						Optional: true,
+					},
+					"type": {
+						Description: "The location type." +
+							"Acceptable values: `custom`, `default`, `desk`",
+						Type:     types.StringType,
+						Required: true,
+						Validators: []tfsdk.AttributeValidator{
+							stringInSliceValidator{
+								stringOptions: []string{"custom", "default", "desk"},
+							},
 						},
 					},
-				},
+				}, tfsdk.ListNestedAttributesOptions{}),
 			},
 			"include_in_global_address_list": {
 				Description: "Indicates if the user's profile is visible in the Google Workspace global address list " +
 					"when the contact sharing feature is enabled for the domain.",
-				Type:     schema.TypeBool,
+				Type:     types.BoolType,
 				Optional: true,
-				Default:  true,
+				Computed: true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					DefaultModifier{
+						ValType:    types.BoolType,
+						DefaultVal: true,
+					},
+				},
 			},
 			// TODO: (mbang) Add ValidateDiagFunc for max size when it's allowed on lists
 			// (https://github.com/hashicorp/terraform-plugin-sdk/issues/156)
 			"keywords": {
 				Description: "A list of the user's keywords. The maximum allowed data size is 1Kb.",
-				Type:        schema.TypeList,
 				Optional:    true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"custom_type": {
-							Description: "Custom Type.",
-							Type:        schema.TypeString,
-							Optional:    true,
-						},
-						"type": {
-							Description: "Each entry can have a type which indicates standard type of that entry. " +
-								"For example, keyword could be of type occupation or outlook. In addition to the " +
-								"standard type, an entry can have a custom type and can give it any name. Such types " +
-								"should have the CUSTOM value as type and also have a customType value. " +
-								"Acceptable values: `custom`, `mission`, `occupation`, `outlook`",
-							Type:     schema.TypeString,
-							Required: true,
-							ValidateDiagFunc: validation.ToDiagFunc(
-								validation.StringInSlice([]string{"custom", "mission", "occupation", "outlook"},
-									false),
-							),
-						},
-						"value": {
-							Description: "Keyword.",
-							Type:        schema.TypeString,
-							Required:    true,
+				Attributes: tfsdk.ListNestedAttributes(map[string]tfsdk.Attribute{
+					"custom_type": {
+						Description: "Custom Type.",
+						Type:        types.StringType,
+						Optional:    true,
+					},
+					"type": {
+						Description: "Each entry can have a type which indicates standard type of that entry. " +
+							"For example, keyword could be of type occupation or outlook. In addition to the " +
+							"standard type, an entry can have a custom type and can give it any name. Such types " +
+							"should have the CUSTOM value as type and also have a customType value. " +
+							"Acceptable values: `custom`, `mission`, `occupation`, `outlook`",
+						Type:     types.StringType,
+						Required: true,
+						Validators: []tfsdk.AttributeValidator{
+							stringInSliceValidator{
+								stringOptions: []string{"custom", "mission", "occupation", "outlook"},
+							},
 						},
 					},
-				},
+					"value": {
+						Description: "Keyword.",
+						Type:        types.StringType,
+						Required:    true,
+					},
+				}, tfsdk.ListNestedAttributesOptions{}),
 			},
 			"deletion_time": {
 				Description: "The time the user's account was deleted. The value is in ISO 8601 date and time format " +
 					"The time is the complete date plus hours, minutes, and seconds in the form YYYY-MM-DDThh:mm:ssTZD. " +
 					"For example 2010-04-05T17:30:04+01:00.",
-				Type:     schema.TypeString,
+				Type:     types.StringType,
 				Computed: true,
 			},
 			// "gender" is not included in the GET response, currently, so leaving this out for now
 			"thumbnail_photo_etag": {
 				Description: "ETag of the user's photo",
-				Type:        schema.TypeString,
+				Type:        types.StringType,
 				Computed:    true,
 			},
 			// TODO: (mbang) Add ValidateDiagFunc for max size when it's allowed on lists
@@ -888,535 +813,400 @@ func resourceUser() *schema.Resource {
 				Description: "The user's Instant Messenger (IM) accounts. A user account can have multiple ims " +
 					"properties. But, only one of these ims properties can be the primary IM contact. " +
 					"The maximum allowed data size is 2Kb.",
-				Type:     schema.TypeList,
 				Optional: true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"custom_protocol": {
-							Description: "If the protocol value is custom_protocol, this property holds the custom " +
-								"protocol's string.",
-							Type:     schema.TypeString,
-							Optional: true,
-						},
-						"custom_type": {
-							Description: "If the IM type is custom, this property holds the custom type string.",
-							Type:        schema.TypeString,
-							Optional:    true,
-						},
-						"im": {
-							Description: "The user's IM network ID.",
-							Type:        schema.TypeString,
-							Optional:    true,
-						},
-						"primary": {
-							Description: "If this is the user's primary IM. " +
-								"Only one entry in the IM list can have a value of true.",
-							Type:     schema.TypeBool,
-							Optional: true,
-						},
-						"protocol": {
-							Description: "An IM protocol identifies the IM network. " +
-								"The value can be a custom network or the standard network. " +
-								"Acceptable values: `aim`, `custom_protocol`, `gtalk`, `icq`, `jabber`, " +
-								"`msn`, `net_meeting`, `qq`, `skype`, `yahoo`.",
-							Type:     schema.TypeString,
-							Required: true,
-							ValidateDiagFunc: validation.ToDiagFunc(
-								validation.StringInSlice([]string{"aim", "custom_protocol", "gtalk", "icq",
-									"jabber", "msn", "net_meeting", "qq", "skype", "yahoo"}, false),
-							),
-						},
-						"type": {
-							Description: "Acceptable values: `custom`, `home`, `other`, `work`.",
-							Type:        schema.TypeString,
-							Required:    true,
-							ValidateDiagFunc: validation.ToDiagFunc(
-								validation.StringInSlice([]string{"custom", "home", "other", "work"}, false),
-							),
-						},
+				Attributes: tfsdk.ListNestedAttributes(map[string]tfsdk.Attribute{
+					"custom_protocol": {
+						Description: "If the protocol value is custom_protocol, this property holds the custom " +
+							"protocol's string.",
+						Type:     types.StringType,
+						Optional: true,
 					},
-				},
-			},
-			"custom_schemas": {
-				Description:      "Custom fields of the user.",
-				Type:             schema.TypeList,
-				Optional:         true,
-				DiffSuppressFunc: diffSuppressCustomSchemas,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"schema_name": {
-							Description: "The name of the schema.",
-							Type:        schema.TypeString,
-							Required:    true,
-						},
-						"schema_values": {
-							Description: "JSON encoded map that represents key/value pairs that " +
-								"correspond to the given schema. ",
-							Type:     schema.TypeMap,
-							Required: true,
-							Elem: &schema.Schema{
-								Type: schema.TypeString,
-								ValidateDiagFunc: validation.ToDiagFunc(
-									validation.StringIsJSON,
-								),
+					"custom_type": {
+						Description: "If the IM type is custom, this property holds the custom type string.",
+						Type:        types.StringType,
+						Optional:    true,
+					},
+					"im": {
+						Description: "The user's IM network ID.",
+						Type:        types.StringType,
+						Optional:    true,
+					},
+					"primary": {
+						Description: "If this is the user's primary IM. " +
+							"Only one entry in the IM list can have a value of true.",
+						Type:     types.BoolType,
+						Optional: true,
+					},
+					"protocol": {
+						Description: "An IM protocol identifies the IM network. " +
+							"The value can be a custom network or the standard network. " +
+							"Acceptable values: `aim`, `custom_protocol`, `gtalk`, `icq`, `jabber`, " +
+							"`msn`, `net_meeting`, `qq`, `skype`, `yahoo`.",
+						Type:     types.StringType,
+						Required: true,
+						Validators: []tfsdk.AttributeValidator{
+							stringInSliceValidator{
+								stringOptions: []string{"aim", "custom_protocol", "gtalk", "icq",
+									"jabber", "msn", "net_meeting", "qq", "skype", "yahoo"},
 							},
 						},
 					},
-				},
+					"type": {
+						Description: "Acceptable values: `custom`, `home`, `other`, `work`.",
+						Type:        types.StringType,
+						Required:    true,
+						Validators: []tfsdk.AttributeValidator{
+							stringInSliceValidator{
+								stringOptions: []string{"custom", "home", "other", "work"},
+							},
+						},
+					},
+				}, tfsdk.ListNestedAttributesOptions{}),
+			},
+			"custom_schemas": {
+				Description: "Custom fields of the user.",
+				//DiffSuppressFunc: diffSuppressCustomSchemas,
+				Optional: true,
+				Attributes: tfsdk.ListNestedAttributes(map[string]tfsdk.Attribute{
+					"schema_name": {
+						Description: "The name of the schema.",
+						Type:        types.StringType,
+						Required:    true,
+					},
+					"schema_values": {
+						Description: "JSON encoded map that represents key/value pairs that " +
+							"correspond to the given schema. ",
+						Type: types.MapType{
+							ElemType: types.StringType,
+						},
+						Required: true,
+						//ValidateDiagFunc: validation.ToDiagFunc(
+						//	validation.StringIsJSON,
+						//	),
+					},
+				}, tfsdk.ListNestedAttributesOptions{}),
 			},
 			"is_enrolled_in_2_step_verification": {
 				Description: "Is enrolled in 2-step verification.",
-				Type:        schema.TypeBool,
+				Type:        types.BoolType,
 				Computed:    true,
 			},
 			"is_enforced_in_2_step_verification": {
 				Description: "Is 2-step verification enforced.",
-				Type:        schema.TypeBool,
+				Type:        types.BoolType,
 				Computed:    true,
 			},
 			"archived": {
 				Description: "Indicates if user is archived.",
-				Type:        schema.TypeBool,
+				Type:        types.BoolType,
 				Optional:    true,
+				Computed:    true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					DefaultModifier{
+						ValType:    types.BoolType,
+						DefaultVal: false,
+					},
+				},
 			},
 			"org_unit_path": {
 				Description: "The full path of the parent organization associated with the user. " +
 					"If the parent organization is the top-level, it is represented as a forward slash (/).",
-				Type:     schema.TypeString,
+				Type:     types.StringType,
 				Optional: true,
 				Computed: true,
 			},
 			"recovery_email": {
 				Description: "Recovery email of the user.",
-				Type:        schema.TypeString,
+				Type:        types.StringType,
 				Optional:    true,
 			},
 			"recovery_phone": {
 				Description: "Recovery phone of the user. The phone number must be in the E.164 format, " +
 					"starting with the plus sign (+). Example: +16506661212.",
-				Type:     schema.TypeString,
+				Type:     types.StringType,
 				Optional: true,
 			},
+			"id": {
+				Computed:            true,
+				MarkdownDescription: "User identifier",
+				PlanModifiers: tfsdk.AttributePlanModifiers{
+					tfsdk.UseStateForUnknown(),
+				},
+				Type: types.StringType,
+			},
 		},
-	}
+	}, nil
 }
 
-func resourceUserCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	var diags diag.Diagnostics
+type userResource struct {
+	provider provider
+}
 
-	// use the meta value to retrieve your client from the provider configure method
-	client := meta.(*apiClient)
+func (r resourceUserType) NewResource(_ context.Context, in tfsdk.Provider) (tfsdk.Resource, diag.Diagnostics) {
+	p, diags := convertProviderType(in)
 
-	if d.Get("password").(string) == "" {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  fmt.Sprintf("Password is required when creating a new user"),
-		})
+	return userResource{
+		provider: p,
+	}, diags
+}
 
-		return diags
+// Create a new user
+func (r userResource) Create(ctx context.Context, req tfsdk.CreateResourceRequest, resp *tfsdk.CreateResourceResponse) {
+	if !r.provider.configured {
+		resp.Diagnostics.AddError(
+			"Provider not configured",
+			"The provider hasn't been configured before apply, likely because it depends on an unknown value from "+
+				"another resource. This leads to weird stuff happening, so we'd prefer if you didn't do that. Thanks!",
+		)
+		return
 	}
 
-	primaryEmail := d.Get("primary_email").(string)
-	log.Printf("[DEBUG] Creating User %q: %#v", d.Id(), primaryEmail)
-
-	directoryService, diags := client.NewDirectoryService()
-	if diags.HasError() {
-		return diags
+	// Retrieve values from plan
+	var plan userResourceData
+	diags := req.Plan.Get(ctx, &plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
-	usersService, diags := GetUsersService(directoryService)
-	if diags.HasError() {
-		return diags
+	// we don't want the planned emails, only what's in config
+	// Retrieve values from config
+	var config userResourceData
+	diags = req.Config.Get(ctx, &config)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
-	userObj := directory.User{
-		PrimaryEmail:               primaryEmail,
-		Password:                   d.Get("password").(string),
-		HashFunction:               d.Get("hash_function").(string),
-		Suspended:                  d.Get("suspended").(bool),
-		ChangePasswordAtNextLogin:  d.Get("change_password_at_next_login").(bool),
-		IpWhitelisted:              d.Get("ip_allowlist").(bool),
-		Name:                       expandName(d.Get("name")),
-		Emails:                     expandInterfaceObjects(d.Get("emails")),
-		ExternalIds:                expandInterfaceObjects(d.Get("external_ids")),
-		Relations:                  expandInterfaceObjects(d.Get("relations")),
-		Addresses:                  expandInterfaceObjects(d.Get("addresses")),
-		Organizations:              expandInterfaceObjects(d.Get("organizations")),
-		Phones:                     expandInterfaceObjects(d.Get("phones")),
-		Languages:                  expandInterfaceObjects(d.Get("languages")),
-		PosixAccounts:              expandInterfaceObjects(d.Get("posix_accounts")),
-		SshPublicKeys:              expandInterfaceObjects(d.Get("ssh_public_keys")),
-		Websites:                   expandInterfaceObjects(d.Get("websites")),
-		Locations:                  expandInterfaceObjects(d.Get("locations")),
-		IncludeInGlobalAddressList: d.Get("include_in_global_address_list").(bool),
-		Keywords:                   expandInterfaceObjects(d.Get("keywords")),
-		Ims:                        expandInterfaceObjects(d.Get("ims")),
-		Archived:                   d.Get("archived").(bool),
-		OrgUnitPath:                d.Get("org_unit_path").(string),
-		RecoveryEmail:              d.Get("recovery_email").(string),
-		RecoveryPhone:              d.Get("recovery_phone").(string),
+	userReq := UserPlanToObj(ctx, &r.provider, &config, &plan, &resp.Diagnostics)
 
-		ForceSendFields: []string{"IncludeInGlobalAddressList"},
+	log.Printf("[DEBUG] Creating User %q: %#v", plan.ID.Value, plan.PrimaryEmail.Value)
+	usersService := GetUsersService(&r.provider, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
-	if len(d.Get("custom_schemas").([]interface{})) > 0 {
-		diags = validateCustomSchemas(d, client)
-		if diags.HasError() {
-			return diags
-		}
-
-		customSchemas, diags := expandCustomSchemaValues(d.Get("custom_schemas").([]interface{}))
-		if diags.HasError() {
-			return diags
-		}
-
-		userObj.CustomSchemas = customSchemas
-	}
-
-	user, err := usersService.Insert(&userObj).Do()
+	userObj, err := usersService.Insert(&userReq).Do()
 	if err != nil {
-		return diag.FromErr(err)
+		resp.Diagnostics.AddError("error while trying to create user", err.Error())
+		return
 	}
 
-	d.SetId(user.Id)
+	if userObj == nil {
+		resp.Diagnostics.AddError(fmt.Sprintf("no user was returned for %s", plan.PrimaryEmail.Value), "object returned was nil")
+		return
+	}
+
+	userId := userObj.Id
+
+	// The etag changes with each insert, so we want to monitor how many changes we should see
+	// when we're checking for eventual consistency
+	numInserts := 1
+
+	aliases := plan.Aliases.Elems
+
+	if len(aliases) > 0 {
+		aliasesService := GetUserAliasService(&r.provider, &resp.Diagnostics)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+
+		for _, alias := range aliases {
+			aliasName, err := alias.ToTerraformValue(ctx)
+			if err != nil {
+				return
+			}
+
+			aliasObj := directory.Alias{
+				Alias: aliasName.String(),
+			}
+
+			_, err = aliasesService.Insert(userId, &aliasObj).Do()
+			if err != nil {
+				return
+			}
+			numInserts += 1
+		}
+	}
 
 	// INSERT will respond with the User that will be created, however, it is eventually consistent
 	// After INSERT, the etag is updated along with the User (and any aliases),
 	// once we get a consistent etag, we can feel confident that our User is also consistent
 	cc := consistencyCheck{
 		resourceType: "user",
-		timeout:      d.Timeout(schema.TimeoutCreate),
+		timeout:      CreateTimeout,
+		num404s:      0,
 	}
-	err = retryTimeDuration(ctx, d.Timeout(schema.TimeoutCreate), func() error {
-		var retryErr error
-
-		if cc.reachedConsistency(1) {
+	err = retryTimeDuration(ctx, CreateTimeout, func() error {
+		if cc.reachedConsistency(numInserts) {
 			return nil
 		}
 
-		newUser, retryErr := usersService.Get(d.Id()).IfNoneMatch(cc.lastEtag).Do()
+		newUser, retryErr := usersService.Get(userId).IfNoneMatch(cc.lastEtag).Do()
 		if googleapi.IsNotModified(retryErr) {
 			cc.currConsistent += 1
 		} else if retryErr != nil {
-			return fmt.Errorf("unexpected error during retries of %s: %s", cc.resourceType, retryErr)
+			return cc.is404(retryErr)
 		} else {
 			cc.handleNewEtag(newUser.Etag)
 		}
 
 		return fmt.Errorf("timed out while waiting for %s to be inserted", cc.resourceType)
 	})
-
 	if err != nil {
-		return diag.FromErr(err)
+		return
 	}
 
-	diags = resourceUserUpdate(ctx, d, meta)
-	if diags.HasError() {
-		return diags
-	}
+	if plan.IsAdmin.Value {
+		makeAdminObj := directory.UserMakeAdmin{
+			Status:          plan.IsAdmin.Value,
+			ForceSendFields: []string{"Status"},
+		}
 
-	log.Printf("[DEBUG] Finished creating User %q: %#v", d.Id(), primaryEmail)
-	return resourceUserRead(ctx, d, meta)
-}
+		cc = consistencyCheck{
+			resourceType: "user",
+			timeout:      CreateTimeout,
+			num404s:      0,
+		}
+		err = usersService.MakeAdmin(userId, &makeAdminObj).Do()
+		if err != nil {
+			resp.Diagnostics.AddError("error while updating user to admin", err.Error())
+			return
+		}
 
-func resourceUserRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	var diags diag.Diagnostics
+		numInserts = 1
+		err = retryTimeDuration(ctx, CreateTimeout, func() error {
+			if cc.reachedConsistency(numInserts) {
+				return nil
+			}
 
-	// use the meta value to retrieve your client from the provider configure method
-	client := meta.(*apiClient)
+			newUser, retryErr := usersService.Get(userId).IfNoneMatch(cc.lastEtag).Do()
+			if googleapi.IsNotModified(retryErr) {
+				cc.currConsistent += 1
+			} else if retryErr != nil {
+				return cc.is404(retryErr)
+			} else {
+				cc.handleNewEtag(newUser.Etag)
+			}
 
-	primaryEmail := d.Get("primary_email").(string)
-	log.Printf("[DEBUG] Getting User %q: %#v", d.Id(), primaryEmail)
-
-	directoryService, diags := client.NewDirectoryService()
-	if diags.HasError() {
-		return diags
-	}
-
-	usersService, diags := GetUsersService(directoryService)
-	if diags.HasError() {
-		return diags
-	}
-
-	user, err := usersService.Get(d.Id()).Projection("full").Do()
-	if err != nil {
-		return handleNotFoundError(err, d, primaryEmail)
-	}
-
-	if user == nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  fmt.Sprintf("No user was returned for %s.", d.Get("primary_email").(string)),
+			return fmt.Errorf("timed out while waiting for %s to be updated to admin", cc.resourceType)
 		})
-
-		return diags
-	}
-
-	customSchemas := []map[string]interface{}{}
-	if len(user.CustomSchemas) > 0 {
-		customSchemas, diags = flattenCustomSchemas(user.CustomSchemas, client)
-		if diags.HasError() {
-			return diags
+		if err != nil {
+			return
 		}
 	}
 
-	d.Set("primary_email", user.PrimaryEmail)
-	// password and hash_function are not returned in the response, so set them to what we defined in the config
-	d.Set("password", d.Get("password"))
-	d.Set("hash_function", d.Get("hash_function"))
-	d.Set("is_admin", user.IsAdmin)
-	d.Set("is_delegated_admin", user.IsDelegatedAdmin)
-	d.Set("agreed_to_terms", user.AgreedToTerms)
-	d.Set("suspended", user.Suspended)
-	d.Set("change_password_at_next_login", user.ChangePasswordAtNextLogin)
-	d.Set("ip_allowlist", user.IpWhitelisted)
-	d.Set("name", flattenName(user.Name))
-	d.Set("emails", flattenInterfaceObjects(user.Emails))
-	d.Set("external_ids", flattenInterfaceObjects(user.ExternalIds))
-	d.Set("relations", flattenInterfaceObjects(user.Relations))
-	d.Set("etag", user.Etag)
-	d.Set("aliases", user.Aliases)
-	d.Set("is_mailbox_setup", user.IsMailboxSetup)
-	d.Set("customer_id", user.CustomerId)
-	d.Set("addresses", flattenInterfaceObjects(user.Addresses))
-	d.Set("organizations", flattenInterfaceObjects(user.Organizations))
-	d.Set("last_login_time", user.LastLoginTime)
-	d.Set("phones", flattenInterfaceObjects(user.Phones))
-	d.Set("suspension_reason", user.SuspensionReason)
-	d.Set("thumbnail_photo_url", user.ThumbnailPhotoUrl)
-	d.Set("languages", flattenInterfaceObjects(user.Languages))
-	d.Set("posix_accounts", flattenInterfaceObjects(user.PosixAccounts))
-	d.Set("creation_time", user.CreationTime)
-	d.Set("non_editable_aliases", user.NonEditableAliases)
-	d.Set("ssh_public_keys", flattenInterfaceObjects(user.SshPublicKeys))
-	d.Set("websites", flattenInterfaceObjects(user.Websites))
-	d.Set("locations", flattenInterfaceObjects(user.Locations))
-	d.Set("include_in_global_address_list", user.IncludeInGlobalAddressList)
-	d.Set("keywords", flattenInterfaceObjects(user.Keywords))
-	d.Set("deletion_time", user.DeletionTime)
-	d.Set("thumbnail_photo_etag", user.ThumbnailPhotoEtag)
-	d.Set("ims", flattenInterfaceObjects(user.Ims))
-	d.Set("custom_schemas", customSchemas)
-	d.Set("is_enrolled_in_2_step_verification", user.IsEnrolledIn2Sv)
-	d.Set("is_enforced_in_2_step_verification", user.IsEnforcedIn2Sv)
-	d.Set("archived", user.Archived)
-	d.Set("org_unit_path", user.OrgUnitPath)
-	d.Set("recovery_email", user.RecoveryEmail)
-	d.Set("recovery_phone", user.RecoveryPhone)
+	plan.ID.Value = userId
+	user := GetUserData(ctx, &r.provider, plan, &resp.Diagnostics)
 
-	d.SetId(user.Id)
-	log.Printf("[DEBUG] Finished getting User %q: %#v", d.Id(), primaryEmail)
+	diags = resp.State.Set(ctx, user)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
-	return diags
+	log.Printf("[DEBUG] Finished creating User %s: %s", user.ID.Value, user.PrimaryEmail.Value)
 }
 
-func resourceUserUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	var diags diag.Diagnostics
-
-	// use the meta value to retrieve your client from the provider configure method
-	client := meta.(*apiClient)
-
-	primaryEmail := d.Get("primary_email").(string)
-	log.Printf("[DEBUG] Updating User %q: %#v", d.Id(), primaryEmail)
-
-	directoryService, diags := client.NewDirectoryService()
-	if diags.HasError() {
-		return diags
+// Read user information
+func (r userResource) Read(ctx context.Context, req tfsdk.ReadResourceRequest, resp *tfsdk.ReadResourceResponse) {
+	var state userResourceData
+	diags := req.State.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
-	usersService, diags := GetUsersService(directoryService)
-	if diags.HasError() {
-		return diags
+	user := GetUserData(ctx, &r.provider, state, &resp.Diagnostics)
+	if user.ID.Null {
+		resp.State.RemoveResource(ctx)
+		log.Printf("[DEBUG] Removed User from state because it was not found %s", state.ID.Value)
+		return
 	}
 
-	userObj := directory.User{}
-	forceSendFields := []string{}
+	diags = resp.State.Set(ctx, user)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	log.Printf("[DEBUG] Finished getting User %s: %s", state.ID.Value, user.PrimaryEmail.Value)
+}
 
-	// Strings
-
-	if d.HasChange("primary_email") {
-		userObj.PrimaryEmail = primaryEmail
+// Update user resource
+func (r userResource) Update(ctx context.Context, req tfsdk.UpdateResourceRequest, resp *tfsdk.UpdateResourceResponse) {
+	// Retrieve values from config
+	var config userResourceData
+	diags := req.Config.Get(ctx, &config)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
-	if d.HasChange("password") {
-		userObj.Password = d.Get("password").(string)
-
-		if userObj.Password == "" {
-			forceSendFields = append(forceSendFields, "Password")
-		}
+	// Retrieve values from plan
+	var plan userResourceData
+	diags = req.Plan.Get(ctx, &plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
-	if d.HasChange("hash_function") {
-		userObj.HashFunction = d.Get("hash_function").(string)
-
-		if userObj.HashFunction == "" {
-			forceSendFields = append(forceSendFields, "HashFunction")
-		}
+	// Retrieve values from state
+	var state userResourceData
+	diags = req.State.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
-	if d.HasChange("org_unit_path") {
-		userObj.OrgUnitPath = d.Get("org_unit_path").(string)
+	log.Printf("[DEBUG] Updating User %q: %#v", plan.ID.Value, plan.PrimaryEmail.Value)
+	usersService := GetUsersService(&r.provider, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
-	if d.HasChange("recovery_email") {
-		userObj.RecoveryEmail = d.Get("recovery_email").(string)
-
-		if userObj.RecoveryEmail == "" {
-			forceSendFields = append(forceSendFields, "RecoveryEmail")
-		}
-	}
-
-	if d.HasChange("recovery_phone") {
-		userObj.RecoveryPhone = d.Get("recovery_phone").(string)
-
-		if userObj.RecoveryPhone == "" {
-			forceSendFields = append(forceSendFields, "RecoveryPhone")
-		}
-	}
-
-	// Booleans
-
-	if d.HasChange("suspended") {
-		userObj.Suspended = d.Get("suspended").(bool)
-		forceSendFields = append(forceSendFields, "Suspended")
-	}
-
-	if d.HasChange("change_password_at_next_login") {
-		userObj.ChangePasswordAtNextLogin = d.Get("change_password_at_next_login").(bool)
-		forceSendFields = append(forceSendFields, "ChangePasswordAtNextLogin")
-	}
-
-	if d.HasChange("ip_allowlist") {
-		userObj.IpWhitelisted = d.Get("ip_allowlist").(bool)
-		forceSendFields = append(forceSendFields, "IpWhitelisted")
-	}
-
-	if d.HasChange("include_in_global_address_list") {
-		userObj.IncludeInGlobalAddressList = d.Get("include_in_global_address_list").(bool)
-		forceSendFields = append(forceSendFields, "IncludeInGlobalAddressList")
-	}
-
-	if d.HasChange("archived") {
-		userObj.Archived = d.Get("archived").(bool)
-		forceSendFields = append(forceSendFields, "Archived")
-	}
-
-	userObj.ForceSendFields = forceSendFields
-
-	// Nested Objects
-
-	if d.HasChange("name") {
-		userObj.Name = expandName(d.Get("name"))
-	}
-
-	if d.HasChange("emails") {
-		emails := expandInterfaceObjects(d.Get("emails"))
-		userObj.Emails = emails
-	}
-
-	if d.HasChange("external_ids") {
-		externalIds := expandInterfaceObjects(d.Get("external_ids"))
-		userObj.ExternalIds = externalIds
-	}
-
-	if d.HasChange("relations") {
-		emails := expandInterfaceObjects(d.Get("relations"))
-		userObj.Relations = emails
-	}
-
-	if d.HasChange("addresses") {
-		addresses := expandInterfaceObjects(d.Get("addresses"))
-		userObj.Addresses = addresses
-	}
-
-	if d.HasChange("organizations") {
-		organizations := expandInterfaceObjects(d.Get("organizations"))
-		userObj.Organizations = organizations
-	}
-
-	if d.HasChange("phones") {
-		phones := expandInterfaceObjects(d.Get("phones"))
-		userObj.Phones = phones
-	}
-
-	if d.HasChange("languages") {
-		languages := expandInterfaceObjects(d.Get("languages"))
-		userObj.Languages = languages
-	}
-
-	if d.HasChange("posix_accounts") {
-		posixAccounts := expandInterfaceObjects(d.Get("posix_accounts"))
-		userObj.PosixAccounts = posixAccounts
-	}
-
-	if d.HasChange("ssh_public_keys") {
-		sshPublicKeys := expandInterfaceObjects(d.Get("ssh_public_keys"))
-		userObj.SshPublicKeys = sshPublicKeys
-	}
-
-	if d.HasChange("websites") {
-		websites := expandInterfaceObjects(d.Get("websites"))
-		userObj.Websites = websites
-	}
-
-	if d.HasChange("locations") {
-		locations := expandInterfaceObjects(d.Get("locations"))
-		userObj.Locations = locations
-	}
-
-	if d.HasChange("keywords") {
-		keywords := expandInterfaceObjects(d.Get("keywords"))
-		userObj.Keywords = keywords
-	}
-
-	if d.HasChange("ims") {
-		ims := expandInterfaceObjects(d.Get("ims"))
-		userObj.Ims = ims
-	}
-
-	if d.HasChange("custom_schemas") {
-		if len(d.Get("custom_schemas").([]interface{})) > 0 {
-			diags = validateCustomSchemas(d, client)
-			if diags.HasError() {
-				return diags
-			}
-
-			customSchemas, diags := expandCustomSchemaValues(d.Get("custom_schemas").([]interface{}))
-			if diags.HasError() {
-				return diags
-			}
-
-			userObj.CustomSchemas = customSchemas
-		}
-	}
+	userReq := UserPlanToObj(ctx, &r.provider, &config, &plan, &resp.Diagnostics)
 
 	numInserts := 0
-	if d.HasChange("aliases") {
-		old, new := d.GetChange("aliases")
-		oldAliases := listOfInterfacestoStrings(old.([]interface{}))
-		newAliases := listOfInterfacestoStrings(new.([]interface{}))
+	if !reflect.DeepEqual(plan.Aliases, state.Aliases) {
+		var stateAliases []string
+		for _, sa := range state.Aliases.Elems {
+			aliasName, err := sa.ToTerraformValue(ctx)
+			if err != nil {
+				return
+			}
+			stateAliases = append(stateAliases, aliasName.String())
+		}
 
-		aliasesService, diags := GetUserAliasService(usersService)
-		if diags.HasError() {
-			return diags
+		var planAliases []string
+		for _, pa := range plan.Aliases.Elems {
+			aliasName, err := pa.ToTerraformValue(ctx)
+			if err != nil {
+				return
+			}
+			planAliases = append(planAliases, aliasName.String())
+		}
+
+		aliasesService := GetUserAliasService(&r.provider, &resp.Diagnostics)
+		if resp.Diagnostics.HasError() {
+			return
 		}
 
 		// Remove old aliases that aren't in the new aliases list
-		for _, alias := range oldAliases {
-			if stringInSlice(newAliases, alias) {
+		for _, alias := range stateAliases {
+			if stringInSlice(planAliases, alias) {
 				continue
 			}
 
-			err := aliasesService.Delete(d.Id(), alias).Do()
+			err := aliasesService.Delete(state.ID.Value, alias).Do()
 			if err != nil {
-				return diag.FromErr(err)
+				resp.Diagnostics.AddError(fmt.Sprintf("error deleting alias (%s) from user (%s)", alias, state.PrimaryEmail.Value), err.Error())
+				return
 			}
-			numInserts += 1
 		}
 
 		// Insert all new aliases that weren't previously in state
-		for _, alias := range newAliases {
-			if stringInSlice(oldAliases, alias) {
+		for _, alias := range planAliases {
+			if stringInSlice(stateAliases, alias) {
 				continue
 			}
 
@@ -1424,50 +1214,51 @@ func resourceUserUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 				Alias: alias,
 			}
 
-			_, err := aliasesService.Insert(d.Id(), &aliasObj).Do()
+			_, err := aliasesService.Insert(state.ID.Value, &aliasObj).Do()
 			if err != nil {
-				return diag.FromErr(err)
+				resp.Diagnostics.AddError(fmt.Sprintf("error inserting alias (%s) into user (%s)", alias, state.PrimaryEmail.Value), err.Error())
+				return
 			}
 			numInserts += 1
 		}
 	}
 
-	if d.HasChange("is_admin") {
+	if plan.IsAdmin.Value != state.IsAdmin.Value {
 		makeAdminObj := directory.UserMakeAdmin{
-			Status:          d.Get("is_admin").(bool),
+			Status:          plan.IsAdmin.Value,
 			ForceSendFields: []string{"Status"},
 		}
 
-		err := usersService.MakeAdmin(d.Id(), &makeAdminObj).Do()
+		err := usersService.MakeAdmin(state.ID.Value, &makeAdminObj).Do()
 		if err != nil {
-			return diag.FromErr(err)
+			resp.Diagnostics.AddError("error while updating user to admin", err.Error())
+			return
 		}
 		numInserts += 1
 	}
 
-	if &userObj != new(directory.User) {
-		_, err := usersService.Update(d.Id(), &userObj).Do()
-		if err != nil {
-			return diag.FromErr(err)
-		}
-		numInserts += 1
+	_, err := usersService.Update(state.ID.Value, &userReq).Do()
+	if err != nil {
+		resp.Diagnostics.AddError("error while trying to update user", err.Error())
+		return
 	}
+	numInserts += 1
 
-	// UPDATE will respond with the updated User, however, it is eventually consistent
+	// UPDATE will respond with the User that will be created, however, it is eventually consistent
 	// After UPDATE, the etag is updated along with the User (and any aliases),
 	// once we get a consistent etag, we can feel confident that our User is also consistent
 	cc := consistencyCheck{
 		resourceType: "user",
-		timeout:      d.Timeout(schema.TimeoutUpdate),
+		timeout:      UpdateTimeout,
 	}
-	err := retryTimeDuration(ctx, d.Timeout(schema.TimeoutUpdate), func() error {
+	err = retryTimeDuration(ctx, UpdateTimeout, func() error {
 		var retryErr error
 
 		if cc.reachedConsistency(numInserts) {
 			return nil
 		}
 
-		newUser, retryErr := usersService.Get(d.Id()).IfNoneMatch(cc.lastEtag).Do()
+		newUser, retryErr := usersService.Get(state.ID.Value).IfNoneMatch(cc.lastEtag).Do()
 		if googleapi.IsNotModified(retryErr) {
 			cc.currConsistent += 1
 		} else if retryErr != nil {
@@ -1478,110 +1269,154 @@ func resourceUserUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 
 		return fmt.Errorf("timed out while waiting for %s to be updated", cc.resourceType)
 	})
-
 	if err != nil {
-		return diag.FromErr(err)
+		resp.Diagnostics.AddError("error while trying to update user", err.Error())
+		return
 	}
 
-	log.Printf("[DEBUG] Finished updating User %q: %#v", d.Id(), primaryEmail)
+	user := GetUserData(ctx, &r.provider, state, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
-	return resourceUserRead(ctx, d, meta)
+	diags = resp.State.Set(ctx, user)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	log.Printf("[DEBUG] Finished creating User %q: %#v", state.ID.Value, plan.PrimaryEmail.Value)
 }
 
-func resourceUserDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	var diags diag.Diagnostics
-
-	// use the meta value to retrieve your client from the provider configure method
-	client := meta.(*apiClient)
-
-	primaryEmail := d.Get("primary_email").(string)
-	log.Printf("[DEBUG] Deleting User %q: %#v", d.Id(), primaryEmail)
-
-	directoryService, diags := client.NewDirectoryService()
-	if diags.HasError() {
-		return diags
+// Delete user
+func (r userResource) Delete(ctx context.Context, req tfsdk.DeleteResourceRequest, resp *tfsdk.DeleteResourceResponse) {
+	var state userResourceData
+	diags := req.State.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
-	usersService, diags := GetUsersService(directoryService)
-	if diags.HasError() {
-		return diags
+	log.Printf("[DEBUG] Deleting User %q: %#v", state.ID.Value, state.ID.Value)
+	usersService := GetUsersService(&r.provider, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
-	err := usersService.Delete(d.Id()).Do()
+	err := usersService.Delete(state.PrimaryEmail.Value).Do()
 	if err != nil {
-		return handleNotFoundError(err, d, primaryEmail)
+		state.ID = types.String{Value: handleNotFoundError(err, state.ID.Value, &resp.Diagnostics)}
+		if resp.Diagnostics.HasError() {
+			return
+		}
 	}
 
-	log.Printf("[DEBUG] Finished deleting User %q: %#v", d.Id(), primaryEmail)
-
-	return diags
+	resp.State.RemoveResource(ctx)
+	log.Printf("[DEBUG] Finished deleting User %s: %s", state.ID.Value, state.PrimaryEmail.Value)
 }
 
-// Expand functions
-
-func expandName(v interface{}) *directory.UserName {
-	name := v.([]interface{})
-
-	if len(name) == 0 {
-		return nil
-	}
-
-	nameObj := directory.UserName{
-		FamilyName: name[0].(map[string]interface{})["family_name"].(string),
-		GivenName:  name[0].(map[string]interface{})["given_name"].(string),
-	}
-	return &nameObj
+// ImportState user
+func (r userResource) ImportState(ctx context.Context, req tfsdk.ImportResourceStateRequest, resp *tfsdk.ImportResourceStateResponse) {
+	tfsdk.ResourceImportStatePassthroughID(ctx, tftypes.NewAttributePath().WithAttributeName("id"), req, resp)
 }
 
-// Flatten functions
-
-func flattenName(nameObj *directory.UserName) interface{} {
-	name := []map[string]interface{}{}
-
-	if nameObj != nil {
-		name = append(name, map[string]interface{}{
-			"family_name": nameObj.FamilyName,
-			"full_name":   nameObj.FullName,
-			"given_name":  nameObj.GivenName,
-		})
-	}
-
-	return name
-}
+//func diffSuppressCustomSchemas(_, _, _ string, d *schema.ResourceData) bool {
+//	old, new := d.GetChange("custom_schemas")
+//	customSchemasOld := old.([]interface{})
+//	customSchemasNew := new.([]interface{})
+//
+//	// transform the blocks
+//	//
+//	// custom_schemas {
+//	// 	schema_name = "a"
+//	//
+//	// 	schema_values = {
+//	// 	  "bar" = jsonencode("Bar")
+//	// 	}
+//	// }
+//	//
+//	// custom_schemas {
+//	// 	schema_name = "b"
+//	//
+//	// 	schema_values = {
+//	// 	  "baz" = jsonencode("Baz")
+//	// 	}
+//	// }
+//	//
+//	// into a 2 dimentional map[string]map[string]string
+//	//
+//	// {
+//	// 	"a": {
+//	// 		"bar": "Bar",
+//	// 	},
+//	// 	"b": {
+//	// 		"baz": "Baz",
+//	// 	},
+//	// }
+//	//
+//	// and use reflect.DeepEqual to compare
+//
+//	oldMap := transformCustomSchemasTo2DMap(customSchemasOld)
+//	newMap := transformCustomSchemasTo2DMap(customSchemasNew)
+//
+//	return reflect.DeepEqual(oldMap, newMap)
+//}
+//
+//func transformCustomSchemasTo2DMap(customSchemas []interface{}) map[string]map[string]string {
+//	result := make(map[string]map[string]string)
+//	for _, schema := range customSchemas {
+//		s := schema.(map[string]interface{})
+//		schemaValues := make(map[string]string)
+//		for k, v := range s["schema_values"].(map[string]interface{}) {
+//			// ensure if field is list that it is sorted for comparison
+//			// google stores unordered multi-value fields
+//			var list []interface{}
+//			if err := json.Unmarshal([]byte(v.(string)), &list); err == nil {
+//				sorted := sortListOfInterfaces(list)
+//				encoded, err := json.Marshal(sorted)
+//				if err != nil {
+//					panic(err)
+//				}
+//				schemaValues[k] = string(encoded)
+//			} else {
+//				schemaValues[k] = v.(string)
+//			}
+//		}
+//		result[s["schema_name"].(string)] = schemaValues
+//	}
+//	return result
+//}
 
 // Helper functions
 
 // Custom Schemas
 
-func validateCustomSchemas(d *schema.ResourceData, client *apiClient) diag.Diagnostics {
-	var diags diag.Diagnostics
-
-	new := d.Get("custom_schemas")
-
-	directoryService, diags := client.NewDirectoryService()
+func validateCustomSchemas(ctx context.Context, newSchemas []attr.Value, p *provider, diags *diag.Diagnostics) {
+	schemaService := GetSchemasService(p, diags)
 	if diags.HasError() {
-		return diags
-	}
-
-	schemaService, diags := GetSchemasService(directoryService)
-	if diags.HasError() {
-		return diags
+		return
 	}
 
 	// Validate config against schemas
-	for _, customSchema := range new.([]interface{}) {
-		schemaName := customSchema.(map[string]interface{})["schema_name"].(string)
+	for _, cs := range newSchemas {
+		customSchema := userCustomSchemaData{}
+		d := cs.(types.Object).As(ctx, &customSchema, types.ObjectAsOptions{})
+		diags.Append(d...)
+		if diags.HasError() {
+			return
+		}
 
-		schemaDef, err := schemaService.Get(client.Customer, schemaName).Do()
+		schemaName := customSchema.SchemaName.Value
+
+		schemaDef, err := schemaService.Get(p.customer, schemaName).Do()
 		if err != nil {
-			return diag.FromErr(err)
+			diags.AddError(fmt.Sprintf("error getting custom schema %s", schemaName), err.Error())
+			return
 		}
 
 		if schemaDef == nil {
-			return append(diags, diag.Diagnostic{
-				Summary:  fmt.Sprintf("schema definition (%s) is empty", schemaName),
-				Severity: diag.Error,
-			})
+			diags.AddError(fmt.Sprintf("error getting custom schema %s", schemaName), "object was returned nil")
+			return
 		}
 
 		schemaFieldMap := map[string]*directory.SchemaFieldSpec{}
@@ -1589,28 +1424,25 @@ func validateCustomSchemas(d *schema.ResourceData, client *apiClient) diag.Diagn
 			schemaFieldMap[schemaField.FieldName] = schemaField
 		}
 
-		customSchemaDef := customSchema.(map[string]interface{})["schema_values"].(map[string]interface{})
+		customSchemaDef := customSchema.SchemaValues
 
-		for csKey, csJsonVal := range customSchemaDef {
+		for csKey, csJsonVal := range customSchemaDef.Elems {
 			if _, ok := schemaFieldMap[csKey]; !ok {
-				return append(diags, diag.Diagnostic{
-					Summary:  fmt.Sprintf("field name (%s) is not found in this schema definition (%s)", csKey, schemaName),
-					Severity: diag.Error,
-				})
+				diags.AddError("field name is not found in schema", fmt.Sprintf("field name (%s) is not found in this schema definition (%s)", csKey, schemaName))
+				return
 			}
 
 			var csVal interface{}
-			err := json.Unmarshal([]byte(csJsonVal.(string)), &csVal)
+			err := json.Unmarshal([]byte(csJsonVal.(types.String).Value), &csVal)
 			if err != nil {
-				return diag.FromErr(err)
+				diags.AddError("error while unmarshalling", err.Error())
+				return
 			}
 
 			if schemaFieldMap[csKey].MultiValued {
 				if reflect.ValueOf(csVal).Kind() != reflect.Slice {
-					return append(diags, diag.Diagnostic{
-						Summary:  fmt.Sprintf("field %s is multi-values and should be a list (%+v)", csKey, csVal),
-						Severity: diag.Error,
-					})
+					diags.AddError("field value should be a list", fmt.Sprintf("field %s is multi-values and should be a list (%+v)", csKey, csVal))
+					return
 				}
 
 				if len(csVal.([]interface{})) > 0 {
@@ -1618,21 +1450,19 @@ func validateCustomSchemas(d *schema.ResourceData, client *apiClient) diag.Diagn
 				}
 			}
 
-			validType := validateFieldValueType(schemaFieldMap[csKey].FieldType, csVal)
+			validType := validateSchemaFieldValueType(schemaFieldMap[csKey].FieldType, csVal)
 			if !validType {
-				return append(diags, diag.Diagnostic{
-					Summary:  fmt.Sprintf("value provided for %s is of incorrect type (expected type: %s)", csKey, schemaFieldMap[csKey].FieldType),
-					Severity: diag.Error,
-				})
+				diags.AddError("value in custom schema is of incorrect type", fmt.Sprintf("value provided for %s is of incorrect type (expected type: %s)", csKey, schemaFieldMap[csKey].FieldType))
+				return
 			}
 		}
 	}
 
-	return nil
+	return
 }
 
 // This will take a value and validate whether the type is correct
-func validateFieldValueType(fieldType string, fieldValue interface{}) bool {
+func validateSchemaFieldValueType(fieldType string, fieldValue interface{}) bool {
 	valid := false
 
 	switch fieldType {
@@ -1668,8 +1498,57 @@ func validateFieldValueType(fieldType string, fieldValue interface{}) bool {
 	return valid
 }
 
+func expandCustomSchemaValues(ctx context.Context, customSchemas []attr.Value, diags *diag.Diagnostics) map[string]googleapi.RawMessage {
+	result := map[string]googleapi.RawMessage{}
+
+	for _, cs := range customSchemas {
+		customSchema := userCustomSchemaData{}
+		d := cs.(types.Object).As(ctx, &customSchema, types.ObjectAsOptions{})
+		diags.Append(d...)
+		if diags.HasError() {
+			return result
+		}
+		schemaName := customSchema.SchemaName.Value
+		schemaValues := customSchema.SchemaValues
+
+		customSchemaObj := map[string]interface{}{}
+		for k, v := range schemaValues.Elems {
+			var csVal interface{}
+			err := json.Unmarshal([]byte(v.(types.String).Value), &csVal)
+			if err != nil {
+				diags.AddError("error unmarshalling custom schemas", err.Error())
+				return nil
+			}
+
+			if reflect.ValueOf(csVal).Kind() == reflect.Slice {
+				newSlice := []map[string]interface{}{}
+				for _, nested := range csVal.([]interface{}) {
+					newSlice = append(newSlice, map[string]interface{}{
+						"type":  "work",
+						"value": nested,
+					})
+				}
+
+				customSchemaObj[k] = newSlice
+			} else {
+				customSchemaObj[k] = csVal
+			}
+		}
+		// create the json object and assign to the schema
+		schemaValuesJson, err := json.Marshal(customSchemaObj)
+		if err != nil {
+			diags.AddError("error marshalling custom schemas", err.Error())
+			return nil
+		}
+
+		result[schemaName] = schemaValuesJson
+	}
+
+	return result
+}
+
 // The API returns numeric values as strings. This will convert it to the appropriate type
-func convertFieldValueType(fieldType string, fieldValue interface{}) (interface{}, error) {
+func convertSchemaFieldValueType(fieldType string, fieldValue interface{}) (interface{}, error) {
 	// If it's not of type string, then we'll assume it's the right type
 	if reflect.ValueOf(fieldValue).Kind() != reflect.String {
 		return fieldValue, nil
@@ -1701,67 +1580,20 @@ func convertFieldValueType(fieldType string, fieldValue interface{}) (interface{
 	return value, err
 }
 
-func expandCustomSchemaValues(customSchemas []interface{}) (map[string]googleapi.RawMessage, diag.Diagnostics) {
+func flattenCustomSchemas(prov *provider, schemaAttrObj interface{}) ([]attr.Value, diag.Diagnostics) {
+	var customSchemas []attr.Value
 	var diags diag.Diagnostics
-	result := map[string]googleapi.RawMessage{}
 
-	for _, cs := range customSchemas {
-		customSchema := cs.(map[string]interface{})
-
-		schemaName := customSchema["schema_name"].(string)
-		schemaValues := customSchema["schema_values"].(map[string]interface{})
-
-		customSchemaObj := map[string]interface{}{}
-		for k, v := range schemaValues {
-			var csVal interface{}
-			err := json.Unmarshal([]byte(v.(string)), &csVal)
-			if err != nil {
-				return nil, diag.FromErr(err)
-			}
-
-			if reflect.ValueOf(csVal).Kind() == reflect.Slice {
-				newSlice := []map[string]interface{}{}
-				for _, nested := range csVal.([]interface{}) {
-					newSlice = append(newSlice, map[string]interface{}{
-						"type":  "work",
-						"value": nested,
-					})
-				}
-
-				customSchemaObj[k] = newSlice
-			} else {
-				customSchemaObj[k] = csVal
-			}
-		}
-		// create the json object and assign to the schema
-		schemaValuesJson, err := json.Marshal(customSchemaObj)
-		if err != nil {
-			return nil, diag.FromErr(err)
-		}
-
-		result[schemaName] = schemaValuesJson
-	}
-
-	return result, diags
-}
-
-func flattenCustomSchemas(schemaAttrObj interface{}, client *apiClient) ([]map[string]interface{}, diag.Diagnostics) {
-	var customSchemas []map[string]interface{}
-
-	directoryService, diags := client.NewDirectoryService()
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	schemaService, diags := GetSchemasService(directoryService)
+	schemaService := GetSchemasService(prov, &diags)
 	if diags.HasError() {
 		return nil, diags
 	}
 
 	for schemaName, sv := range schemaAttrObj.(map[string]googleapi.RawMessage) {
-		schemaDef, err := schemaService.Get(client.Customer, schemaName).Do()
+		schemaDef, err := schemaService.Get(prov.customer, schemaName).Do()
 		if err != nil {
-			return nil, diag.FromErr(err)
+			diags.AddError(fmt.Sprintf("error reading schema (%s)", schemaName), err.Error())
+			return nil, diags
 		}
 
 		schemaFieldMap := map[string]*directory.SchemaFieldSpec{}
@@ -1773,49 +1605,70 @@ func flattenCustomSchemas(schemaAttrObj interface{}, client *apiClient) ([]map[s
 
 		err = json.Unmarshal(sv, &schemaValuesObj)
 		if err != nil {
-			return nil, diag.FromErr(err)
+			diags.AddError(fmt.Sprintf("error unmarshalling schema values (%s): %+v", schemaName, sv), err.Error())
+			return nil, diags
 		}
 
-		schemaValues := map[string]interface{}{}
+		schemaValues := types.Map{}
 		for k, v := range schemaValuesObj {
 			if _, ok := schemaFieldMap[k]; !ok {
-				return nil, append(diags, diag.Diagnostic{
-					Summary:  fmt.Sprintf("field name (%s) is not found in this schema definition (%s)", k, schemaName),
-					Severity: diag.Warning,
-				})
+				diags.AddError(fmt.Sprintf("field name (%s) is not found in this schema definition (%s)", k, schemaName), "correct field name is required")
+				return nil, diags
 			}
 
 			if schemaFieldMap[k].MultiValued {
 				vals := []interface{}{}
 				for _, item := range v.([]interface{}) {
-					val, err := convertFieldValueType(schemaFieldMap[k].FieldType, item.(map[string]interface{})["value"])
+					val, err := convertSchemaFieldValueType(schemaFieldMap[k].FieldType, item.(map[string]interface{})["value"])
 					if err != nil {
-						return nil, diag.FromErr(err)
+						diags.AddError(fmt.Sprintf("could not properly convert field value type for %+v: %+v", schemaFieldMap[k].FieldType, item.(map[string]interface{})["value"]), err.Error())
+						return nil, diags
 					}
 					vals = append(vals, val)
 				}
 				jsonVals, err := json.Marshal(vals)
 				if err != nil {
-					return nil, diag.FromErr(err)
+					diags.AddError(fmt.Sprintf("error marshalling schema values %+v", vals), err.Error())
+					return nil, diags
 				}
-				schemaValues[k] = string(jsonVals)
+				schemaValues = types.Map{
+					ElemType: types.StringType,
+					Elems: map[string]attr.Value{
+						k: types.String{Value: string(jsonVals)},
+					},
+				}
 			} else {
-				val, err := convertFieldValueType(schemaFieldMap[k].FieldType, v)
+				val, err := convertSchemaFieldValueType(schemaFieldMap[k].FieldType, v)
 				if err != nil {
-					return nil, diag.FromErr(err)
+					diags.AddError(fmt.Sprintf("could not properly convert field value type for %+v: %+v", schemaFieldMap[k].FieldType, v), err.Error())
+					return nil, diags
 				}
 
 				jsonVal, err := json.Marshal(val)
 				if err != nil {
-					return nil, diag.FromErr(err)
+					diags.AddError(fmt.Sprintf("error marshalling schema values %+v", val), err.Error())
+					return nil, diags
 				}
-				schemaValues[k] = string(jsonVal)
+				schemaValues = types.Map{
+					ElemType: types.StringType,
+					Elems: map[string]attr.Value{
+						k: types.String{Value: string(jsonVal)},
+					},
+				}
 			}
 		}
 
-		customSchemas = append(customSchemas, map[string]interface{}{
-			"schema_name":   schemaName,
-			"schema_values": schemaValues,
+		customSchemas = append(customSchemas, types.Object{
+			AttrTypes: map[string]attr.Type{
+				"schema_name": types.StringType,
+				"schema_values": types.MapType{
+					ElemType: types.StringType,
+				},
+			},
+			Attrs: map[string]attr.Value{
+				"schema_name":   types.String{Value: schemaName},
+				"schema_values": schemaValues,
+			},
 		})
 	}
 

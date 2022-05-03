@@ -2,11 +2,10 @@ package googleworkspace
 
 import (
 	"context"
+	"github.com/hashicorp/go-cleanhttp"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"log"
 	"net/http"
-
-	"github.com/hashicorp/go-cleanhttp"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 
 	"golang.org/x/oauth2"
 	googleoauth "golang.org/x/oauth2/google"
@@ -20,111 +19,121 @@ import (
 	"google.golang.org/api/transport"
 )
 
-type apiClient struct {
-	client *http.Client
-
-	AccessToken           string
-	ClientScopes          []string
-	Credentials           string
-	Customer              string
-	ImpersonatedUserEmail string
-	ServiceAccount        string
-	UserAgent             string
-}
-
-func (c *apiClient) loadAndValidate(ctx context.Context) diag.Diagnostics {
-	var diags diag.Diagnostics
-
-	if len(c.ClientScopes) == 0 {
-		c.ClientScopes = DefaultClientScopes
+func authenticateClient(ctx context.Context, providerConfig providerData, diags *diag.Diagnostics) *http.Client {
+	oauthScopes := make([]string, len(providerConfig.OauthScopes.Elems))
+	diags.Append(providerConfig.OauthScopes.ElementsAs(ctx, &oauthScopes, false)...)
+	if diags.HasError() {
+		return nil
 	}
 
-	if c.AccessToken != "" {
-		contents, _, err := pathOrContents(c.AccessToken)
+	if providerConfig.AccessToken.Value != "" {
+		contents, _, err := pathOrContents(providerConfig.AccessToken.Value)
 		if err != nil {
-			return diag.FromErr(err)
+			diags.AddError(
+				"Unexpected error reading provider `access_token`",
+				err.Error(),
+			)
+			return nil
 		}
 		token := &oauth2.Token{AccessToken: contents}
 
 		log.Printf("[INFO] Authenticating using configured Google JSON 'access_token'...")
-		log.Printf("[INFO]   -- Scopes: %s", c.ClientScopes)
+		log.Printf("[INFO]   -- Scopes: %+v", oauthScopes)
 
-		if c.ImpersonatedUserEmail != "" {
-			if c.ServiceAccount == "" {
-				diags = append(diags, diag.Diagnostic{
-					Severity: diag.Error,
-					Summary:  "service_account is required to impersonate a user with the access_token authentication.",
-				})
+		if providerConfig.ImpersonatedUserEmail.Value != "" {
+			if providerConfig.ServiceAccount.Value == "" {
+				diags.AddError(
+					"Invalid provider config",
+					"`service_account` is required to impersonate a user with the `access_token` authentication",
+				)
 
-				return diags
+				return nil
 			}
 
 			tokenSource, err := impersonate.CredentialsTokenSource(context.TODO(), impersonate.CredentialsConfig{
-				TargetPrincipal: c.ServiceAccount,
-				Scopes:          c.ClientScopes,
-				Subject:         c.ImpersonatedUserEmail,
+				TargetPrincipal: providerConfig.ServiceAccount.Value,
+				Scopes:          oauthScopes,
+				Subject:         providerConfig.ImpersonatedUserEmail.Value,
 			}, option.WithTokenSource(oauth2.StaticTokenSource(token)))
 			if err != nil {
-				return diag.FromErr(err)
+				diags.AddError(
+					"Unexpected error creating credentials token source with `access_token`",
+					err.Error(),
+				)
 			}
 
 			creds := googleoauth.Credentials{
 				TokenSource: tokenSource,
 			}
-			diags = c.SetupClient(ctx, &creds)
-			return diags
+			return Client(ctx, &creds, diags)
 		}
 
 		creds := googleoauth.Credentials{
 			TokenSource: oauth2.StaticTokenSource(token),
 		}
-		diags = c.SetupClient(ctx, &creds)
-		return diags
+		return Client(ctx, &creds, diags)
 	}
 
-	if c.Credentials != "" {
-		contents, _, err := pathOrContents(c.Credentials)
+	if providerConfig.Credentials.Value != "" {
+		contents, _, err := pathOrContents(providerConfig.Credentials.Value)
 		if err != nil {
-			return diag.FromErr(err)
+			diags.AddError(
+				"Unexpected error reading provider `credentials`",
+				err.Error(),
+			)
+			return nil
 		}
 
 		credParams := googleoauth.CredentialsParams{
-			Scopes:  c.ClientScopes,
-			Subject: c.ImpersonatedUserEmail,
+			Scopes:  oauthScopes,
+			Subject: providerConfig.ImpersonatedUserEmail.Value,
 		}
 
 		creds, err := googleoauth.CredentialsFromJSONWithParams(ctx, []byte(contents), credParams)
 		if err != nil {
-			return diag.FromErr(err)
+			diags.AddError(
+				"Unexpected error creating credentials with provider `credentials`",
+				err.Error(),
+			)
+			return nil
+		}
+		if creds == nil {
+			diags.AddError("creds are nil", "object returned is nil")
+			return nil
 		}
 
-		diags = c.SetupClient(ctx, creds)
+		return Client(ctx, creds, diags)
 	} else {
 		credParams := googleoauth.CredentialsParams{
-			Scopes:  c.ClientScopes,
-			Subject: c.ImpersonatedUserEmail,
+			Scopes:  oauthScopes,
+			Subject: providerConfig.ImpersonatedUserEmail.Value,
 		}
 
 		creds, err := googleoauth.FindDefaultCredentialsWithParams(ctx, credParams)
 		if err != nil {
-			return diag.FromErr(err)
+			diags.AddError(
+				"Unexpected error finding default credentials",
+				err.Error(),
+			)
+			return nil
 		}
 
-		diags = c.SetupClient(ctx, creds)
+		return Client(ctx, creds, diags)
 	}
 
-	return diags
 }
 
-func (c *apiClient) SetupClient(ctx context.Context, creds *googleoauth.Credentials) diag.Diagnostics {
-	var diags diag.Diagnostics
-
+func Client(ctx context.Context, creds *googleoauth.Credentials, diags *diag.Diagnostics) *http.Client {
 	cleanCtx := context.WithValue(ctx, oauth2.HTTPClient, cleanhttp.DefaultClient())
 
 	// 1. MTLS TRANSPORT/CLIENT - sets up proper auth headers
 	client, _, err := transport.NewHTTPClient(cleanCtx, option.WithTokenSource(creds.TokenSource))
 	if err != nil {
-		return diag.FromErr(err)
+		diags.AddError(
+			"Unexpected error creating new HTTP client",
+			err.Error(),
+		)
+		return nil
 	}
 
 	// 2. Logging Transport - ensure we log HTTP requests to admin APIs.
@@ -139,108 +148,64 @@ func (c *apiClient) SetupClient(ctx context.Context, creds *googleoauth.Credenti
 	// Set final transport value.
 	client.Transport = retryTransport
 
-	c.client = client
-	return diags
+	return client
 }
 
-func (c *apiClient) NewChromePolicyService() (*chromepolicy.Service, diag.Diagnostics) {
-	var diags diag.Diagnostics
-
+func (p *provider) NewChromePolicyService(diags *diag.Diagnostics) *chromepolicy.Service {
 	log.Printf("[INFO] Instantiating Google Admin Chrome Policy service")
-
-	chromePolicyService, err := chromepolicy.NewService(context.Background(), option.WithHTTPClient(c.client))
+	chromePolicyService, err := chromepolicy.NewService(context.Background(), option.WithHTTPClient(p.client))
 	if err != nil {
-		return nil, diag.FromErr(err)
+		diags.AddError("could not instantiate Chrome Policy service", err.Error())
 	}
 
 	if chromePolicyService == nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Directory Service could not be created.",
-		})
-
-		return nil, diags
+		diags.AddError("Chrome Policy service was not created", "Chrome Policy service is nil")
 	}
 
-	return chromePolicyService, diags
+	return chromePolicyService
 }
 
-func (c *apiClient) NewDirectoryService() (*directory.Service, diag.Diagnostics) {
-	var diags diag.Diagnostics
-
+func (p *provider) NewDirectoryService(diags *diag.Diagnostics) *directory.Service {
 	log.Printf("[INFO] Instantiating Google Admin Directory service")
-
-	directoryService, err := directory.NewService(context.Background(), option.WithHTTPClient(c.client))
+	directoryService, err := directory.NewService(context.Background(), option.WithHTTPClient(p.client))
 	if err != nil {
-		return nil, diag.FromErr(err)
+		diags.AddError("could not instantiate Admin Directory service", err.Error())
 	}
 
 	if directoryService == nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Directory Service could not be created.",
-		})
-
-		return nil, diags
+		diags.AddError("Admin Directory service was not created", "Admin Directory service is nil")
 	}
 
-	return directoryService, diags
+	return directoryService
 }
-func (c *apiClient) NewGmailService(ctx context.Context, userId string) (*gmail.Service, diag.Diagnostics) {
-	var diags diag.Diagnostics
 
+func (p *provider) NewGmailService(diags *diag.Diagnostics) *gmail.Service {
 	log.Printf("[INFO] Instantiating Google Admin Gmail service")
 
-	// the send-as-alias resource requires the oauth token impersonate the user
-	// the alias is being created for.
-	log.Printf("[INFO] Creating Google Admin Gmail client that impersonates %q", userId)
-	newClient := &apiClient{
-		Credentials:           c.Credentials,
-		ClientScopes:          c.ClientScopes,
-		Customer:              c.Customer,
-		UserAgent:             c.UserAgent,
-		ImpersonatedUserEmail: userId,
-	}
-	diags = newClient.loadAndValidate(ctx)
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	gmailService, err := gmail.NewService(ctx, option.WithHTTPClient(newClient.client))
+	gmailService, err := gmail.NewService(context.Background(), option.WithHTTPClient(p.client))
 	if err != nil {
-		return nil, diag.FromErr(err)
+		diags.AddError("could not instantiate Admin Gmail service", err.Error())
+		return nil
 	}
 
 	if gmailService == nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Gmail Service could not be created.",
-		})
-
-		return nil, diags
+		diags.AddError("Admin Gmail service was not created", "Admin Gmail service is nil")
+		return nil
 	}
 
-	return gmailService, diags
+	return gmailService
 }
 
-func (c *apiClient) NewGroupsSettingsService() (*groupssettings.Service, diag.Diagnostics) {
-	var diags diag.Diagnostics
-
+func (p *provider) NewGroupsSettingsService(diags *diag.Diagnostics) *groupssettings.Service {
 	log.Printf("[INFO] Instantiating Google Admin Groups Settings service")
-
-	groupsSettingsService, err := groupssettings.NewService(context.Background(), option.WithHTTPClient(c.client))
+	groupsSettingsService, err := groupssettings.NewService(context.Background(), option.WithHTTPClient(p.client))
 	if err != nil {
-		return nil, diag.FromErr(err)
+		diags.AddError("could not instantiate Admin Groups Settings service", err.Error())
 	}
 
 	if groupsSettingsService == nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Groups Settings Service could not be created.",
-		})
-
-		return nil, diags
+		diags.AddError("Admin Groups Settings service was not created", "Admin Groups Settings service is nil")
 	}
 
-	return groupsSettingsService, diags
+	return groupsSettingsService
 }

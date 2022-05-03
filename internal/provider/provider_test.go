@@ -3,23 +3,25 @@ package googleworkspace
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
 	"log"
 	"os"
 	"strings"
 	"testing"
-
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 const testFakeCredentialsPath = "./test-data/fake-creds.json"
 
-// providerFactories are used to instantiate a provider during acceptance testing.
-// The factory function will be invoked for every Terraform CLI command executed
-// to create a provider server to which the CLI can reattach.
-var providerFactories = map[string]func() (*schema.Provider, error){
-	"googleworkspace": func() (*schema.Provider, error) {
-		return New("dev")(), nil
+// testAccProtoV6ProviderFactories are used to instantiate a provider during
+// acceptance testing. The factory function will be invoked for every Terraform
+// CLI command executed to create a provider server to which the CLI can
+// reattach.
+var testAccProtoV6ProviderFactories = map[string]func() (tfprotov6.ProviderServer, error){
+	"googleworkspace": func() (tfprotov6.ProviderServer, error) {
+		return tfsdk.NewProtocol6Server(New("test")()), nil
 	},
 }
 
@@ -47,40 +49,50 @@ func getTestImpersonatedUserFromEnv() string {
 }
 
 // googleworkspaceTestClient returns a common client
-func googleworkspaceTestClient() (*apiClient, error) {
+func googleworkspaceTestClient(ctx context.Context, diags diag.Diagnostics) *provider {
 	creds := getTestCredsFromEnv()
 	if creds == "" {
-		return nil, fmt.Errorf("set credentials using any of these env variables %v", credsEnvVars)
+		diags.AddError("credentials are required", fmt.Sprintf("set credentials using any of these env variables %v", credsEnvVars))
 	}
 
 	customerId := getTestCustomerFromEnv()
 	if customerId == "" {
-		return nil, fmt.Errorf("set customer id with GOOGLEWORKSPACE_CUSTOMER_ID")
+		diags.AddError("customer id is required", "set customer id with GOOGLEWORKSPACE_CUSTOMER_ID")
 	}
 
 	impersonatedUser := getTestImpersonatedUserFromEnv()
 	if impersonatedUser == "" {
-		return nil, fmt.Errorf("set customer id with GOOGLEWORKSPACE_IMPERSONATED_USER_EMAIL")
+		diags.AddError("impersonated user is required", "set customer id with GOOGLEWORKSPACE_IMPERSONATED_USER_EMAIL")
 	}
-
-	client := &apiClient{
-		Credentials:           creds,
-		Customer:              customerId,
-		ImpersonatedUserEmail: impersonatedUser,
-	}
-
-	diags := client.loadAndValidate(context.Background())
 	if diags.HasError() {
-		log.Printf("[INFO][SWEEPER_LOG] error loading: %s", diags[0].Summary)
-		return nil, fmt.Errorf(diags[0].Summary)
+		log.Printf("[INFO][SWEEPER_LOG] error reading env variables for test provider:\n%s", getDiagErrors(diags))
+		return nil
 	}
 
-	return client, nil
+	pd := &providerData{
+		Credentials:           types.String{Value: creds},
+		Customer:              types.String{Value: customerId},
+		ImpersonatedUserEmail: types.String{Value: impersonatedUser},
+		OauthScopes:           primitiveListToTypeList(types.StringType, DefaultClientScopes),
+	}
+
+	p := &provider{
+		version:  "test",
+		client:   authenticateClient(ctx, *pd, &diags),
+		customer: customerId,
+	}
+	if diags.HasError() {
+		log.Printf("[INFO][SWEEPER_LOG]\nerror creating test provider: %s", getDiagErrors(diags))
+		return nil
+	}
+
+	return p
 }
 
 func TestProvider(t *testing.T) {
-	if err := New("dev")().InternalValidate(); err != nil {
-		t.Fatalf("err: %s", err)
+	provider := New("dev")()
+	if provider == nil {
+		t.Fatalf("provider is nil")
 	}
 }
 
@@ -102,20 +114,4 @@ func multiEnvSearch(ks []string) string {
 		}
 	}
 	return ""
-}
-
-// checkDiags will check to see if any of the diags have type error, and if so, they will return the first
-// error. It will print warnings until it hits an error.
-func checkDiags(diags diag.Diagnostics) error {
-	if diags.HasError() {
-		for _, d := range diags {
-			if d.Severity == diag.Error {
-				return fmt.Errorf("Error: %s (%s)", d.Summary, d.Detail)
-			}
-
-			fmt.Println("Warning: ", d.Detail)
-		}
-	}
-
-	return nil
 }

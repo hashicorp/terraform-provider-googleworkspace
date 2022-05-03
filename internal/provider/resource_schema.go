@@ -3,427 +3,454 @@ package googleworkspace
 import (
 	"context"
 	"fmt"
-	"log"
-	"time"
-
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
-
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	directory "google.golang.org/api/admin/directory/v1"
+	"google.golang.org/api/googleapi"
+	"log"
 )
 
-func resourceSchema() *schema.Resource {
-	return &schema.Resource{
-		// This description is used by the documentation generator and the language server.
+type resourceSchemaType struct{}
+
+// GetSchema Schema Resource
+func (r resourceSchemaType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
+	return tfsdk.Schema{
 		Description: "Schema resource manages Google Workspace Schemas. Schema resides " +
 			"under the `https://www.googleapis.com/auth/admin.directory.userschema` client scope.",
-
-		CreateContext: resourceSchemaCreate,
-		ReadContext:   resourceSchemaRead,
-		UpdateContext: resourceSchemaUpdate,
-		DeleteContext: resourceSchemaDelete,
-
-		Timeouts: &schema.ResourceTimeout{
-			Create: schema.DefaultTimeout(1 * time.Minute),
-			Update: schema.DefaultTimeout(1 * time.Minute),
-			Delete: schema.DefaultTimeout(1 * time.Minute),
-		},
-
-		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
-		},
-
-		Schema: map[string]*schema.Schema{
+		Attributes: map[string]tfsdk.Attribute{
 			"schema_id": {
 				Description: "The unique identifier of the schema.",
-				Type:        schema.TypeString,
+				Type:        types.StringType,
 				Computed:    true,
 			},
 			"schema_name": {
 				Description: "The schema's name.",
-				Type:        schema.TypeString,
-				ForceNew:    true,
+				Type:        types.StringType,
 				Required:    true,
-			},
-			"fields": {
-				Description: "A list of fields in the schema.",
-				Type:        schema.TypeList,
-				Required:    true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"field_name": {
-							Description: "The name of the field.",
-							Type:        schema.TypeString,
-							Required:    true,
-							ForceNew:    true,
-						},
-						"field_id": {
-							Description: "The unique identifier of the field.",
-							Type:        schema.TypeString,
-							Computed:    true,
-						},
-						"field_type": {
-							Description: "The type of the field. Acceptable values are: " +
-								"BOOL, DATE, DOUBLE, EMAIL, INT64, PHONE, STRING",
-							Type:     schema.TypeString,
-							Required: true,
-							ForceNew: true,
-							ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{
-								"BOOL", "DATE", "DOUBLE", "EMAIL", "INT64", "PHONE", "STRING"}, true)),
-						},
-						"multi_valued": {
-							Description: "A boolean specifying whether this is a multi-valued field or not.",
-							Type:        schema.TypeBool,
-							Optional:    true,
-							Default:     false,
-						},
-						"etag": {
-							Description: "The ETag of the field.",
-							Type:        schema.TypeString,
-							Computed:    true,
-						},
-						"indexed": {
-							Description: "Boolean specifying whether the field is indexed or not.",
-							Type:        schema.TypeBool,
-							Optional:    true,
-							Default:     true,
-						},
-						"display_name": {
-							Description: "Display Name of the field.",
-							Type:        schema.TypeString,
-							Optional:    true,
-							Computed:    true,
-						},
-						"read_access_type": {
-							Description: "Specifies who can view values of this field. " +
-								"See Retrieve users as a non-administrator for more information. " +
-								"Acceptable values are: ADMINS_AND_SELF or ALL_DOMAIN_USERS. " +
-								"Note: It may take up to 24 hours for changes to this field to be reflected.",
-							Type:             schema.TypeString,
-							Optional:         true,
-							Default:          "ALL_DOMAIN_USERS",
-							ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"ADMINS_AND_SELF", "ALL_DOMAIN_USERS"}, true)),
-						},
-						// TODO: (mbang) AtLeastOneOf (https://github.com/hashicorp/terraform-plugin-sdk/issues/470)
-						"numeric_indexing_spec": {
-							Description: "Indexing spec for a numeric field. By default, " +
-								"only exact match queries will be supported for numeric fields. " +
-								"Setting the numericIndexingSpec allows range queries to be supported.",
-							Type:     schema.TypeList,
-							MaxItems: 1,
-							Optional: true,
-							Elem: &schema.Resource{
-								Schema: map[string]*schema.Schema{
-									"min_value": {
-										Description: "Minimum value of this field. This is meant to be indicative " +
-											"rather than enforced. Values outside this range will still be indexed, " +
-											"but search may not be as performant.",
-										Type:     schema.TypeFloat,
-										Optional: true,
-									},
-									"max_value": {
-										Description: "Maximum value of this field. This is meant to be indicative " +
-											"rather than enforced. Values outside this range will still be indexed, " +
-											"but search may not be as performant.",
-										Type:     schema.TypeFloat,
-										Optional: true,
-									},
-								},
-							},
-						},
-					},
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					tfsdk.RequiresReplace(),
 				},
 			},
 			"display_name": {
 				Description: "Display name for the schema.",
-				Type:        schema.TypeString,
+				Type:        types.StringType,
 				Optional:    true,
 				Computed:    true,
 			},
-			"etag": {
-				Description: "ETag of the resource.",
-				Type:        schema.TypeString,
-				Computed:    true,
+			"fields": {
+				Description: "A list of fields in the schema.",
+				Required:    true,
+				Attributes: tfsdk.ListNestedAttributes(map[string]tfsdk.Attribute{
+					"field_name": {
+						Description: "The name of the field.",
+						Type:        types.StringType,
+						Required:    true,
+						PlanModifiers: []tfsdk.AttributePlanModifier{
+							tfsdk.RequiresReplace(),
+						},
+					},
+					"field_id": {
+						Description: "The unique identifier of the field.",
+						Type:        types.StringType,
+						Computed:    true,
+					},
+					"field_type": {
+						Description: "The type of the field. Acceptable values are: " +
+							"BOOL, DATE, DOUBLE, EMAIL, INT64, PHONE, STRING",
+						Type:     types.StringType,
+						Required: true,
+						PlanModifiers: []tfsdk.AttributePlanModifier{
+							tfsdk.RequiresReplace(),
+						},
+						Validators: []tfsdk.AttributeValidator{
+							stringInSliceValidator{
+								stringOptions: []string{"BOOL", "DATE", "DOUBLE", "EMAIL", "INT64", "PHONE", "STRING"},
+							},
+						},
+					},
+					"multi_valued": {
+						Description: "A boolean specifying whether this is a multi-valued field or not.",
+						Type:        types.BoolType,
+						Optional:    true,
+						Computed:    true,
+						PlanModifiers: []tfsdk.AttributePlanModifier{
+							DefaultModifier{
+								ValType:    types.BoolType,
+								DefaultVal: false,
+							},
+						},
+					},
+					"indexed": {
+						Description: "A boolean specifying whether the field is indexed or not.",
+						Type:        types.BoolType,
+						Optional:    true,
+						Computed:    true,
+						PlanModifiers: []tfsdk.AttributePlanModifier{
+							DefaultModifier{
+								ValType:    types.BoolType,
+								DefaultVal: true,
+							},
+						},
+					},
+					"display_name": {
+						Description: "Display Name of the field.",
+						Type:        types.StringType,
+						Optional:    true,
+						Computed:    true,
+					},
+					"read_access_type": {
+						Description: "Specifies who can view values of this field. " +
+							"See Retrieve users as a non-administrator for more information. " +
+							"Acceptable values are: ADMINS_AND_SELF or ALL_DOMAIN_USERS. " +
+							"Note: It may take up to 24 hours for changes to this field to be reflected.",
+						Type:     types.StringType,
+						Optional: true,
+						Computed: true,
+						PlanModifiers: []tfsdk.AttributePlanModifier{
+							DefaultModifier{
+								ValType:    types.StringType,
+								DefaultVal: "ALL_DOMAIN_USERS",
+							},
+						},
+						Validators: []tfsdk.AttributeValidator{
+							stringInSliceValidator{
+								stringOptions: []string{"ADMINS_AND_SELF", "ALL_DOMAIN_USERS"},
+							},
+						},
+					},
+					"numeric_indexing_spec": {
+						Description: "Indexing spec for a numeric field. By default, " +
+							"only exact match queries will be supported for numeric fields. " +
+							"Setting the numericIndexingSpec allows range queries to be supported.",
+						Optional: true,
+						Attributes: tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
+							"min_value": {
+								Description: "Minimum value of this field. This is meant to be indicative " +
+									"rather than enforced. Values outside this range will still be indexed, " +
+									"but search may not be as performant.",
+								Type:     types.Float64Type,
+								Optional: true,
+							},
+							"max_value": {
+								Description: "Maximum value of this field. This is meant to be indicative " +
+									"rather than enforced. Values outside this range will still be indexed, " +
+									"but search may not be as performant.",
+								Type:     types.Float64Type,
+								Optional: true,
+							},
+						}),
+					},
+				}, tfsdk.ListNestedAttributesOptions{}),
 			},
-			// Adding a computed id simply to override the `optional` id that gets added in the SDK
-			// that will then display improperly in the docs
 			"id": {
-				Description: "The ID of this resource.",
-				Type:        schema.TypeString,
-				Computed:    true,
+				Computed:            true,
+				MarkdownDescription: "Schema identifier",
+				PlanModifiers: tfsdk.AttributePlanModifiers{
+					tfsdk.UseStateForUnknown(),
+				},
+				Type: types.StringType,
 			},
 		},
-	}
+	}, nil
 }
 
-func resourceSchemaCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	var diags diag.Diagnostics
+type schemaResourceData struct {
+	ID          types.String `tfsdk:"id"`
+	SchemaId    types.String `tfsdk:"schema_id"`
+	SchemaName  types.String `tfsdk:"schema_name"`
+	DisplayName types.String `tfsdk:"display_name"`
+	Fields      types.List   `tfsdk:"fields"`
+}
 
-	// use the meta value to retrieve your client from the provider configure method
-	client := meta.(*apiClient)
+type schemaFieldData struct {
+	FieldName           types.String `tfsdk:"field_name"`
+	FieldId             types.String `tfsdk:"field_id"`
+	FieldType           types.String `tfsdk:"field_type"`
+	MultiValued         types.Bool   `tfsdk:"multi_valued"`
+	Indexed             types.Bool   `tfsdk:"indexed"`
+	DisplayName         types.String `tfsdk:"display_name"`
+	ReadAccessType      types.String `tfsdk:"read_access_type"`
+	NumericIndexingSpec types.Object `tfsdk:"numeric_indexing_spec"`
+}
 
-	schemaName := d.Get("schema_name").(string)
-	log.Printf("[DEBUG] Creating Schema %q: %#v", d.Id(), schemaName)
+type schemaNumericIndexingSpecData struct {
+	MinValue types.Float64 `tfsdk:"min_value"`
+	MaxValue types.Float64 `tfsdk:"max_value"`
+}
 
-	directoryService, diags := client.NewDirectoryService()
-	if diags.HasError() {
-		return diags
+type schemaResource struct {
+	provider provider
+}
+
+func (r resourceSchemaType) NewResource(_ context.Context, in tfsdk.Provider) (tfsdk.Resource, diag.Diagnostics) {
+	p, diags := convertProviderType(in)
+
+	return schemaResource{
+		provider: p,
+	}, diags
+}
+
+// Create a new schema
+func (r schemaResource) Create(ctx context.Context, req tfsdk.CreateResourceRequest, resp *tfsdk.CreateResourceResponse) {
+	if !r.provider.configured {
+		resp.Diagnostics.AddError(
+			"Provider not configured",
+			"The provider hasn't been configured before apply, likely because it depends on an unknown value from "+
+				"another resource. This leads to weird stuff happening, so we'd prefer if you didn't do that. Thanks!",
+		)
+		return
 	}
 
-	schemasService, diags := GetSchemasService(directoryService)
-	if diags.HasError() {
-		return diags
+	// Retrieve values from plan
+	var plan schemaResourceData
+	diags := req.Plan.Get(ctx, &plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
-	schemaObj := directory.Schema{
-		SchemaName:  d.Get("schema_name").(string),
-		Fields:      expandFields(d.Get("fields")),
-		DisplayName: d.Get("display_name").(string),
+	schemaReq := SchemaPlanToObj(ctx, &plan, &resp.Diagnostics)
+
+	log.Printf("[DEBUG] Creating Schema %s", plan.SchemaName.Value)
+	schemasService := GetSchemasService(&r.provider, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
-	err := retryTimeDuration(ctx, d.Timeout(schema.TimeoutCreate), func() error {
-		definedSchema, retryErr := schemasService.Insert(client.Customer, &schemaObj).Do()
-		if retryErr != nil {
-			return retryErr
-		}
-
-		d.SetId(definedSchema.SchemaId)
-		return nil
-	})
+	schemaObj, err := schemasService.Insert(r.provider.customer, &schemaReq).Do()
 	if err != nil {
-		return diag.FromErr(err)
+		resp.Diagnostics.AddError("error while trying to create schema", err.Error())
+		return
 	}
 
-	log.Printf("[DEBUG] Finished creating Schema %q: %#v", d.Id(), schemaName)
-
-	return resourceSchemaRead(ctx, d, meta)
-}
-
-func resourceSchemaRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	var diags diag.Diagnostics
-
-	// use the meta value to retrieve your client from the provider configure method
-	client := meta.(*apiClient)
-
-	directoryService, diags := client.NewDirectoryService()
-	if diags.HasError() {
-		return diags
+	if schemaObj == nil {
+		resp.Diagnostics.AddError(fmt.Sprintf("no schema was returned for %s", plan.SchemaName.Value), "object returned was nil")
+		return
 	}
 
-	schemasService, diags := GetSchemasService(directoryService)
-	if diags.HasError() {
-		return diags
+	schemaId := schemaObj.SchemaId
+	numInserts := 1
+
+	// INSERT will respond with the Schema that will be created, however, it is eventually consistent
+	// After INSERT, the etag is updated along with the Schema,
+	// once we get a consistent etag, we can feel confident that our Schema is also consistent
+	cc := consistencyCheck{
+		resourceType: "schema",
+		timeout:      CreateTimeout,
 	}
-
-	schemaName := d.Get("schema_name").(string)
-	log.Printf("[DEBUG] Getting Schema %q: %#v", d.Id(), schemaName)
-
-	schema, err := schemasService.Get(client.Customer, d.Id()).Do()
-	if err != nil {
-		return handleNotFoundError(err, d, schemaName)
-	}
-
-	if schema == nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  fmt.Sprintf("No schema was returned for %s.", d.Get("schema_name").(string)),
-		})
-
-		return diags
-	}
-
-	d.Set("schema_id", schema.SchemaId)
-	d.Set("schema_name", schema.SchemaName)
-	d.Set("fields", flattenFields(schema.Fields))
-	d.Set("display_name", schema.DisplayName)
-	d.Set("etag", schema.Etag)
-	d.SetId(schema.SchemaId)
-	log.Printf("[DEBUG] Finished getting Schema %q: %#v", d.Id(), schemaName)
-
-	return diags
-}
-
-func resourceSchemaUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	var diags diag.Diagnostics
-
-	// use the meta value to retrieve your client from the provider configure method
-	client := meta.(*apiClient)
-
-	schemaName := d.Get("schema_name").(string)
-	log.Printf("[DEBUG] Updating Schema %q: %#v", d.Id(), schemaName)
-
-	directoryService, diags := client.NewDirectoryService()
-	if diags.HasError() {
-		return diags
-	}
-
-	schemasService, diags := GetSchemasService(directoryService)
-	if diags.HasError() {
-		return diags
-	}
-
-	schemaObj := directory.Schema{}
-
-	// Strings
-
-	if d.HasChange("schema_name") {
-		schemaObj.SchemaName = schemaName
-	}
-
-	if d.HasChange("fields") {
-		schemaObj.Fields = expandFields(d.Get("fields"))
-	}
-
-	if d.HasChange("display_name") {
-		schemaObj.DisplayName = d.Get("display_name").(string)
-	}
-
-	if &schemaObj != new(directory.Schema) {
-		schemaObj.SchemaId = d.Id()
-
-		err := retryTimeDuration(ctx, d.Timeout(schema.TimeoutUpdate), func() error {
-			definedSchema, retryErr := schemasService.Update(client.Customer, d.Id(), &schemaObj).Do()
-			if retryErr != nil {
-				return retryErr
-			}
-
-			d.SetId(definedSchema.SchemaId)
+	err = retryTimeDuration(ctx, CreateTimeout, func() error {
+		if cc.reachedConsistency(numInserts) {
 			return nil
-		})
-		if err != nil {
-			return diag.FromErr(err)
-		}
-	}
-
-	log.Printf("[DEBUG] Finished updating Schema %q: %#v", d.Id(), schemaName)
-
-	return resourceSchemaRead(ctx, d, meta)
-}
-
-func resourceSchemaDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	var diags diag.Diagnostics
-
-	// use the meta value to retrieve your client from the provider configure method
-	client := meta.(*apiClient)
-
-	schemaName := d.Get("schema_name").(string)
-	log.Printf("[DEBUG] Deleting Schema %q: %#v", d.Id(), schemaName)
-
-	directoryService, diags := client.NewDirectoryService()
-	if diags.HasError() {
-		return diags
-	}
-
-	schemasService, diags := GetSchemasService(directoryService)
-	if diags.HasError() {
-		return diags
-	}
-
-	err := retryTimeDuration(ctx, d.Timeout(schema.TimeoutDelete), func() error {
-		retryErr := schemasService.Delete(client.Customer, d.Id()).Do()
-		if retryErr != nil {
-			return retryErr
 		}
 
-		return nil
+		newOU, retryErr := schemasService.Get(r.provider.customer, schemaId).IfNoneMatch(cc.lastEtag).Do()
+		if googleapi.IsNotModified(retryErr) {
+			cc.currConsistent += 1
+		} else if retryErr != nil {
+			return cc.is404(retryErr)
+		} else {
+			cc.handleNewEtag(newOU.Etag)
+		}
+
+		return fmt.Errorf("timed out while waiting for %s to be inserted", cc.resourceType)
 	})
 	if err != nil {
-		return handleNotFoundError(err, d, schemaName)
+		return
 	}
 
-	log.Printf("[DEBUG] Finished deleting Schema %q: %#v", d.Id(), schemaName)
+	plan.ID.Value = schemaId
+	schema := GetSchemaData(&r.provider, plan, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
-	return diags
+	diags = resp.State.Set(ctx, schema)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	log.Printf("[DEBUG] Finished creating Schema %s: %s", schema.ID.Value, schema.SchemaName.Value)
+}
+
+// Read schema information
+func (r schemaResource) Read(ctx context.Context, req tfsdk.ReadResourceRequest, resp *tfsdk.ReadResourceResponse) {
+	var state schemaResourceData
+	diags := req.State.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	schema := GetSchemaData(&r.provider, state, &resp.Diagnostics)
+	if schema.ID.Null {
+		resp.State.RemoveResource(ctx)
+		log.Printf("[DEBUG] Removed Schema from state because it was not found %s", state.ID.Value)
+		return
+	}
+
+	diags = resp.State.Set(ctx, schema)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	log.Printf("[DEBUG] Finished getting Schema %s: %s", state.ID.Value, schema.SchemaName.Value)
+}
+
+// Update schema resource
+func (r schemaResource) Update(ctx context.Context, req tfsdk.UpdateResourceRequest, resp *tfsdk.UpdateResourceResponse) {
+	// Retrieve values from plan
+	var plan schemaResourceData
+	diags := req.Plan.Get(ctx, &plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Retrieve values from state
+	var state schemaResourceData
+	diags = req.State.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	log.Printf("[DEBUG] Updating Schema %q: %#v", plan.ID.Value, plan.SchemaName.Value)
+	schemasService := GetSchemasService(&r.provider, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	schemaReq := SchemaPlanToObj(ctx, &plan, &resp.Diagnostics)
+
+	schemaObj, err := schemasService.Update(r.provider.customer, state.ID.Value, &schemaReq).Do()
+	if err != nil {
+		resp.Diagnostics.AddError("error while trying to create schema", err.Error())
+		return
+	}
+
+	if schemaObj == nil {
+		resp.Diagnostics.AddError(fmt.Sprintf("no schema was returned for %s", plan.SchemaName.Value), "object returned was nil")
+		return
+	}
+
+	schemaId := schemaObj.SchemaId
+	numInserts := 1
+
+	// UPDATE will respond with the Schema that will be created, however, it is eventually consistent
+	// After UPDATE, the etag is updated along with the Schema,
+	// once we get a consistent etag, we can feel confident that our Schema is also consistent
+	cc := consistencyCheck{
+		resourceType: "schema",
+		timeout:      UpdateTimeout,
+	}
+	err = retryTimeDuration(ctx, UpdateTimeout, func() error {
+		if cc.reachedConsistency(numInserts) {
+			return nil
+		}
+
+		newOU, retryErr := schemasService.Get(r.provider.customer, schemaId).IfNoneMatch(cc.lastEtag).Do()
+		if googleapi.IsNotModified(retryErr) {
+			cc.currConsistent += 1
+		} else if retryErr != nil {
+			return cc.is404(retryErr)
+		} else {
+			cc.handleNewEtag(newOU.Etag)
+		}
+
+		return fmt.Errorf("timed out while waiting for %s to be inserted", cc.resourceType)
+	})
+	if err != nil {
+		return
+	}
+
+	plan.ID.Value = schemaId
+	schema := GetSchemaData(&r.provider, plan, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	diags = resp.State.Set(ctx, schema)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	log.Printf("[DEBUG] Finished creating Schema %q: %#v", state.ID.Value, plan.SchemaName.Value)
+}
+
+// Delete schema
+func (r schemaResource) Delete(ctx context.Context, req tfsdk.DeleteResourceRequest, resp *tfsdk.DeleteResourceResponse) {
+	var state schemaResourceData
+	diags := req.State.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	log.Printf("[DEBUG] Deleting Schema %q: %#v", state.ID.Value, state.SchemaName.Value)
+	schemasService := GetSchemasService(&r.provider, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	err := schemasService.Delete(r.provider.customer, state.ID.Value).Do()
+	if err != nil {
+		state.ID = types.String{Value: handleNotFoundError(err, state.ID.Value, &resp.Diagnostics)}
+		if resp.Diagnostics.HasError() {
+			return
+		}
+	}
+
+	resp.State.RemoveResource(ctx)
+	log.Printf("[DEBUG] Finished deleting Schema %s: %s", state.ID.Value, state.SchemaName.Value)
+}
+
+// ImportState schema
+func (r schemaResource) ImportState(ctx context.Context, req tfsdk.ImportResourceStateRequest, resp *tfsdk.ImportResourceStateResponse) {
+	tfsdk.ResourceImportStatePassthroughID(ctx, tftypes.NewAttributePath().WithAttributeName("id"), req, resp)
 }
 
 // Expand functions
 
-func expandFields(v interface{}) []*directory.SchemaFieldSpec {
-	fields := v.([]interface{})
-
-	if len(fields) == 0 {
+func expandFields(ctx context.Context, fieldData types.List, diags *diag.Diagnostics) []*directory.SchemaFieldSpec {
+	if len(fieldData.Elems) == 0 {
 		return nil
 	}
 
 	fieldObjs := []*directory.SchemaFieldSpec{}
 
-	for _, field := range fields {
+	for _, f := range fieldData.Elems {
+		field := schemaFieldData{}
+		d := f.(types.Object).As(ctx, &field, types.ObjectAsOptions{})
+		diags.Append(d...)
+		if diags.HasError() {
+			return nil
+		}
+
+		numIndexSpec := schemaNumericIndexingSpecData{}
+		d = field.NumericIndexingSpec.As(ctx, &numIndexSpec, types.ObjectAsOptions{
+			UnhandledNullAsEmpty: true,
+		})
+		diags.Append(d...)
+		if diags.HasError() {
+			return nil
+		}
+
 		fieldObjs = append(fieldObjs, &directory.SchemaFieldSpec{
-			FieldName:           field.(map[string]interface{})["field_name"].(string),
-			FieldType:           field.(map[string]interface{})["field_type"].(string),
-			MultiValued:         field.(map[string]interface{})["multi_valued"].(bool),
-			Indexed:             expandNestedFieldsIndexed(field.(map[string]interface{})["indexed"]),
-			DisplayName:         field.(map[string]interface{})["display_name"].(string),
-			ReadAccessType:      field.(map[string]interface{})["read_access_type"].(string),
-			NumericIndexingSpec: expandNestedNumericIndexingSpec(field.(map[string]interface{})["numeric_indexing_spec"]),
+			FieldName:      field.FieldName.Value,
+			FieldType:      field.FieldType.Value,
+			MultiValued:    field.MultiValued.Value,
+			Indexed:        &field.Indexed.Value,
+			DisplayName:    field.DisplayName.Value,
+			ReadAccessType: field.ReadAccessType.Value,
+			NumericIndexingSpec: &directory.SchemaFieldSpecNumericIndexingSpec{
+				MinValue: numIndexSpec.MinValue.Value,
+				MaxValue: numIndexSpec.MaxValue.Value,
+			},
 		})
 	}
 
 	return fieldObjs
-}
-
-func expandNestedNumericIndexingSpec(v interface{}) *directory.SchemaFieldSpecNumericIndexingSpec {
-	numericIndexingSpec := v.([]interface{})
-	numericIndexingSpecObj := directory.SchemaFieldSpecNumericIndexingSpec{}
-
-	if len(numericIndexingSpec) > 0 {
-		numericIndexingSpecObj.MinValue = numericIndexingSpec[0].(map[string]interface{})["min_value"].(float64)
-		numericIndexingSpecObj.MaxValue = numericIndexingSpec[0].(map[string]interface{})["max_value"].(float64)
-	}
-
-	return &numericIndexingSpecObj
-
-}
-
-func expandNestedFieldsIndexed(v interface{}) *bool {
-	if v == nil {
-		return nil
-	}
-
-	indexed := v.(bool)
-
-	return &indexed
-}
-
-// Flatten functions
-
-func flattenFields(fieldObjs []*directory.SchemaFieldSpec) interface{} {
-	fields := []map[string]interface{}{}
-
-	for _, fieldObj := range fieldObjs {
-		fields = append(fields, map[string]interface{}{
-			"field_name":            fieldObj.FieldName,
-			"field_id":              fieldObj.FieldId,
-			"field_type":            fieldObj.FieldType,
-			"multi_valued":          fieldObj.MultiValued,
-			"etag":                  fieldObj.Etag,
-			"indexed":               flattenNestedSchemaIndexed(fieldObj.Indexed),
-			"display_name":          fieldObj.DisplayName,
-			"read_access_type":      fieldObj.ReadAccessType,
-			"numeric_indexing_spec": flattenNestedSchemaNumericIndexingSpec(fieldObj.NumericIndexingSpec),
-		})
-	}
-
-	return fields
-}
-
-func flattenNestedSchemaIndexed(indexed *bool) interface{} {
-	if indexed == nil {
-		return nil
-	}
-
-	return indexed
-}
-
-func flattenNestedSchemaNumericIndexingSpec(numericIndexingSpecObj *directory.SchemaFieldSpecNumericIndexingSpec) interface{} {
-	if numericIndexingSpecObj == nil {
-		return nil
-	}
-	return []map[string]interface{}{
-		{
-			"min_value": numericIndexingSpecObj.MinValue,
-			"max_value": numericIndexingSpecObj.MaxValue,
-		},
-	}
 }
