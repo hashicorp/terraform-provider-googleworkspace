@@ -3,7 +3,7 @@ package googleworkspace
 import (
 	"log"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 
 	directory "google.golang.org/api/admin/directory/v1"
 	"google.golang.org/api/chromepolicy/v1"
@@ -11,274 +11,210 @@ import (
 	"google.golang.org/api/groupssettings/v1"
 )
 
-func GetChromePoliciesService(chromePolicyService *chromepolicy.Service) (*chromepolicy.CustomersPoliciesService, diag.Diagnostics) {
-	var diags diag.Diagnostics
+func GetChromePoliciesService(prov *provider, diags *diag.Diagnostics) *chromepolicy.CustomersPoliciesService {
+	chromePolicyService := prov.NewChromePolicyService(diags)
 
 	log.Printf("[INFO] Instantiating Google Admin Chrome Policies service")
 	customersService := chromePolicyService.Customers
 	if customersService == nil || customersService.Policies == nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Chrome Policies Service could not be created.",
-		})
-
-		return nil, diags
+		diags.AddError("Chrome Policies Service could not be created.", "returned service was null.")
+		return nil
 	}
 
-	return customersService.Policies, diags
+	return customersService.Policies
 }
 
-func GetChromePolicySchemasService(chromePolicyService *chromepolicy.Service) (*chromepolicy.CustomersPolicySchemasService, diag.Diagnostics) {
-	var diags diag.Diagnostics
+func GetChromePolicySchemasService(prov *provider, diags *diag.Diagnostics) *chromepolicy.CustomersPolicySchemasService {
+	chromePolicyService := prov.NewChromePolicyService(diags)
 
 	log.Printf("[INFO] Instantiating Google Admin Chrome Policy Schemas service")
 	customersService := chromePolicyService.Customers
 	if customersService == nil || customersService.PolicySchemas == nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Chrome Policy Schemas Service could not be created.",
-		})
-
-		return nil, diags
+		diags.AddError("Chrome Policies Schemas Service could not be created.", "returned service was null.")
+		return nil
 	}
 
-	return customersService.PolicySchemas, diags
+	return customersService.PolicySchemas
 }
 
-func GetDomainAliasesService(directoryService *directory.Service) (*directory.DomainAliasesService, diag.Diagnostics) {
-	var diags diag.Diagnostics
+func GetDomainAliasesService(prov *provider, diags *diag.Diagnostics) *directory.DomainAliasesService {
+	directoryService := prov.NewDirectoryService(diags)
 
 	log.Printf("[INFO] Instantiating Google Admin Domain Aliases service")
 	domainAliasesService := directoryService.DomainAliases
 	if domainAliasesService == nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Domain Aliases Service could not be created.",
-		})
-
-		return nil, diags
+		diags.AddError("Domain Aliases Service could not be created.", "returned service was null.")
+		return nil
 	}
 
-	return domainAliasesService, diags
+	return domainAliasesService
 }
 
-func GetDomainsService(directoryService *directory.Service) (*directory.DomainsService, diag.Diagnostics) {
-	var diags diag.Diagnostics
+func GetDomainsService(prov *provider, diags *diag.Diagnostics) *directory.DomainsService {
+	directoryService := prov.NewDirectoryService(diags)
 
 	log.Printf("[INFO] Instantiating Google Admin Domains service")
 	domainsService := directoryService.Domains
 	if domainsService == nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Domains Service could not be created.",
-		})
-
-		return nil, diags
+		diags.AddError("Domains Service could not be created.", "returned service was null.")
+		return nil
 	}
 
-	return domainsService, diags
+	return domainsService
 }
 
-func GetGroupsService(directoryService *directory.Service) (*directory.GroupsService, diag.Diagnostics) {
-	var diags diag.Diagnostics
+func GetGroupsService(prov *provider, diags *diag.Diagnostics) *directory.GroupsService {
+	directoryService := prov.NewDirectoryService(diags)
 
 	log.Printf("[INFO] Instantiating Google Admin Groups service")
 	groupsService := directoryService.Groups
 	if groupsService == nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Groups Service could not be created.",
-		})
-
-		return nil, diags
+		diags.AddError("Groups Service could not be created.", "returned service was null.")
+		return nil
 	}
 
-	return groupsService, diags
+	return groupsService
 }
 
-func GetGroupsSettingsService(groupsSettingsService *groupssettings.Service) (*groupssettings.GroupsService, diag.Diagnostics) {
-	var diags diag.Diagnostics
+func GetGroupsSettingsService(prov *provider, diags *diag.Diagnostics) *groupssettings.GroupsService {
+	groupsSettingsService := prov.NewGroupsSettingsService(diags)
 
 	log.Printf("[INFO] Instantiating Google Admin Groups Settings Groups service")
 	groupsService := groupsSettingsService.Groups
 	if groupsService == nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Groups Service could not be created.",
-		})
-
-		return nil, diags
+		diags.AddError("Groups Settings Groups Service could not be created.", "returned service was null.")
+		return nil
 	}
 
-	return groupsService, diags
+	return groupsService
 }
 
-func GetGmailSendAsAliasService(gmailService *gmail.Service) (*gmail.UsersSettingsSendAsService, diag.Diagnostics) {
-	var diags diag.Diagnostics
+func GetGmailSendAsAliasService(prov *provider, diags *diag.Diagnostics) *gmail.UsersSettingsSendAsService {
+	gmailService := prov.NewGmailService(diags)
 
 	log.Printf("[INFO] Instantiating Google Admin Gmail Send As Alias service")
 	usersService := gmailService.Users
 	if usersService == nil || usersService.Settings == nil || usersService.Settings.SendAs == nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Send As Alias Service could not be created.",
-		})
-
-		return nil, diags
+		diags.AddError("Gmail Send As Alias Service could not be created.", "returned service was null.")
+		return nil
 	}
 
-	return usersService.Settings.SendAs, diags
+	return usersService.Settings.SendAs
 }
 
-func GetGroupAliasService(groupsService *directory.GroupsService) (*directory.GroupsAliasesService, diag.Diagnostics) {
-	var diags diag.Diagnostics
+func GetGroupAliasService(prov *provider, diags *diag.Diagnostics) *directory.GroupsAliasesService {
+	groupsService := GetGroupsService(prov, diags)
 
 	log.Printf("[INFO] Instantiating Google Admin Group Alias service")
 	aliasesService := groupsService.Aliases
 	if aliasesService == nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Groups Aliases Service could not be created.",
-		})
-
-		return nil, diags
+		diags.AddError("Group Alias Service could not be created.", "returned service was null.")
+		return nil
 	}
 
-	return aliasesService, diags
+	return aliasesService
 }
 
-func GetMembersService(directoryService *directory.Service) (*directory.MembersService, diag.Diagnostics) {
-	var diags diag.Diagnostics
+func GetMembersService(prov *provider, diags *diag.Diagnostics) *directory.MembersService {
+	directoryService := prov.NewDirectoryService(diags)
 
 	log.Printf("[INFO] Instantiating Google Admin Members service")
 	membersService := directoryService.Members
 	if membersService == nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Members Service could not be created.",
-		})
-
-		return nil, diags
+		diags.AddError("Members Service could not be created.", "returned service was null.")
+		return nil
 	}
 
-	return membersService, diags
+	return membersService
 }
 
-func GetOrgUnitsService(directoryService *directory.Service) (*directory.OrgunitsService, diag.Diagnostics) {
-	var diags diag.Diagnostics
+func GetOrgUnitsService(prov *provider, diags *diag.Diagnostics) *directory.OrgunitsService {
+	directoryService := prov.NewDirectoryService(diags)
 
 	log.Printf("[INFO] Instantiating Google Admin OrgUnits service")
 	ousService := directoryService.Orgunits
 	if ousService == nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "OrgUnits Service could not be created.",
-		})
-
-		return nil, diags
+		diags.AddError("OrgUnits Service could not be created.", "returned service was null.")
+		return nil
 	}
 
-	return ousService, diags
+	return ousService
 }
 
-func GetPrivilegesService(directoryService *directory.Service) (*directory.PrivilegesService, diag.Diagnostics) {
-	var diags diag.Diagnostics
+func GetPrivilegesService(prov *provider, diags *diag.Diagnostics) *directory.PrivilegesService {
+	directoryService := prov.NewDirectoryService(diags)
 
 	log.Printf("[INFO] Instantiating Google Admin Privileges service")
 	privilegesService := directoryService.Privileges
 	if privilegesService == nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Privileges Service could not be created.",
-		})
-
-		return nil, diags
+		diags.AddError("Privileges Service could not be created.", "returned service was null.")
+		return nil
 	}
 
-	return privilegesService, diags
+	return privilegesService
 }
 
-func GetRoleAssignmentsService(directoryService *directory.Service) (*directory.RoleAssignmentsService, diag.Diagnostics) {
-	var diags diag.Diagnostics
+func GetRoleAssignmentsService(prov *provider, diags *diag.Diagnostics) *directory.RoleAssignmentsService {
+	directoryService := prov.NewDirectoryService(diags)
 
 	log.Printf("[INFO] Instantiating Google Admin RoleAssignments service")
 	roleAssignmentsService := directoryService.RoleAssignments
 	if roleAssignmentsService == nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "RoleAssignments Service could not be created.",
-		})
-
-		return nil, diags
+		diags.AddError("RoleAssignments Service could not be created.", "returned service was null.")
+		return nil
 	}
 
-	return roleAssignmentsService, diags
+	return roleAssignmentsService
 }
 
-func GetRolesService(directoryService *directory.Service) (*directory.RolesService, diag.Diagnostics) {
-	var diags diag.Diagnostics
+func GetRolesService(prov *provider, diags *diag.Diagnostics) *directory.RolesService {
+	directoryService := prov.NewDirectoryService(diags)
 
 	log.Printf("[INFO] Instantiating Google Admin Roles service")
 	rolesService := directoryService.Roles
 	if rolesService == nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Roles Service could not be created.",
-		})
-
-		return nil, diags
+		diags.AddError("Roles Service could not be created.", "returned service was null.")
+		return nil
 	}
 
-	return rolesService, diags
+	return rolesService
 }
 
-func GetSchemasService(directoryService *directory.Service) (*directory.SchemasService, diag.Diagnostics) {
-	var diags diag.Diagnostics
+func GetSchemasService(prov *provider, diags *diag.Diagnostics) *directory.SchemasService {
+	directoryService := prov.NewDirectoryService(diags)
 
 	log.Printf("[INFO] Instantiating Google Admin Schemas service")
 	schemasService := directoryService.Schemas
 	if schemasService == nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Schemas Service could not be created.",
-		})
-
-		return nil, diags
+		diags.AddError("Schemas Service could not be created.", "returned service was null.")
+		return nil
 	}
 
-	return schemasService, diags
+	return schemasService
 }
 
-func GetUsersService(directoryService *directory.Service) (*directory.UsersService, diag.Diagnostics) {
-	var diags diag.Diagnostics
+func GetUsersService(prov *provider, diags *diag.Diagnostics) *directory.UsersService {
+	directoryService := prov.NewDirectoryService(diags)
 
 	log.Printf("[INFO] Instantiating Google Admin Users service")
 	usersService := directoryService.Users
 	if usersService == nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Users Service could not be created.",
-		})
-
-		return nil, diags
+		diags.AddError("Users Service could not be created.", "returned service was null.")
+		return nil
 	}
 
-	return usersService, diags
+	return usersService
 }
 
-func GetUserAliasService(usersService *directory.UsersService) (*directory.UsersAliasesService, diag.Diagnostics) {
-	var diags diag.Diagnostics
+func GetUserAliasService(prov *provider, diags *diag.Diagnostics) *directory.UsersAliasesService {
+	usersService := GetUsersService(prov, diags)
 
-	log.Printf("[INFO] Instantiating Google Admin User Alias service")
+	log.Printf("[INFO] Instantiating Google Admin User Aliases service")
 	aliasesService := usersService.Aliases
 	if aliasesService == nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  "Users Aliases Service could not be created.",
-		})
-
-		return nil, diags
+		diags.AddError("User Aliases Service could not be created.", "returned service was null.")
+		return nil
 	}
 
-	return aliasesService, diags
+	return aliasesService
 }

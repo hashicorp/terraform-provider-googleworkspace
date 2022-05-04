@@ -49,7 +49,7 @@ func getTestImpersonatedUserFromEnv() string {
 }
 
 // googleworkspaceTestClient returns a common client
-func googleworkspaceTestClient(ctx context.Context, diags diag.Diagnostics) *provider {
+func googleworkspaceTestClient(ctx context.Context, diags *diag.Diagnostics) *provider {
 	creds := getTestCredsFromEnv()
 	if creds == "" {
 		diags.AddError("credentials are required", fmt.Sprintf("set credentials using any of these env variables %v", credsEnvVars))
@@ -65,7 +65,7 @@ func googleworkspaceTestClient(ctx context.Context, diags diag.Diagnostics) *pro
 		diags.AddError("impersonated user is required", "set customer id with GOOGLEWORKSPACE_IMPERSONATED_USER_EMAIL")
 	}
 	if diags.HasError() {
-		log.Printf("[INFO][SWEEPER_LOG] error reading env variables for test provider:\n%s", getDiagErrors(diags))
+		log.Printf("[INFO][SWEEPER_LOG] error reading env variables for test provider:\n%s", getDiagErrors(*diags))
 		return nil
 	}
 
@@ -78,11 +78,11 @@ func googleworkspaceTestClient(ctx context.Context, diags diag.Diagnostics) *pro
 
 	p := &provider{
 		version:  "test",
-		client:   authenticateClient(ctx, *pd, &diags),
+		client:   authenticateClient(ctx, *pd, diags),
 		customer: customerId,
 	}
 	if diags.HasError() {
-		log.Printf("[INFO][SWEEPER_LOG]\nerror creating test provider: %s", getDiagErrors(diags))
+		log.Printf("[INFO][SWEEPER_LOG]\nerror creating test provider: %s", getDiagErrors(*diags))
 		return nil
 	}
 

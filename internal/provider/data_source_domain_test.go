@@ -12,8 +12,8 @@ func TestAccDataSourceDomain(t *testing.T) {
 	domainName := fmt.Sprintf("tf-test-%s.com", acctest.RandString(10))
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: providerFactories,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccDataSourceDomain(domainName),

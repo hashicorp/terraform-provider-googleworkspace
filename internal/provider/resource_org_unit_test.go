@@ -1,7 +1,9 @@
 package googleworkspace
 
 import (
+	"context"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
@@ -15,8 +17,8 @@ func TestAccResourceOrgUnit_basic(t *testing.T) {
 	ouName := fmt.Sprintf("tf-test-%s", acctest.RandString(10))
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: providerFactories,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		CheckDestroy: resource.ComposeTestCheckFunc(
 			testAccResourceOrgUnitMemberExists("googleworkspace_org_unit.my-org-unit"),
 		),
@@ -40,8 +42,8 @@ func TestAccResourceOrgUnit_full(t *testing.T) {
 	ouName := fmt.Sprintf("tf-test-%s", acctest.RandString(10))
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: providerFactories,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		CheckDestroy: resource.ComposeTestCheckFunc(
 			testAccResourceOrgUnitMemberExists("googleworkspace_org_unit.my-org-unit"),
 		),
@@ -75,22 +77,18 @@ func testAccResourceOrgUnitMemberExists(resource string) resource.TestCheckFunc 
 			return fmt.Errorf("%s key not found in state", resource)
 		}
 
-		client, err := googleworkspaceTestClient()
-		if err != nil {
-			return err
-		}
-
-		directoryService, diags := client.NewDirectoryService()
+		diags := diag.Diagnostics{}
+		client := googleworkspaceTestClient(context.Background(), &diags)
 		if diags.HasError() {
-			return fmt.Errorf("Error creating directory service %+v", diags)
+			return getDiagErrors(diags)
 		}
 
-		orgUnitsService, diags := GetOrgUnitsService(directoryService)
+		orgUnitsService := GetOrgUnitsService(client, &diags)
 		if diags.HasError() {
 			return fmt.Errorf("Error getting org units service %+v", diags)
 		}
 
-		_, err = orgUnitsService.Get(client.Customer, rs.Primary.ID).Do()
+		_, err := orgUnitsService.Get(client.customer, rs.Primary.ID).Do()
 		if err == nil {
 			return fmt.Errorf("Org Unit still exists (%s)", rs.Primary.ID)
 		}

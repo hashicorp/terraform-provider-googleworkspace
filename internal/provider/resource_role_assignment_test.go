@@ -25,8 +25,8 @@ func TestAccResourceRoleAssignment_basic(t *testing.T) {
 		"password":   acctest.RandString(10),
 	}
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: providerFactories,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccRoleAssignment_basic(data),
@@ -57,8 +57,8 @@ func TestAccResourceRoleAssignment_orgUnit_invalid(t *testing.T) {
 		"password":   acctest.RandString(10),
 	}
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: providerFactories,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccRoleAssignment_orgUnit_invalid(data),
@@ -85,8 +85,8 @@ func TestAccResourceRoleAssignment_orgUnit(t *testing.T) {
 		"password":   acctest.RandString(10),
 	}
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: providerFactories,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccRoleAssignment_orgUnit(data),
@@ -107,7 +107,7 @@ resource "googleworkspace_user" "test" {
   primary_email = "%{userEmail}@%{domainName}"
   password = "%{password}"
 
-  name {
+  name = {
     family_name = "Scott"
     given_name = "Michael"
   }
@@ -151,7 +151,7 @@ resource "googleworkspace_user" "test" {
   primary_email = "%{userEmail}@%{domainName}"
   password = "%{password}"
 
-  name {
+  name = {
     family_name = "Scott"
     given_name = "Michael"
   }
@@ -192,7 +192,7 @@ resource "googleworkspace_user" "test" {
   primary_email = "%{userEmail}@%{domainName}"
   password = "%{password}"
 
-  name {
+  name = {
     family_name = "Scott"
     given_name = "Michael"
   }

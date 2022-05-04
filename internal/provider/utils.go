@@ -12,7 +12,7 @@ import (
 	"unicode"
 
 	"github.com/hashicorp/errwrap"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	"github.com/mitchellh/go-homedir"
@@ -196,4 +196,14 @@ func sortListOfInterfaces(v []interface{}) []string {
 	}
 	sort.Strings(newVal)
 	return newVal
+}
+
+// getDiagErrors prints errors in diags
+func getDiagErrors(diags []diag.Diagnostic) error {
+	var errs []string
+	for _, d := range diags {
+		errs = append(errs, fmt.Sprintf("%s : %s | %s", d.Severity(), d.Summary(), d.Detail()))
+	}
+
+	return fmt.Errorf(strings.Join(errs, "\n"))
 }

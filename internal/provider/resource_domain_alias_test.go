@@ -20,8 +20,8 @@ func TestAccResourceDomainAlias(t *testing.T) {
 	domainAlias := fmt.Sprintf("tf-test-%s.com", acctest.RandString(10))
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: providerFactories,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccResourceDomainAlias(domainName, domainAlias),

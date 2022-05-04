@@ -14,8 +14,8 @@ func TestAccResourceSchema_basic(t *testing.T) {
 	schemaName := fmt.Sprintf("tf-test-%s", acctest.RandString(10))
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: providerFactories,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccResourceSchema_basic(schemaName),
@@ -36,8 +36,8 @@ func TestAccResourceSchema_full(t *testing.T) {
 	schemaName := fmt.Sprintf("tf-test-%s", acctest.RandString(10))
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: providerFactories,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccResourceSchema_full(schemaName),
@@ -66,10 +66,10 @@ func testAccResourceSchema_basic(schemaName string) string {
 resource "googleworkspace_schema" "my-schema" {
   schema_name = "%s"
 
-  fields {
+  fields = [{
     field_name = "birthday"
     field_type = "DATE"
-  }
+  }]
 }
 `, schemaName)
 }
@@ -80,28 +80,24 @@ resource "googleworkspace_schema" "my-schema" {
   schema_name = "%s-updated"
   display_name = "schema test full"
 
-  fields {
+  fields = [{
     field_name = "birthday"
     field_type = "DATE"
     read_access_type = "ADMINS_AND_SELF"
-  }
-
-  fields {
+  }, {
     field_name = "favorite_numbers"
     field_type = "INT64"
     multi_valued = true
 
-    numeric_indexing_spec {
+    numeric_indexing_spec = {
       min_value = 1.0
       max_value = 10.5
     }
-  }
-
-  fields {
+  }, {
     field_name = "indexed"
     field_type = "DOUBLE"
     indexed = true
-  }
+  }]
 }
 `, schemaName)
 }
@@ -112,29 +108,25 @@ resource "googleworkspace_schema" "my-schema" {
   schema_name = "%s"
   display_name = "schema test full update"
 
-  fields {
+  fields = [{
     field_name = "birthday"
     field_type = "DATE"
-  }
-
-  fields {
+  }, {
     field_name = "favorite_number"
     field_type = "INT64"
     multi_valued = true
 
-    numeric_indexing_spec {
+    numeric_indexing_spec = {
       min_value = 1.0
       max_value = 13.2
     }
-  }
-
-  fields {
+  }, {
     field_name = "indexed"
     field_type = "DOUBLE"
     multi_valued = true
     indexed = true
     read_access_type = "ADMINS_AND_SELF"
-  }
+  }]
 }
 `, schemaName)
 }

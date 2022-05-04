@@ -1,11 +1,13 @@
 package googleworkspace
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -28,8 +30,8 @@ func TestAccResourceGroupMember_basic(t *testing.T) {
 	}
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: providerFactories,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		CheckDestroy: resource.ComposeTestCheckFunc(
 			testAccResourceGroupMemberExists("googleworkspace_group_member.my-group-member"),
 		),
@@ -64,8 +66,8 @@ func TestAccResourceGroupMember_full(t *testing.T) {
 	}
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: providerFactories,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		CheckDestroy: resource.ComposeTestCheckFunc(
 			testAccResourceGroupMemberExists("googleworkspace_group_member.my-group-member"),
 		),
@@ -99,17 +101,13 @@ func testAccResourceGroupMemberExists(resource string) resource.TestCheckFunc {
 			return fmt.Errorf("%s key not found in state", resource)
 		}
 
-		client, err := googleworkspaceTestClient()
-		if err != nil {
-			return err
-		}
-
-		directoryService, diags := client.NewDirectoryService()
+		diags := diag.Diagnostics{}
+		client := googleworkspaceTestClient(context.Background(), &diags)
 		if diags.HasError() {
-			return fmt.Errorf("Error creating directory service %+v", diags)
+			return getDiagErrors(diags)
 		}
 
-		membersService, diags := GetMembersService(directoryService)
+		membersService := GetMembersService(client, &diags)
 		if diags.HasError() {
 			return fmt.Errorf("Error getting group members service %+v", diags)
 		}
@@ -121,7 +119,7 @@ func testAccResourceGroupMemberExists(resource string) resource.TestCheckFunc {
 			return fmt.Errorf("Group Member Id (%s) is not of the correct format (groups/<group_id>/members/<member_id>)", rs.Primary.ID)
 		}
 
-		_, err = membersService.Get(parts[1], parts[3]).Do()
+		_, err := membersService.Get(parts[1], parts[3]).Do()
 		if err == nil {
 			return fmt.Errorf("Group Member still exists (%s)", rs.Primary.ID)
 		}

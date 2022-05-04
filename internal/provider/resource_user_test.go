@@ -26,8 +26,8 @@ func TestAccResourceUser_basic(t *testing.T) {
 	}
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: providerFactories,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccResourceUser_basic(testUserVals),
@@ -57,8 +57,8 @@ func TestAccResourceUser_noPassword(t *testing.T) {
 	}
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: providerFactories,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccResourceUser_noPassword(testUserVals),
@@ -83,8 +83,8 @@ func TestAccResourceUser_full(t *testing.T) {
 	}
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: providerFactories,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccResourceUser_full(testUserVals),
@@ -124,8 +124,8 @@ func TestAccResourceUser_isAdmin(t *testing.T) {
 	}
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: providerFactories,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccResourceUser_isAdmin(testUserVals, "true"),
@@ -166,8 +166,8 @@ func TestAccResourceUser_gone(t *testing.T) {
 	}
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: providerFactories,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccResourceUser_basic(testUserVals),
@@ -217,8 +217,8 @@ func TestAccResourceUser_customSchemasAllTypes(t *testing.T) {
 	}
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: providerFactories,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccResourceUser_customSchemaAllTypes(testUserVals),
@@ -249,8 +249,8 @@ func TestAccResourceUser_customSchemasMultiple(t *testing.T) {
 	}
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: providerFactories,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccResourceUser_customSchemaMultiple(testUserVals),
@@ -271,7 +271,7 @@ resource "googleworkspace_user" "my-new-user" {
   primary_email = "%{userEmail}@%{domainName}"
   password = "%{password}"
 
-  name {
+  name = {
     family_name = "Scott"
     given_name = "Michael"
   }
@@ -288,7 +288,7 @@ func testAccResourceUser_noPassword(testUserVals map[string]interface{}) string 
 resource "googleworkspace_user" "my-new-user" {
   primary_email = "%{userEmail}@%{domainName}"
 
-  name {
+  name = {
     family_name = "Scott"
     given_name = "Michael"
   }
@@ -301,12 +301,10 @@ func testAccResourceUser_full(testUserVals map[string]interface{}) string {
 resource "googleworkspace_schema" "my-schema" {
   schema_name = "%{userEmail}-schema"
 
-  fields {
+  fields = [{
     field_name = "birthday"
     field_type = "DATE"
-  }
-
-  fields {
+  }, {
     field_name = "favorite-numbers"
     field_type = "INT64"
     multi_valued = true
@@ -315,7 +313,7 @@ resource "googleworkspace_schema" "my-schema" {
       min_value = 1
       max_value = 100
     }
-  }
+  }]
 }
 
 resource "googleworkspace_user" "my-new-user" {
@@ -323,40 +321,33 @@ resource "googleworkspace_user" "my-new-user" {
   password      = "34819d7beeabb9260a5c854bc85b3e44"
   hash_function = "MD5"
 
-  name {
+  name = {
     family_name = "Schrute"
     given_name = "Dwight"
   }
 
-  timeouts {
-    create = "15m"
-    update = "15m"
-  }
-
   aliases = ["%{userEmail}-assistant_to_regional_manager@%{domainName}", "%{userEmail}-regional_manager@%{domainName}"]
 
-  emails {
+  emails =[{
     address = "dwight.schrute@example.com"
     type = "home"
-  }
-
-  emails {
+  }, {
     address = "dwight.schrute.dunder.mifflin@example.com"
     type = "work"
-  }
+  }]
 
-  external_ids {
+  external_ids = [{
     custom_type = "employee_number"
     type = "custom"
     value = "2"
-  }
+  }]
 
-  relations {
+  relations = [{
     type = "assistant"
     value = "Michael Scott"
-  }
+  }]
 
-  addresses {
+  addresses = [{
     country = "USA"
     country_code = "US"
     locality = "Scranton"
@@ -365,9 +356,7 @@ resource "googleworkspace_user" "my-new-user" {
     region = "PA"
     street_address = "123 Dunder Mifflin Pkwy"
     type = "work"
-  }
-
-  addresses {
+  }, {
     country = "USA"
     country_code = "US"
     locality = "Scranton"
@@ -376,9 +365,9 @@ resource "googleworkspace_user" "my-new-user" {
     region = "PA"
     street_address = "123 Schrute Farms Rd"
     type = "home"
-  }
+  }]
 
-  organizations {
+  organizations = [{
     department = "sales"
     location = "Scranton"
     name = "Dunder Mifflin"
@@ -386,58 +375,56 @@ resource "googleworkspace_user" "my-new-user" {
     symbol = "DUMI"
     title = "member"
     type = "work"
-  }
+  }]
 
-  phones {
+  phones = [{
     type = "home"
     value = "555-123-7890"
-  }
-
-  phones {
+  }, {
     type = "work"
     primary = true
     value = "555-123-0987"
-  }
+  }]
 
-  languages {
+  languages = [{
     language_code = "en"
-  }
+  }]
 
-  websites {
+  websites = [{
     primary = true
     type = "blog"
     value = "dundermifflinschrutebeetfarms.blogspot.com"
-  }
+  }]
 
-  locations {
+  locations = [{
     area = "Scranton"
     building_id = "123"
     desk_code = "1"
     floor_name = "2"
     floor_section = "A"
     type ="desk"
-  }
+  }]
 
-  keywords {
+  keywords = [{
     type = "occupation"
     value = "salesperson"
-  }
+  }]
 
-  ims {
+  ims = [{
     im = "dwightkschrute"
     primary = true
     protocol = "aim"
     type = "home"
-  }
+  }]
 
-  custom_schemas {
+  custom_schemas = [{
     schema_name = googleworkspace_schema.my-schema.schema_name
 
     schema_values = {
       "birthday" = jsonencode("1970-01-20")
       "favorite-numbers" = jsonencode([1, 2, 3])
     }
-  }
+  }]
 
   include_in_global_address_list = false
   recovery_email = "dwightkschrute@example.com"
@@ -453,12 +440,10 @@ func testAccResourceUser_fullUpdate(testUserVals map[string]interface{}) string 
 resource "googleworkspace_schema" "my-schema" {
   schema_name = "%{userEmail}-schema"
 
-  fields {
+  fields = [{
     field_name = "birthday"
     field_type = "DATE"
-  }
-
-  fields {
+  }, {
     field_name = "favorite-numbers"
     field_type = "INT64"
     multi_valued = true
@@ -467,12 +452,10 @@ resource "googleworkspace_schema" "my-schema" {
       min_value = 1
       max_value = 100
     }
-  }
-
-  fields {
+  }, {
     field_name = "num-cats"
     field_type = "INT64"
-  }
+  }]
 }
 
 resource "googleworkspace_user" "my-new-user" {
@@ -480,35 +463,30 @@ resource "googleworkspace_user" "my-new-user" {
   password      = "34819d7beeabb9260a5c854bc85b3e44"
   hash_function = "MD5"
 
-  name {
+  name = {
     family_name = "Schrute"
     given_name = "Dwight K"
   }
 
-  timeouts {
-    create = "15m"
-    update = "15m"
-  }
-
   aliases = ["%{userEmail}-assist_to_regional_manager@%{domainName}"]
 
-  emails {
+  emails = [{
     address = "dwight.schrute@example.com"
     type = "home"
-  }
+  }]
 
-  external_ids {
+  external_ids = [{
     custom_type = "employee_no"
     type = "custom"
     value = "2"
-  }
+  }]
 
-  relations {
+  relations = [{
     type = "assistant"
     value = "Michael Scott"
-  }
+  }]
 
-  addresses {
+  addresses = [{
     country = "USA"
     country_code = "US"
     locality = "Scranton"
@@ -517,58 +495,58 @@ resource "googleworkspace_user" "my-new-user" {
     region = "PA"
     street_address = "123 Dunder Mifflin Pkwy"
     type = "work"
-  }
+  }]
 
-  organizations {
+  organizations = [{
     department = "sales"
     location = "Scranton"
     name = "Dunder Mifflin"
     symbol = "DUMI"
     title = "member"
     type = "work"
-  }
+  }]
 
-  phones {
+  phones = [{
     type = "home"
     value = "555-123-7890"
     primary = true
-  }
+  }]
 
-  languages {
+  languages = [{
     language_code = "en"
-  }
+  }]
 
   ssh_public_keys {
     key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPM4pxpbPpjuBocS6qlW0BHRYgH5xmv/yVrANZR9lc1N"
-  }
+  }]
 
-  websites {
+  websites = [{
     primary = false
     type = "blog"
     value = "dundermifflinschrutebeetfarms.blogspot.com"
-  }
+  }]
 
-  locations {
+  locations = [{
     area = "Scranton"
     building_id = "123"
     floor_name = "2"
     floor_section = "B"
     type ="desk"
-  }
+  }]
 
-  keywords {
+  keywords = [{
     type = "occupation"
     value = "salesperson"
-  }
+  }]
 
   ims {
     im = "dwightkschrute"
     primary = false
     protocol = "aim"
     type = "home"
-  }
+  }]
 
-  custom_schemas {
+  custom_schemas = [{
     schema_name = googleworkspace_schema.my-schema.schema_name
 
     schema_values = {
@@ -576,7 +554,7 @@ resource "googleworkspace_user" "my-new-user" {
       "favorite-numbers" = jsonencode([1, 2])
       "num-cats" = jsonencode(3)
     }
-  }
+  }]
 
   include_in_global_address_list = true
   recovery_phone = "+16506661212"
@@ -594,7 +572,7 @@ resource "googleworkspace_user" "my-new-user" {
   primary_email = "%{userEmail}@%{domainName}"
   password = "%{password}"
 
-  name {
+  name = {
     family_name = "Scott"
     given_name = "Michael"
   }
@@ -610,13 +588,9 @@ resource "googleworkspace_user" "my-new-user" {
   primary_email = "%{userEmail}@%{domainName}"
   password = "%{password}"
 
-  name {
+  name = {
     family_name = "Scott"
     given_name = "Michael"
-  }
-
-  timeouts {
-    update = "15m"
   }
 
   suspended = true
@@ -631,7 +605,7 @@ resource "googleworkspace_user" "my-new-user" {
 //  primary_email = "%{userEmail}@%{domainName}"
 //  password = "%{password}"
 //
-//  name {
+//  name = {
 //    family_name = "Scott"
 //    given_name = "Michael"
 //  }
@@ -646,12 +620,10 @@ func testAccResourceUser_customSchemaAllTypes(testUserVals map[string]interface{
 resource "googleworkspace_schema" "my-schema" {
   schema_name = "%{userEmail}-schema"
 
-  fields {
+  fields = [{
     field_name = "birthday"
     field_type = "DATE"
-  }
-
-  fields {
+  }, {
     field_name = "favorite-numbers"
     field_type = "INT64"
     multi_valued = true
@@ -660,46 +632,36 @@ resource "googleworkspace_schema" "my-schema" {
       min_value = 1
       max_value = 100
     }
-  }
-
-  fields {
+  }, {
     field_name = "my-custom-phones"
     field_type = "PHONE"
     multi_valued = true
-  }
-
-  fields {
+  }, {
     field_name = "my-custom-email"
     field_type = "EMAIL"
-  }
-
-  fields {
+  }, {
     field_name = "lbs-of-beets"
     field_type = "DOUBLE"
     multi_valued = true
-  }
-
-  fields {
+  }, {
     field_name = "favorite-animal"
     field_type = "STRING"
-  }
-
-  fields {
+  }, {
     field_name = "fire-certified"
     field_type = "BOOL"
-  }
+  }]
 }
 
 resource "googleworkspace_user" "my-new-user" {
   primary_email = "%{userEmail}@%{domainName}"
   password = "%{password}"
 
-  name {
+  name = {
     family_name = "Scott"
     given_name = "Michael"
   }
 
-  custom_schemas {
+  custom_schemas = [{
     schema_name = googleworkspace_schema.my-schema.schema_name
 
     schema_values = {
@@ -711,7 +673,7 @@ resource "googleworkspace_user" "my-new-user" {
       "favorite-animal" = jsonencode("bears")
       "fire-certified" =  jsonencode(true)
     }
-  }
+  }]
 }
 `, testUserVals)
 }
@@ -721,45 +683,43 @@ func testAccResourceUser_customSchemaMultiple(testUserVals map[string]interface{
 resource "googleworkspace_schema" "bar-schema" {
   schema_name = "%{userEmail}-bar-schema"
 
-  fields {
+  fields = [{
     field_name = "bar"
     field_type = "STRING"
-  }
+  }]
 }
 
 resource "googleworkspace_schema" "baz-schema" {
   schema_name = "%{userEmail}-baz-schema"
 
-  fields {
+  fields = [{
     field_name = "baz"
     field_type = "STRING"
-  }
+  }]
 }
 
 resource "googleworkspace_user" "my-new-user" {
   primary_email = "%{userEmail}@%{domainName}"
   password = "%{password}"
 
-  name {
+  name = {
     family_name = "Scott"
     given_name = "Michael"
   }
 
-  custom_schemas {
+  custom_schemas = [{
     schema_name = googleworkspace_schema.bar-schema.schema_name
 
     schema_values = {
       "bar" = jsonencode("Bar")
     }
-  }
-
-  custom_schemas {
+  }, {
     schema_name = googleworkspace_schema.baz-schema.schema_name
 
     schema_values = {
       "baz" = jsonencode("Baz")
     }
-  }
+  }]
 }
 `, testUserVals)
 }

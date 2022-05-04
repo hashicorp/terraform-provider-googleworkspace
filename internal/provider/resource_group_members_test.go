@@ -1,11 +1,13 @@
 package googleworkspace
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -27,8 +29,8 @@ func TestAccResourceGroupMembers_basic(t *testing.T) {
 	}
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: providerFactories,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		CheckDestroy: resource.ComposeTestCheckFunc(
 			testAccResourceGroupMembersExists("googleworkspace_group_members.my-group-members"),
 		),
@@ -67,8 +69,8 @@ func TestAccResourceGroupMembers_empty(t *testing.T) {
 	}
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: providerFactories,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		CheckDestroy: resource.ComposeTestCheckFunc(
 			testAccResourceGroupMembersExists("googleworkspace_group_members.my-group-members"),
 		),
@@ -116,8 +118,8 @@ func TestAccResourceGroupMembers_full(t *testing.T) {
 	}
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: providerFactories,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		CheckDestroy: resource.ComposeTestCheckFunc(
 			testAccResourceGroupMembersExists("googleworkspace_group_members.my-group-members"),
 		),
@@ -171,17 +173,13 @@ func testAccResourceGroupMembersExists(resource string) resource.TestCheckFunc {
 			return fmt.Errorf("%s key not found in state", resource)
 		}
 
-		client, err := googleworkspaceTestClient()
-		if err != nil {
-			return err
-		}
-
-		directoryService, diags := client.NewDirectoryService()
+		diags := diag.Diagnostics{}
+		client := googleworkspaceTestClient(context.Background(), &diags)
 		if diags.HasError() {
-			return fmt.Errorf("Error creating directory service %+v", diags)
+			return getDiagErrors(diags)
 		}
 
-		membersService, diags := GetMembersService(directoryService)
+		membersService := GetMembersService(client, &diags)
 		if diags.HasError() {
 			return fmt.Errorf("Error getting group members service %+v", diags)
 		}

@@ -1,12 +1,13 @@
 package googleworkspace
 
 import (
+	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -19,8 +20,8 @@ func TestAccResourceChromePolicy_basic(t *testing.T) {
 	ouName := fmt.Sprintf("tf-test-%s", acctest.RandString(10))
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: providerFactories,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccResourceChromePolicy_basic(ouName, 33),
@@ -40,8 +41,8 @@ func TestAccResourceChromePolicy_typeMessage(t *testing.T) {
 	ouName := fmt.Sprintf("tf-test-%s", acctest.RandString(10))
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: providerFactories,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccResourceChromePolicy_typeMessage(ouName),
@@ -61,8 +62,8 @@ func TestAccResourceChromePolicy_update(t *testing.T) {
 	ouName := fmt.Sprintf("tf-test-%s", acctest.RandString(10))
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: providerFactories,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccResourceChromePolicy_basic(ouName, 33),
@@ -93,9 +94,10 @@ func TestAccResourceChromePolicy_multiple(t *testing.T) {
 	// this passing also implies Delete works correctly
 	// based on the implementation
 	testCheck := func(s *terraform.State) error {
-		client, err := googleworkspaceTestClient()
-		if err != nil {
-			return err
+		diags := diag.Diagnostics{}
+		client := googleworkspaceTestClient(context.Background(), &diags)
+		if diags.HasError() {
+			return getDiagErrors(diags)
 		}
 
 		rs, ok := s.RootModule().Resources["googleworkspace_org_unit.test"]
@@ -107,21 +109,16 @@ func TestAccResourceChromePolicy_multiple(t *testing.T) {
 			return fmt.Errorf("org unit ID not set")
 		}
 
-		chromePolicyService, diags := client.NewChromePolicyService()
+		chromePoliciesService := GetChromePoliciesService(client, &diags)
 		if diags.HasError() {
-			return errors.New(diags[0].Summary)
-		}
-
-		chromePoliciesService, diags := GetChromePoliciesService(chromePolicyService)
-		if diags.HasError() {
-			return errors.New(diags[0].Summary)
+			return getDiagErrors(diags)
 		}
 
 		policyTargetKey := &chromepolicy.GoogleChromePolicyV1PolicyTargetKey{
 			TargetResource: "orgunits/" + strings.TrimPrefix(rs.Primary.ID, "id:"),
 		}
 
-		resp, err := chromePoliciesService.Resolve(fmt.Sprintf("customers/%s", client.Customer), &chromepolicy.GoogleChromePolicyV1ResolveRequest{
+		resp, err := chromePoliciesService.Resolve(fmt.Sprintf("customers/%s", client.customer), &chromepolicy.GoogleChromePolicyV1ResolveRequest{
 			PolicySchemaFilter: "chrome.users.MaxConnectionsPerProxy",
 			PolicyTargetKey:    policyTargetKey,
 		}).Do()
@@ -135,8 +132,8 @@ func TestAccResourceChromePolicy_multiple(t *testing.T) {
 	}
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: providerFactories,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccResourceChromePolicy_multiple(ouName, 33, ".*@example"),
