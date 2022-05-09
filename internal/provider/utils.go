@@ -2,23 +2,29 @@ package googleworkspace
 
 import (
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"io/ioutil"
-	"log"
 	"os"
 	"reflect"
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 	"unicode"
 
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
 
 	"github.com/mitchellh/go-homedir"
 
 	"google.golang.org/api/googleapi"
 )
+
+const CreateTimeout = 10 * time.Minute
+const UpdateTimeout = 10 * time.Minute
 
 // If the argument is a path, pathOrContents loads it and returns the contents,
 // otherwise the argument is assumed to be the desired contents and is simply
@@ -51,22 +57,65 @@ func pathOrContents(poc string) (string, bool, error) {
 	return poc, false, nil
 }
 
+// convertProviderType is a helper function for NewResource and NewDataSource
+// implementations to associate the concrete provider type. Alternatively,
+// this helper can be skipped and the provider type can be directly type
+// asserted (e.g. provider: in.(*provider)), however using this can prevent
+// potential panics.
+func convertProviderType(in tfsdk.Provider) (provider, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	p, ok := in.(*provider)
+
+	if !ok {
+		diags.AddError(
+			"Unexpected Provider Instance Type",
+			fmt.Sprintf("While creating the data source or resource, an unexpected provider type (%T) was received. This is always a bug in the provider code and should be reported to the provider developers.", p),
+		)
+		return provider{}, diags
+	}
+
+	if p == nil {
+		diags.AddError(
+			"Unexpected Provider Instance Type",
+			"While creating the data source or resource, an unexpected empty provider instance was received. This is always a bug in the provider code and should be reported to the provider developers.",
+		)
+		return provider{}, diags
+	}
+
+	return *p, diags
+}
+
+func addCannotInterpolateInProviderBlockError(resp *tfsdk.ConfigureProviderResponse, attr string) {
+	resp.Diagnostics.AddAttributeError(
+		tftypes.NewAttributePath().WithAttributeName(attr),
+		"Can't interpolate into provider block",
+		"Interpolating that value into the provider block doesn't give the provider enough information to run. Try hard-coding the value, instead.",
+	)
+}
+
+func addAttributeMustBeSetError(resp *tfsdk.ConfigureProviderResponse, attr string) {
+	resp.Diagnostics.AddAttributeError(
+		tftypes.NewAttributePath().WithAttributeName(attr),
+		"Invalid provider config",
+		fmt.Sprintf("%s must be set.", attr),
+	)
+}
+
 // Check Error Code
 func isApiErrorWithCode(err error, errCode int) bool {
 	gerr, ok := errwrap.GetType(err, &googleapi.Error{}).(*googleapi.Error)
 	return ok && gerr != nil && gerr.Code == errCode
 }
 
-func handleNotFoundError(err error, d *schema.ResourceData, resource string) diag.Diagnostics {
+func handleNotFoundError(err error, id string, diags *diag.Diagnostics) string {
 	if isApiErrorWithCode(err, 404) {
-		log.Printf("[WARN] Removing %s because it's gone", resource)
-		// The resource doesn't exist anymore
-		d.SetId("")
-
-		return nil
+		// The resource doesn't exist
+		return ""
 	}
 
-	return diag.Errorf("Error when reading or editing %s: %s", resource, err.Error())
+	diags.AddError(fmt.Sprintf("Error when reading or editing %s", id), err.Error())
+	return id
 }
 
 // This is a Printf sibling (Nprintf; Named Printf), which handles strings like
@@ -196,6 +245,32 @@ func sortListOfInterfaces(v []interface{}) []string {
 	}
 	sort.Strings(newVal)
 	return newVal
+}
+
+// primitiveListToTypeList will change a list of primitive to the plugin-framework types.List
+func primitiveListToTypeList(t attr.Type, prim []interface{}) types.List {
+	result := types.List{
+		ElemType: t,
+	}
+
+	for i, p := range prim {
+		switch t {
+		case types.StringType:
+			result.Elems[i] = types.String{Value: p.(string)}
+		}
+	}
+
+	return result
+}
+
+// typeListToSliceStrings will change a list of attr.Values to a list of strings
+func typeListToSliceStrings(vals []attr.Value) []string {
+	var result []string
+	for _, v := range vals {
+		result = append(result, v.(types.String).Value)
+	}
+
+	return result
 }
 
 // getDiagErrors prints errors in diags

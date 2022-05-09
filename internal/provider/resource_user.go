@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
+	"github.com/hashicorp/terraform-provider-googleworkspace-pf/internal/model"
 	directory "google.golang.org/api/admin/directory/v1"
 	"google.golang.org/api/googleapi"
 	"log"
@@ -962,7 +963,7 @@ func (r userResource) Create(ctx context.Context, req tfsdk.CreateResourceReques
 	}
 
 	// Retrieve values from plan
-	var plan userResourceData
+	var plan model.UserResourceData
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -971,7 +972,7 @@ func (r userResource) Create(ctx context.Context, req tfsdk.CreateResourceReques
 
 	// we don't want the planned emails, only what's in config
 	// Retrieve values from config
-	var config userResourceData
+	var config model.UserResourceData
 	diags = req.Config.Get(ctx, &config)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -1110,7 +1111,7 @@ func (r userResource) Create(ctx context.Context, req tfsdk.CreateResourceReques
 
 // Read user information
 func (r userResource) Read(ctx context.Context, req tfsdk.ReadResourceRequest, resp *tfsdk.ReadResourceResponse) {
-	var state userResourceData
+	var state model.UserResourceData
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -1135,7 +1136,7 @@ func (r userResource) Read(ctx context.Context, req tfsdk.ReadResourceRequest, r
 // Update user resource
 func (r userResource) Update(ctx context.Context, req tfsdk.UpdateResourceRequest, resp *tfsdk.UpdateResourceResponse) {
 	// Retrieve values from config
-	var config userResourceData
+	var config model.UserResourceData
 	diags := req.Config.Get(ctx, &config)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -1143,7 +1144,7 @@ func (r userResource) Update(ctx context.Context, req tfsdk.UpdateResourceReques
 	}
 
 	// Retrieve values from plan
-	var plan userResourceData
+	var plan model.UserResourceData
 	diags = req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -1151,7 +1152,7 @@ func (r userResource) Update(ctx context.Context, req tfsdk.UpdateResourceReques
 	}
 
 	// Retrieve values from state
-	var state userResourceData
+	var state model.UserResourceData
 	diags = req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -1290,7 +1291,7 @@ func (r userResource) Update(ctx context.Context, req tfsdk.UpdateResourceReques
 
 // Delete user
 func (r userResource) Delete(ctx context.Context, req tfsdk.DeleteResourceRequest, resp *tfsdk.DeleteResourceResponse) {
-	var state userResourceData
+	var state model.UserResourceData
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {

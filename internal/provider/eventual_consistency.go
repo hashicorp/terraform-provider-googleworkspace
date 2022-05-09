@@ -1,11 +1,14 @@
 package googleworkspace
 
 import (
+	"fmt"
+	"google.golang.org/api/googleapi"
 	"time"
 )
 
 // The number of consistent responses we want before we consider the resource consistent
 const numConsistent = 4
+const Limit404s = 4
 
 type consistencyCheck struct {
 	currConsistent int
@@ -14,6 +17,9 @@ type consistencyCheck struct {
 	resourceType   string
 	// timeout should be set to the timeout of the action
 	timeout time.Duration
+	// num404s will count how many 404s we encounter before we
+	// return it as not found rather than consider it eventual consistency
+	num404s int
 }
 
 func (cc *consistencyCheck) reachedConsistency(numInserts int) bool {
@@ -36,4 +42,18 @@ func (cc *consistencyCheck) handleNewEtag(etag string) {
 	cc.currConsistent = 0
 	cc.lastEtag = etag
 	cc.etagChanges += 1
+}
+
+func (cc *consistencyCheck) is404(err error) error {
+	gerr, ok := err.(*googleapi.Error)
+	if !ok {
+		return err
+	}
+
+	if gerr.Code == 404 && !(Limit404s == cc.num404s) {
+		cc.num404s += 1
+		return fmt.Errorf("timed out while waiting for %s to be inserted", cc.resourceType)
+	}
+
+	return err
 }

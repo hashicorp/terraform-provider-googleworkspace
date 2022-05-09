@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
+	"github.com/hashicorp/terraform-provider-googleworkspace-pf/internal/model"
 	"google.golang.org/api/googleapi"
 	"log"
 	"strings"
@@ -110,17 +111,6 @@ func (r resourceOrgUnitType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Di
 	}, nil
 }
 
-type orgUnitResourceData struct {
-	ID                types.String `tfsdk:"id"`
-	BlockInheritance  types.Bool   `tfsdk:"block_inheritance"`
-	Description       types.String `tfsdk:"description"`
-	Name              types.String `tfsdk:"name"`
-	OrgUnitId         types.String `tfsdk:"org_unit_id"`
-	OrgUnitPath       types.String `tfsdk:"org_unit_path"`
-	ParentOrgUnitId   types.String `tfsdk:"parent_org_unit_id"`
-	ParentOrgUnitPath types.String `tfsdk:"parent_org_unit_path"`
-}
-
 type orgUnitResource struct {
 	provider provider
 }
@@ -145,7 +135,7 @@ func (r orgUnitResource) Create(ctx context.Context, req tfsdk.CreateResourceReq
 	}
 
 	// Retrieve values from plan
-	var plan orgUnitResourceData
+	var plan model.OrgUnitResourceData
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -218,7 +208,7 @@ func (r orgUnitResource) Create(ctx context.Context, req tfsdk.CreateResourceReq
 
 // Read org unit information
 func (r orgUnitResource) Read(ctx context.Context, req tfsdk.ReadResourceRequest, resp *tfsdk.ReadResourceResponse) {
-	var state orgUnitResourceData
+	var state model.OrgUnitResourceData
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -246,7 +236,7 @@ func (r orgUnitResource) Read(ctx context.Context, req tfsdk.ReadResourceRequest
 // Update org unit
 func (r orgUnitResource) Update(ctx context.Context, req tfsdk.UpdateResourceRequest, resp *tfsdk.UpdateResourceResponse) {
 	// Retrieve values from plan
-	var plan orgUnitResourceData
+	var plan model.OrgUnitResourceData
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -254,7 +244,7 @@ func (r orgUnitResource) Update(ctx context.Context, req tfsdk.UpdateResourceReq
 	}
 
 	// Retrieve values from plan
-	var state orgUnitResourceData
+	var state model.OrgUnitResourceData
 	diags = req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -293,7 +283,7 @@ func (r orgUnitResource) Update(ctx context.Context, req tfsdk.UpdateResourceReq
 
 // Delete org unit
 func (r orgUnitResource) Delete(ctx context.Context, req tfsdk.DeleteResourceRequest, resp *tfsdk.DeleteResourceResponse) {
-	var state orgUnitResourceData
+	var state model.OrgUnitResourceData
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {

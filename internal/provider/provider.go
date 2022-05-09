@@ -210,38 +210,38 @@ func (p *provider) Configure(ctx context.Context, req tfsdk.ConfigureProviderReq
 // GetResources - Defines provider resources
 func (p *provider) GetResources(_ context.Context) (map[string]tfsdk.ResourceType, diag.Diagnostics) {
 	return map[string]tfsdk.ResourceType{
-		"googleworkspace_chrome_policy":       resourceChromePolicyType{},
-		"googleworkspace_domain":              resourceDomainType{},
-		"googleworkspace_domain_alias":        resourceDomainAliasType{},
-		"googleworkspace_gmail_send_as_alias": resourceGmailSendAsAliasType{},
-		"googleworkspace_group":               resourceGroupType{},
-		"googleworkspace_group_member":        resourceGroupMemberType{},
-		"googleworkspace_group_members":       resourceGroupMembersType{},
-		"googleworkspace_group_settings":      resourceGroupSettingsType{},
-		"googleworkspace_org_unit":            resourceOrgUnitType{},
-		"googleworkspace_role":                resourceRoleType{},
-		"googleworkspace_role_assignment":     resourceRoleAssignmentType{},
-		"googleworkspace_schema":              resourceSchemaType{},
-		"googleworkspace_user":                resourceUserType{},
+		//"googleworkspace_chrome_policy":       resourceChromePolicyType{},
+		//"googleworkspace_domain":              resourceDomainType{},
+		//"googleworkspace_domain_alias":        resourceDomainAliasType{},
+		//"googleworkspace_gmail_send_as_alias": resourceGmailSendAsAliasType{},
+		//"googleworkspace_group":               resourceGroupType{},
+		//"googleworkspace_group_member":        resourceGroupMemberType{},
+		//"googleworkspace_group_members":       resourceGroupMembersType{},
+		//"googleworkspace_group_settings":      resourceGroupSettingsType{},
+		"googleworkspace_org_unit": resourceOrgUnitType{},
+		//"googleworkspace_role":                resourceRoleType{},
+		"googleworkspace_role_assignment": resourceRoleAssignmentType{},
+		"googleworkspace_schema":          resourceSchemaType{},
+		"googleworkspace_user":            resourceUserType{},
 	}, nil
 }
 
 // GetDataSources - Defines provider data sources
 func (p *provider) GetDataSources(_ context.Context) (map[string]tfsdk.DataSourceType, diag.Diagnostics) {
 	return map[string]tfsdk.DataSourceType{
-		"googleworkspace_chrome_policy_schema": dataSourceChromePolicySchemaType{},
-		"googleworkspace_domain":               dataSourceDomainType{},
-		"googleworkspace_domain_alias":         dataSourceDomainAliasType{},
-		"googleworkspace_group":                dataSourceGroupType{},
-		"googleworkspace_group_member":         dataSourceGroupMemberType{},
-		"googleworkspace_group_members":        dataSourceGroupMembersType{},
-		"googleworkspace_group_settings":       dataSourceGroupSettingsType{},
-		"googleworkspace_org_unit":             dataSourceOrgUnitType{},
-		"googleworkspace_privileges":           dataSourcePrivilegesType{},
-		"googleworkspace_role":                 dataSourceRoleType{},
-		"googleworkspace_schema":               dataSourceSchemaType{},
-		"googleworkspace_user":                 dataSourceUserType{},
-		"googleworkspace_users":                dataSourceUsersType{},
+		//"googleworkspace_chrome_policy_schema": dataSourceChromePolicySchemaType{},
+		//"googleworkspace_domain":               dataSourceDomainType{},
+		//"googleworkspace_domain_alias":         dataSourceDomainAliasType{},
+		//"googleworkspace_group":                dataSourceGroupType{},
+		//"googleworkspace_group_member":         dataSourceGroupMemberType{},
+		//"googleworkspace_group_members":        dataSourceGroupMembersType{},
+		//"googleworkspace_group_settings":       dataSourceGroupSettingsType{},
+		//"googleworkspace_org_unit":             dataSourceOrgUnitType{},
+		//"googleworkspace_privileges":           dataSourcePrivilegesType{},
+		//"googleworkspace_role":                 dataSourceRoleType{},
+		//"googleworkspace_schema":               dataSourceSchemaType{},
+		//"googleworkspace_user":                 dataSourceUserType{},
+		//"googleworkspace_users":                dataSourceUsersType{},
 	}, nil
 }
 

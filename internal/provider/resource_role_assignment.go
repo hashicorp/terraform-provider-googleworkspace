@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
+	"github.com/hashicorp/terraform-provider-googleworkspace-pf/internal/model"
 	directory "google.golang.org/api/admin/directory/v1"
 	"log"
 	"strconv"
@@ -75,14 +76,6 @@ func (r resourceRoleAssignmentType) GetSchema(_ context.Context) (tfsdk.Schema, 
 	}, nil
 }
 
-type roleAssignmentResourceData struct {
-	ID         types.String `tfsdk:"id"`
-	RoleId     types.String `tfsdk:"role_id"`
-	AssignedTo types.String `tfsdk:"assigned_to"`
-	ScopeType  types.String `tfsdk:"scope_type"`
-	OrgUnitId  types.String `tfsdk:"org_unit_id"`
-}
-
 type roleAssignmentResource struct {
 	provider provider
 }
@@ -107,7 +100,7 @@ func (r roleAssignmentResource) Create(ctx context.Context, req tfsdk.CreateReso
 	}
 
 	// Retrieve values from plan
-	var plan roleAssignmentResourceData
+	var plan model.RoleAssignmentResourceData
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
