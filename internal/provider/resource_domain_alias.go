@@ -3,172 +3,197 @@ package googleworkspace
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
+	"github.com/hashicorp/terraform-provider-googleworkspace-pf/internal/model"
+	"google.golang.org/api/googleapi"
 	"log"
-
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-
-	directory "google.golang.org/api/admin/directory/v1"
 )
 
-func resourceDomainAlias() *schema.Resource {
-	return &schema.Resource{
-		// This description is used by the documentation generator and the language server.
+type resourceDomainAliasType struct{}
+
+// GetSchema Domain Alias Resource
+func (r resourceDomainAliasType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
+	return tfsdk.Schema{
 		Description: "Domain Alias resource manages Google Workspace Domain Aliases. Domain Alias resides under the " +
 			"`https://www.googleapis.com/auth/admin.directory.domain` client scope.",
-
-		CreateContext: resourceDomainAliasCreate,
-		ReadContext:   resourceDomainAliasRead,
-		DeleteContext: resourceDomainAliasDelete,
-
-		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
-		},
-
-		Schema: map[string]*schema.Schema{
+		Attributes: map[string]tfsdk.Attribute{
 			"parent_domain_name": {
 				Description: "The parent domain name that the domain alias is associated with. This can either be a primary or secondary domain name within a customer.",
-				Type:        schema.TypeString,
+				Type:        types.StringType,
 				Optional:    true,
-				ForceNew:    true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					tfsdk.RequiresReplace(),
+				},
 			},
 			"verified": {
 				Description: "Indicates the verification state of a domain alias.",
-				Type:        schema.TypeBool,
+				Type:        types.BoolType,
 				Computed:    true,
 			},
 			"creation_time": {
 				Description: "Creation time of the domain alias.",
-				Type:        schema.TypeInt,
-				Computed:    true,
-			},
-			"etag": {
-				Description: "ETag of the resource.",
-				Type:        schema.TypeString,
+				Type:        types.Int64Type,
 				Computed:    true,
 			},
 			"domain_alias_name": {
 				Description: "The domain alias name.",
-				Type:        schema.TypeString,
+				Type:        types.StringType,
 				Required:    true,
-				ForceNew:    true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					tfsdk.RequiresReplace(),
+				},
 			},
-			// Adding a computed id simply to override the `optional` id that gets added in the SDK
-			// that will then display improperly in the docs
 			"id": {
-				Description: "The ID of this resource.",
-				Type:        schema.TypeString,
-				Computed:    true,
+				Computed:            true,
+				MarkdownDescription: "Domain Alias identifier",
+				PlanModifiers: tfsdk.AttributePlanModifiers{
+					tfsdk.UseStateForUnknown(),
+				},
+				Type: types.StringType,
 			},
 		},
-	}
+	}, nil
 }
 
-func resourceDomainAliasCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	var diags diag.Diagnostics
-
-	// use the meta value to retrieve your client from the provider configure method
-	client := meta.(*apiClient)
-
-	domainAliasName := d.Get("domain_alias_name").(string)
-	log.Printf("[DEBUG] Creating DomainAlias %q: %#v", d.Id(), domainAliasName)
-
-	directoryService, diags := client.NewDirectoryService()
-	if diags.HasError() {
-		return diags
-	}
-
-	domainAliasesService, diags := GetDomainAliasesService(directoryService)
-	if diags.HasError() {
-		return diags
-	}
-
-	domainAliasObj := directory.DomainAlias{
-		ParentDomainName: d.Get("parent_domain_name").(string),
-		DomainAliasName:  d.Get("domain_alias_name").(string),
-	}
-
-	domainAlias, err := domainAliasesService.Insert(client.Customer, &domainAliasObj).Do()
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	// Use the domainAlias name as the ID, as it should be unique
-	d.SetId(domainAlias.DomainAliasName)
-
-	log.Printf("[DEBUG] Finished creating DomainAlias %q: %#v", d.Id(), domainAliasName)
-
-	return resourceDomainAliasRead(ctx, d, meta)
+type domainAliasResource struct {
+	provider provider
 }
 
-func resourceDomainAliasRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	var diags diag.Diagnostics
+func (r resourceDomainAliasType) NewResource(_ context.Context, in tfsdk.Provider) (tfsdk.Resource, diag.Diagnostics) {
+	p, diags := convertProviderType(in)
 
-	// use the meta value to retrieve your client from the provider configure method
-	client := meta.(*apiClient)
-
-	directoryService, diags := client.NewDirectoryService()
-	if diags.HasError() {
-		return diags
-	}
-
-	domainAliasesService, diags := GetDomainAliasesService(directoryService)
-	if diags.HasError() {
-		return diags
-	}
-
-	log.Printf("[DEBUG] Getting DomainAlias %q: %#v", d.Id(), d.Id())
-
-	domainAlias, err := domainAliasesService.Get(client.Customer, d.Id()).Do()
-	if err != nil {
-		return handleNotFoundError(err, d, d.Id())
-	}
-
-	if domainAlias == nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  fmt.Sprintf("No domain alias was returned for %s.", d.Get("domain_alias_name").(string)),
-		})
-
-		return diags
-	}
-
-	d.Set("parent_domain_name", domainAlias.ParentDomainName)
-	d.Set("verified", domainAlias.Verified)
-	d.Set("creation_time", domainAlias.CreationTime)
-	d.Set("etag", domainAlias.Etag)
-	d.Set("domain_alias_name", domainAlias.DomainAliasName)
-	d.SetId(domainAlias.DomainAliasName)
-	log.Printf("[DEBUG] Finished getting DomainAlias %q: %#v", d.Id(), domainAlias.DomainAliasName)
-
-	return diags
+	return domainAliasResource{
+		provider: p,
+	}, diags
 }
 
-func resourceDomainAliasDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	var diags diag.Diagnostics
-
-	// use the meta value to retrieve your client from the provider configure method
-	client := meta.(*apiClient)
-
-	domainAliasName := d.Get("domain_alias_name").(string)
-	log.Printf("[DEBUG] Deleting DomainAlias %q: %#v", d.Id(), domainAliasName)
-
-	directoryService, diags := client.NewDirectoryService()
-	if diags.HasError() {
-		return diags
+// Create a new domain alias
+func (r domainAliasResource) Create(ctx context.Context, req tfsdk.CreateResourceRequest, resp *tfsdk.CreateResourceResponse) {
+	if !r.provider.configured {
+		resp.Diagnostics.AddError(
+			"Provider not configured",
+			"The provider hasn't been configured before apply, likely because it depends on an unknown value from "+
+				"another resource. This leads to weird stuff happening, so we'd prefer if you didn't do that. Thanks!",
+		)
+		return
 	}
 
-	domainAliasesService, diags := GetDomainAliasesService(directoryService)
-	if diags.HasError() {
-		return diags
+	// Retrieve values from plan
+	var plan model.DomainAliasResourceData
+	diags := req.Plan.Get(ctx, &plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
-	err := domainAliasesService.Delete(client.Customer, domainAliasName).Do()
+	domainReq := DomainAliasPlanToObj(&plan)
+
+	log.Printf("[DEBUG] Creating Domain Alias %s", plan.DomainAliasName.Value)
+	domainAliasesService := GetDomainAliasesService(&r.provider, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	domainAliasObj, err := domainAliasesService.Insert(r.provider.customer, &domainReq).Do()
 	if err != nil {
-		return handleNotFoundError(err, d, domainAliasName)
+		resp.Diagnostics.AddError("error while trying to create domain alias", err.Error())
+		return
 	}
 
-	log.Printf("[DEBUG] Finished deleting DomainAlias %q: %#v", d.Id(), domainAliasName)
+	if domainAliasObj == nil {
+		resp.Diagnostics.AddError(fmt.Sprintf("no domain alias was returned for %s", plan.DomainAliasName.Value), "object returned was nil")
+		return
+	}
+	numInserts := 1
 
-	return diags
+	// INSERT will respond with the Domain Alias that will be created, after INSERT, the etag is updated along with the Domain,
+	// once we get a consistent etag, we can feel confident that our Domain is also consistent
+	cc := consistencyCheck{
+		resourceType: "domain alias",
+		timeout:      CreateTimeout,
+	}
+	err = retryTimeDuration(ctx, CreateTimeout, func() error {
+		if cc.reachedConsistency(numInserts) {
+			return nil
+		}
+
+		newOU, retryErr := domainAliasesService.Get(r.provider.customer, domainAliasObj.DomainAliasName).IfNoneMatch(cc.lastEtag).Do()
+		if googleapi.IsNotModified(retryErr) {
+			cc.currConsistent += 1
+		} else if retryErr != nil {
+			return cc.is404(retryErr)
+		} else {
+			cc.handleNewEtag(newOU.Etag)
+		}
+
+		return fmt.Errorf("timed out while waiting for %s to be inserted", cc.resourceType)
+	})
+	if err != nil {
+		return
+	}
+
+	plan.ID.Value = domainAliasObj.DomainAliasName
+	domainAlias := GetDomainAliasData(&r.provider, &plan, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	diags = resp.State.Set(ctx, domainAlias)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	log.Printf("[DEBUG] Finished creating Domain Alias %s: %s", domainAlias.ID.Value, domainAlias.DomainAliasName.Value)
+}
+
+// Read a domain alias
+func (r domainAliasResource) Read(ctx context.Context, req tfsdk.ReadResourceRequest, resp *tfsdk.ReadResourceResponse) {
+	if !r.provider.configured {
+		resp.Diagnostics.AddError(
+			"Provider not configured",
+			"The provider hasn't been configured before apply, likely because it depends on an unknown value from "+
+				"another resource. This leads to weird stuff happening, so we'd prefer if you didn't do that. Thanks!",
+		)
+		return
+	}
+
+	// Retrieve values from state
+	var state model.DomainAliasResourceData
+	diags := req.State.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	domainAlias := GetDomainAliasData(&r.provider, &state, &resp.Diagnostics)
+
+	diags = resp.State.Set(ctx, &domainAlias)
+	resp.Diagnostics.Append(diags...)
+}
+
+// Update is not applicable to domain alias
+func (r domainAliasResource) Update(ctx context.Context, req tfsdk.UpdateResourceRequest, resp *tfsdk.UpdateResourceResponse) {
+}
+
+// Delete a domain alias
+func (r domainAliasResource) Delete(ctx context.Context, req tfsdk.DeleteResourceRequest, resp *tfsdk.DeleteResourceResponse) {
+	var state model.DomainAliasResourceData
+	diags := req.State.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	log.Printf("[DEBUG] Removing Domain Alias %s", state.DomainAliasName.Value)
+
+	resp.State.RemoveResource(ctx)
+}
+
+// ImportState a domain alias
+func (r domainAliasResource) ImportState(ctx context.Context, req tfsdk.ImportResourceStateRequest, resp *tfsdk.ImportResourceStateResponse) {
+	tfsdk.ResourceImportStatePassthroughID(ctx, tftypes.NewAttributePath().WithAttributeName("id"), req, resp)
 }
