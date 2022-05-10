@@ -37,12 +37,13 @@ type domainDatasource struct {
 }
 
 func (t datasourceDomainType) NewDataSource(ctx context.Context, in tfsdk.Provider) (tfsdk.DataSource, diag.Diagnostics) {
-	provider, diags := convertProviderType(in)
+	p, diags := convertProviderType(in)
 
 	return domainDatasource{
-		provider: provider,
+		provider: p,
 	}, diags
 }
+
 func (d domainDatasource) Read(ctx context.Context, req tfsdk.ReadDataSourceRequest, resp *tfsdk.ReadDataSourceResponse) {
 	var data model.DomainResourceData
 

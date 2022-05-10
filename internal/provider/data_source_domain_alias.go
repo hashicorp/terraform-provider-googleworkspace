@@ -37,10 +37,10 @@ type domainAliasDatasource struct {
 }
 
 func (t datasourceDomainAliasType) NewDataSource(ctx context.Context, in tfsdk.Provider) (tfsdk.DataSource, diag.Diagnostics) {
-	provider, diags := convertProviderType(in)
+	p, diags := convertProviderType(in)
 
 	return domainAliasDatasource{
-		provider: provider,
+		provider: p,
 	}, diags
 }
 func (d domainAliasDatasource) Read(ctx context.Context, req tfsdk.ReadDataSourceRequest, resp *tfsdk.ReadDataSourceResponse) {

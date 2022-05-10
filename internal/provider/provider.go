@@ -16,7 +16,7 @@ import (
 	//googleoauth "golang.org/x/oauth2/google"
 )
 
-var DefaultClientScopes = []interface{}{
+var DefaultClientScopes = []string{
 	"https://www.googleapis.com/auth/gmail.settings.basic",
 	"https://www.googleapis.com/auth/gmail.settings.sharing",
 	"https://www.googleapis.com/auth/chrome.management.policy",
@@ -179,7 +179,7 @@ func (p *provider) Configure(ctx context.Context, req tfsdk.ConfigureProviderReq
 	}
 
 	if providerConfig.OauthScopes.Null || len(providerConfig.OauthScopes.Elems) == 0 {
-		providerConfig.OauthScopes = primitiveListToTypeList(types.StringType, DefaultClientScopes)
+		providerConfig.OauthScopes = stringSliceToTypeList(DefaultClientScopes)
 
 		providerConfig.OauthScopes.Null = false
 	}

@@ -247,17 +247,14 @@ func sortListOfInterfaces(v []interface{}) []string {
 	return newVal
 }
 
-// primitiveListToTypeList will change a list of primitive to the plugin-framework types.List
-func primitiveListToTypeList(t attr.Type, prim []interface{}) types.List {
+// stringSliceToTypeList will change a slice of strings to the plugin-framework types.List
+func stringSliceToTypeList(strs []string) types.List {
 	result := types.List{
-		ElemType: t,
+		ElemType: types.StringType,
 	}
 
-	for i, p := range prim {
-		switch t {
-		case types.StringType:
-			result.Elems[i] = types.String{Value: p.(string)}
-		}
+	for i, s := range strs {
+		result.Elems[i] = types.String{Value: s}
 	}
 
 	return result

@@ -3,52 +3,34 @@ package googleworkspace
 import (
 	"context"
 	"fmt"
-	"log"
-	"time"
-
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
-
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
+	"github.com/hashicorp/terraform-provider-googleworkspace-pf/internal/model"
 	directory "google.golang.org/api/admin/directory/v1"
 	"google.golang.org/api/googleapi"
+	"log"
+	"reflect"
 )
 
-func resourceGroup() *schema.Resource {
-	return &schema.Resource{
-		// This description is used by the documentation generator and the language server.
+type resourceGroupType struct{}
+
+// GetSchema Group Resource
+func (r resourceGroupType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
+	return tfsdk.Schema{
 		Description: "Group resource manages Google Workspace Groups. Group resides under the " +
 			"`https://www.googleapis.com/auth/admin.directory.group` client scope.",
-
-		CreateContext: resourceGroupCreate,
-		ReadContext:   resourceGroupRead,
-		UpdateContext: resourceGroupUpdate,
-		DeleteContext: resourceGroupDelete,
-
-		Timeouts: &schema.ResourceTimeout{
-			Create: schema.DefaultTimeout(10 * time.Minute),
-			Update: schema.DefaultTimeout(10 * time.Minute),
-		},
-
-		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
-		},
-
-		Schema: map[string]*schema.Schema{
-			"id": {
-				Description: "The unique ID of a group. A group id can be used as a group request URI's groupKey.",
-				Type:        schema.TypeString,
-				Computed:    true,
-			},
+		Attributes: map[string]tfsdk.Attribute{
 			"email": {
 				Description: "The group's email address. If your account has multiple domains," +
 					"select the appropriate domain for the email address. The email must be unique.",
-				Type:     schema.TypeString,
+				Type:     types.StringType,
 				Required: true,
 			},
 			"name": {
 				Description: "The group's display name.",
-				Type:        schema.TypeString,
+				Type:        types.StringType,
 				Optional:    true,
 				Computed:    true,
 			},
@@ -56,234 +38,241 @@ func resourceGroup() *schema.Resource {
 				Description: "An extended description to help users determine the purpose of a group." +
 					"For example, you can include information about who should join the group," +
 					"the types of messages to send to the group, links to FAQs about the group, or related groups.",
-				Type:             schema.TypeString,
-				Optional:         true,
-				ValidateDiagFunc: validation.ToDiagFunc(validation.StringLenBetween(0, 4096)),
+				Type:     types.StringType,
+				Optional: true,
+				//ValidateDiagFunc: validation.ToDiagFunc(validation.StringLenBetween(0, 4096)),
 			},
 			"admin_created": {
 				Description: "Value is true if this group was created by an administrator rather than a user.",
-				Type:        schema.TypeBool,
+				Type:        types.BoolType,
 				Computed:    true,
 			},
 			"direct_members_count": {
 				Description: "The number of users that are direct members of the group." +
 					"If a group is a member (child) of this group (the parent)," +
 					"members of the child group are not counted in the directMembersCount property of the parent group.",
-				Type:     schema.TypeInt,
+				Type:     types.Int64Type,
 				Computed: true,
-			},
-			"etag": {
-				Description: "ETag of the resource.",
-				Type:        schema.TypeString,
-				Computed:    true,
 			},
 			"aliases": {
 				Description: "asps.list of group's email addresses.",
-				Type:        schema.TypeList,
-				Optional:    true,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
+				Type: types.ListType{
+					ElemType: types.StringType,
 				},
+				Optional: true,
 			},
 			"non_editable_aliases": {
 				Description: "asps.list of the group's non-editable alias email addresses that are outside of the " +
 					"account's primary domain or subdomains. These are functioning email addresses used by the group.",
-				Type:     schema.TypeList,
-				Computed: true,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
+				Type: types.ListType{
+					ElemType: types.StringType,
 				},
+				Computed: true,
+			},
+			"id": {
+				Computed:            true,
+				MarkdownDescription: "Group identifier",
+				PlanModifiers: tfsdk.AttributePlanModifiers{
+					tfsdk.UseStateForUnknown(),
+				},
+				Type: types.StringType,
 			},
 		},
-	}
+	}, nil
 }
 
-func resourceGroupCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	var diags diag.Diagnostics
+type groupResource struct {
+	provider provider
+}
 
-	// use the meta value to retrieve your client from the provider configure method
-	client := meta.(*apiClient)
+func (r resourceGroupType) NewResource(_ context.Context, in tfsdk.Provider) (tfsdk.Resource, diag.Diagnostics) {
+	p, diags := convertProviderType(in)
 
-	email := d.Get("email").(string)
-	log.Printf("[DEBUG] Creating Group %q: %#v", email, email)
+	return groupResource{
+		provider: p,
+	}, diags
+}
 
-	directoryService, diags := client.NewDirectoryService()
-	if diags.HasError() {
-		return diags
+// Create a new group
+func (r groupResource) Create(ctx context.Context, req tfsdk.CreateResourceRequest, resp *tfsdk.CreateResourceResponse) {
+	if !r.provider.configured {
+		resp.Diagnostics.AddError(
+			"Provider not configured",
+			"The provider hasn't been configured before apply, likely because it depends on an unknown value from "+
+				"another resource. This leads to weird stuff happening, so we'd prefer if you didn't do that. Thanks!",
+		)
+		return
 	}
 
-	groupsService, diags := GetGroupsService(directoryService)
-	if diags.HasError() {
-		return diags
+	// Retrieve values from plan
+	var plan model.GroupResourceData
+	diags := req.Plan.Get(ctx, &plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
-	groupObj := directory.Group{
-		Email:       d.Get("email").(string),
-		Name:        d.Get("name").(string),
-		Description: d.Get("description").(string),
+	groupReq := GroupPlanToObj(&plan)
+
+	log.Printf("[DEBUG] Creating Group %s", plan.Email.Value)
+	groupsService := GetGroupsService(&r.provider, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
-	group, err := groupsService.Insert(&groupObj).Do()
+	groupObj, err := groupsService.Insert(&groupReq).Do()
 	if err != nil {
-		return diag.FromErr(err)
+		resp.Diagnostics.AddError("error while trying to create group", err.Error())
+		return
 	}
 
-	// The etag changes with each insert, so we want to monitor how many changes we should see
-	// when we're checking for eventual consistency
+	if groupObj == nil {
+		resp.Diagnostics.AddError(fmt.Sprintf("no group was returned for %s", plan.Email.Value), "object returned was nil")
+		return
+	}
 	numInserts := 1
 
-	d.SetId(group.Id)
-
-	aliases := d.Get("aliases.#").(int)
-
-	if aliases > 0 {
-		aliasesService, diags := GetGroupAliasService(groupsService)
-		if diags.HasError() {
-			return diags
+	aliasesService := GetGroupAliasService(&r.provider, &resp.Diagnostics)
+	// Insert all new aliases that weren't previously in state
+	for _, alias := range plan.Aliases.Elems {
+		aliasObj := directory.Alias{
+			Alias: alias.(types.String).Value,
 		}
 
-		for i := 0; i < aliases; i++ {
-			aliasObj := directory.Alias{
-				Alias: d.Get(fmt.Sprintf("aliases.%d", i)).(string),
-			}
-
-			_, err := aliasesService.Insert(d.Id(), &aliasObj).Do()
-			if err != nil {
-				return diag.FromErr(err)
-			}
-			numInserts += 1
+		_, err := aliasesService.Insert(plan.ID.Value, &aliasObj).Do()
+		if err != nil {
+			resp.Diagnostics.AddError(
+				fmt.Sprintf("error while trying to add alias (%s) to group (%s)",
+					alias.(types.String).Value, plan.Email.Value), err.Error())
 		}
+		numInserts += 1
 	}
 
-	// INSERT will respond with the Group that will be created, however, it is eventually consistent
-	// After INSERT, the etag is updated along with the Group (and any aliases),
+	// INSERT will respond with the Group that will be created, after INSERT, the etag is updated along with the Group,
 	// once we get a consistent etag, we can feel confident that our Group is also consistent
 	cc := consistencyCheck{
 		resourceType: "group",
-		timeout:      d.Timeout(schema.TimeoutCreate),
+		timeout:      CreateTimeout,
 	}
-	err = retryTimeDuration(ctx, d.Timeout(schema.TimeoutCreate), func() error {
-		var retryErr error
-
+	err = retryTimeDuration(ctx, CreateTimeout, func() error {
 		if cc.reachedConsistency(numInserts) {
 			return nil
 		}
 
-		newGroup, retryErr := groupsService.Get(d.Id()).IfNoneMatch(cc.lastEtag).Do()
+		newGroup, retryErr := groupsService.Get(groupObj.Email).IfNoneMatch(cc.lastEtag).Do()
 		if googleapi.IsNotModified(retryErr) {
 			cc.currConsistent += 1
 		} else if retryErr != nil {
-			return fmt.Errorf("unexpected error during retries of %s: %s", cc.resourceType, retryErr)
+			return cc.is404(retryErr)
 		} else {
 			cc.handleNewEtag(newGroup.Etag)
 		}
 
 		return fmt.Errorf("timed out while waiting for %s to be inserted", cc.resourceType)
 	})
-
 	if err != nil {
-		return diag.FromErr(err)
+		return
 	}
 
-	log.Printf("[DEBUG] Finished creating Group %q: %#v", d.Id(), email)
+	plan.ID.Value = groupObj.Email
+	group := GetGroupData(&r.provider, &plan, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
-	return resourceGroupRead(ctx, d, meta)
+	diags = resp.State.Set(ctx, group)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	log.Printf("[DEBUG] Finished creating Group %s: %s", group.ID.Value, group.Email.Value)
 }
 
-func resourceGroupRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	var diags diag.Diagnostics
-
-	// use the meta value to retrieve your client from the provider configure method
-	client := meta.(*apiClient)
-
-	directoryService, diags := client.NewDirectoryService()
-	if diags.HasError() {
-		return diags
+// Read a group
+func (r groupResource) Read(ctx context.Context, req tfsdk.ReadResourceRequest, resp *tfsdk.ReadResourceResponse) {
+	if !r.provider.configured {
+		resp.Diagnostics.AddError(
+			"Provider not configured",
+			"The provider hasn't been configured before apply, likely because it depends on an unknown value from "+
+				"another resource. This leads to weird stuff happening, so we'd prefer if you didn't do that. Thanks!",
+		)
+		return
 	}
 
-	groupsService, diags := GetGroupsService(directoryService)
-	if diags.HasError() {
-		return diags
+	// Retrieve values from state
+	var state model.GroupResourceData
+	diags := req.State.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
-	group, err := groupsService.Get(d.Id()).Do()
-	if err != nil {
-		return handleNotFoundError(err, d, d.Get("email").(string))
-	}
+	group := GetGroupData(&r.provider, &state, &resp.Diagnostics)
 
-	d.Set("email", group.Email)
-	d.Set("name", group.Name)
-	d.Set("description", group.Description)
-	d.Set("admin_created", group.AdminCreated)
-	d.Set("direct_members_count", group.DirectMembersCount)
-	d.Set("aliases", group.Aliases)
-	d.Set("non_editable_aliases", group.NonEditableAliases)
-	d.Set("etag", group.Etag)
-
-	d.SetId(group.Id)
-
-	return diags
+	diags = resp.State.Set(ctx, &group)
+	resp.Diagnostics.Append(diags...)
 }
 
-func resourceGroupUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	var diags diag.Diagnostics
-
-	// use the meta value to retrieve your client from the provider configure method
-	client := meta.(*apiClient)
-
-	email := d.Get("email").(string)
-	log.Printf("[DEBUG] Updating Group %q: %#v", d.Id(), email)
-
-	directoryService, diags := client.NewDirectoryService()
-	if diags.HasError() {
-		return diags
+// Update a group
+func (r groupResource) Update(ctx context.Context, req tfsdk.UpdateResourceRequest, resp *tfsdk.UpdateResourceResponse) {
+	// Retrieve values from plan
+	var plan model.GroupResourceData
+	diags := req.Plan.Get(ctx, &plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
-	groupsService, diags := GetGroupsService(directoryService)
-	if diags.HasError() {
-		return diags
+	// Retrieve values from state
+	var state model.GroupResourceData
+	diags = req.State.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
-	groupObj := directory.Group{}
+	groupReq := GroupPlanToObj(&plan)
 
-	if d.HasChange("email") {
-		groupObj.Email = d.Get("email").(string)
-	}
-
-	if d.HasChange("name") {
-		groupObj.Name = d.Get("name").(string)
-	}
-
-	if d.HasChange("description") {
-		groupObj.Description = d.Get("description").(string)
+	log.Printf("[DEBUG] Updating Org Unit %q: %#v", plan.ID.Value, plan.Name.Value)
+	groupsService := GetGroupsService(&r.provider, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
 	numInserts := 0
-	if d.HasChange("aliases") {
-		old, new := d.GetChange("aliases")
-		oldAliases := listOfInterfacestoStrings(old.([]interface{}))
-		newAliases := listOfInterfacestoStrings(new.([]interface{}))
+	if !reflect.DeepEqual(plan.Aliases, state.Aliases) {
+		var stateAliases []string
+		for _, sa := range typeListToSliceStrings(state.Aliases.Elems) {
+			stateAliases = append(stateAliases, sa)
+		}
 
-		aliasesService, diags := GetGroupAliasService(groupsService)
-		if diags.HasError() {
-			return diags
+		var planAliases []string
+		for _, pa := range typeListToSliceStrings(plan.Aliases.Elems) {
+			planAliases = append(planAliases, pa)
+		}
+
+		aliasesService := GetUserAliasService(&r.provider, &resp.Diagnostics)
+		if resp.Diagnostics.HasError() {
+			return
 		}
 
 		// Remove old aliases that aren't in the new aliases list
-		for _, alias := range oldAliases {
-			if stringInSlice(newAliases, alias) {
+		for _, alias := range stateAliases {
+			if stringInSlice(planAliases, alias) {
 				continue
 			}
 
-			err := aliasesService.Delete(d.Id(), alias).Do()
+			err := aliasesService.Delete(state.ID.Value, alias).Do()
 			if err != nil {
-				return diag.FromErr(err)
+				resp.Diagnostics.AddError(fmt.Sprintf("error deleting alias (%s) from group (%s)", alias, state.Email.Value), err.Error())
+				return
 			}
 		}
 
 		// Insert all new aliases that weren't previously in state
-		for _, alias := range newAliases {
-			if stringInSlice(oldAliases, alias) {
+		for _, alias := range planAliases {
+			if stringInSlice(stateAliases, alias) {
 				continue
 			}
 
@@ -291,84 +280,87 @@ func resourceGroupUpdate(ctx context.Context, d *schema.ResourceData, meta inter
 				Alias: alias,
 			}
 
-			_, err := aliasesService.Insert(d.Id(), &aliasObj).Do()
+			_, err := aliasesService.Insert(state.ID.Value, &aliasObj).Do()
 			if err != nil {
-				return diag.FromErr(err)
+				resp.Diagnostics.AddError(fmt.Sprintf("error inserting alias (%s) into group (%s)", alias, state.Email.Value), err.Error())
+				return
 			}
 			numInserts += 1
 		}
 	}
 
-	if &groupObj != new(directory.Group) {
-		group, err := groupsService.Update(d.Id(), &groupObj).Do()
-		if err != nil {
-			return diag.FromErr(err)
-		}
-		numInserts += 1
+	groupObj, err := groupsService.Update(state.ID.Value, &groupReq).Do()
 
-		d.SetId(group.Id)
+	if err != nil {
+		diags.AddError("error while trying to update org unit", err.Error())
 	}
+
+	if groupObj == nil {
+		diags.AddError(fmt.Sprintf("no group was returned for %s", plan.Email.Value), "object returned was nil")
+		return
+	}
+
+	numInserts += 1
 
 	// UPDATE will respond with the Group that will be created, however, it is eventually consistent
 	// After UPDATE, the etag is updated along with the Group (and any aliases),
-	// once we get a consistent etag, we can feel confident that our Group is also consistent
+	// once we get a consistent etag, we can feel confident that our User is also consistent
 	cc := consistencyCheck{
 		resourceType: "group",
-		timeout:      d.Timeout(schema.TimeoutUpdate),
+		timeout:      UpdateTimeout,
 	}
-	err := retryTimeDuration(ctx, d.Timeout(schema.TimeoutUpdate), func() error {
+	err = retryTimeDuration(ctx, UpdateTimeout, func() error {
 		var retryErr error
 
 		if cc.reachedConsistency(numInserts) {
 			return nil
 		}
 
-		newGroup, retryErr := groupsService.Get(d.Id()).IfNoneMatch(cc.lastEtag).Do()
+		newUser, retryErr := groupsService.Get(state.ID.Value).IfNoneMatch(cc.lastEtag).Do()
 		if googleapi.IsNotModified(retryErr) {
 			cc.currConsistent += 1
 		} else if retryErr != nil {
 			return fmt.Errorf("unexpected error during retries of %s: %s", cc.resourceType, retryErr)
 		} else {
-			cc.handleNewEtag(newGroup.Etag)
+			cc.handleNewEtag(newUser.Etag)
 		}
 
 		return fmt.Errorf("timed out while waiting for %s to be updated", cc.resourceType)
 	})
-
 	if err != nil {
-		return diag.FromErr(err)
+		resp.Diagnostics.AddError("error while trying to update user", err.Error())
+		return
 	}
 
-	log.Printf("[DEBUG] Finished creating Group %q: %#v", d.Id(), email)
+	group := GetGroupData(&r.provider, &state, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
-	return resourceGroupRead(ctx, d, meta)
+	diags = resp.State.Set(ctx, group)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	log.Printf("[DEBUG] Finished updating Group %q: %#v", state.ID.Value, plan.Email.Value)
 }
 
-func resourceGroupDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	var diags diag.Diagnostics
-
-	// use the meta value to retrieve your client from the provider configure method
-	client := meta.(*apiClient)
-
-	email := d.Get("email").(string)
-	log.Printf("[DEBUG] Deleting Group %q: %#v", d.Id(), email)
-
-	directoryService, diags := client.NewDirectoryService()
-	if diags.HasError() {
-		return diags
+// Delete a group
+func (r groupResource) Delete(ctx context.Context, req tfsdk.DeleteResourceRequest, resp *tfsdk.DeleteResourceResponse) {
+	var state model.GroupResourceData
+	diags := req.State.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
-	groupsService, diags := GetGroupsService(directoryService)
-	if diags.HasError() {
-		return diags
-	}
+	log.Printf("[DEBUG] Removing Group %s: %s", state.ID.Value, state.Email.Value)
 
-	err := groupsService.Delete(d.Id()).Do()
-	if err != nil {
-		return handleNotFoundError(err, d, d.Get("email").(string))
-	}
+	resp.State.RemoveResource(ctx)
+}
 
-	log.Printf("[DEBUG] Finished deleting Group %q: %#v", d.Id(), email)
-
-	return diags
+// ImportState a group
+func (r groupResource) ImportState(ctx context.Context, req tfsdk.ImportResourceStateRequest, resp *tfsdk.ImportResourceStateResponse) {
+	tfsdk.ResourceImportStatePassthroughID(ctx, tftypes.NewAttributePath().WithAttributeName("id"), req, resp)
 }

@@ -120,13 +120,13 @@ func (r domainAliasResource) Create(ctx context.Context, req tfsdk.CreateResourc
 			return nil
 		}
 
-		newOU, retryErr := domainAliasesService.Get(r.provider.customer, domainAliasObj.DomainAliasName).IfNoneMatch(cc.lastEtag).Do()
+		newAlias, retryErr := domainAliasesService.Get(r.provider.customer, domainAliasObj.DomainAliasName).IfNoneMatch(cc.lastEtag).Do()
 		if googleapi.IsNotModified(retryErr) {
 			cc.currConsistent += 1
 		} else if retryErr != nil {
 			return cc.is404(retryErr)
 		} else {
-			cc.handleNewEtag(newOU.Etag)
+			cc.handleNewEtag(newAlias.Etag)
 		}
 
 		return fmt.Errorf("timed out while waiting for %s to be inserted", cc.resourceType)

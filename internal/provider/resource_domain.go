@@ -124,13 +124,13 @@ func (r domainResource) Create(ctx context.Context, req tfsdk.CreateResourceRequ
 			return nil
 		}
 
-		newOU, retryErr := domainsService.Get(r.provider.customer, domainObj.DomainName).IfNoneMatch(cc.lastEtag).Do()
+		newDomain, retryErr := domainsService.Get(r.provider.customer, domainObj.DomainName).IfNoneMatch(cc.lastEtag).Do()
 		if googleapi.IsNotModified(retryErr) {
 			cc.currConsistent += 1
 		} else if retryErr != nil {
 			return cc.is404(retryErr)
 		} else {
-			cc.handleNewEtag(newOU.Etag)
+			cc.handleNewEtag(newDomain.Etag)
 		}
 
 		return fmt.Errorf("timed out while waiting for %s to be inserted", cc.resourceType)
