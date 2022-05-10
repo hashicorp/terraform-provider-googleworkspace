@@ -1,7 +1,8 @@
 package googleworkspace
 
 import (
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
 // datasourceSchemaFromResourceSchema is a recursive func that
@@ -9,40 +10,29 @@ import (
 // All schema elements are copied, but certain attributes are ignored or changed:
 // - all attributes have Computed = true
 // - all attributes have ForceNew, Required = false
-// - Validation funcs and attributes (e.g. MaxItems) are not copied
-func datasourceSchemaFromResourceSchema(rs map[string]*schema.Schema) map[string]*schema.Schema {
-	ds := make(map[string]*schema.Schema, len(rs))
+// - Validation funcs and plan modifiers are not copied
+func datasourceSchemaFromResourceSchema(rs map[string]tfsdk.Attribute) map[string]tfsdk.Attribute {
+	ds := make(map[string]tfsdk.Attribute, len(rs))
 	for k, v := range rs {
-		dv := &schema.Schema{
+		dv := tfsdk.Attribute{
 			Computed:    true,
-			ForceNew:    false,
 			Required:    false,
 			Description: v.Description,
 			Type:        v.Type,
 		}
 
 		switch v.Type {
-		case schema.TypeSet:
-			dv.Set = v.Set
-			fallthrough
-		case schema.TypeList:
-			// List & Set types are generally used for 2 cases:
-			// - a list/set of simple primitive values (e.g. list of strings)
-			// - a sub resource
-			if elem, ok := v.Elem.(*schema.Resource); ok {
-				// handle the case where the Element is a sub-resource
-				dv.Elem = &schema.Resource{
-					Schema: datasourceSchemaFromResourceSchema(elem.Schema),
-				}
-			} else {
-				// handle simple primitive case
-				dv.Elem = v.Elem
-			}
-
+		case types.SetType{}:
+			dv.Attributes = tfsdk.SetNestedAttributes(datasourceSchemaFromResourceSchema(v.Attributes.GetAttributes()), tfsdk.SetNestedAttributesOptions{})
+		case types.ListType{}:
+			dv.Attributes = tfsdk.ListNestedAttributes(datasourceSchemaFromResourceSchema(v.Attributes.GetAttributes()), tfsdk.ListNestedAttributesOptions{})
+		case types.ObjectType{}:
+			dv.Attributes = tfsdk.SingleNestedAttributes(datasourceSchemaFromResourceSchema(v.Attributes.GetAttributes()))
+		case types.MapType{}:
+			dv.Attributes = tfsdk.MapNestedAttributes(datasourceSchemaFromResourceSchema(v.Attributes.GetAttributes()), tfsdk.MapNestedAttributesOptions{})
 		default:
 			// Elem of all other types are copied as-is
-			dv.Elem = v.Elem
-
+			dv.Attributes = v.Attributes
 		}
 		ds[k] = dv
 
@@ -56,26 +46,28 @@ func datasourceSchemaFromResourceSchema(rs map[string]*schema.Schema) map[string
 // example) and therefore the attribute flags were not set appropriately when
 // first added to the schema definition. Currently only supports top-level
 // schema elements.
-func fixDatasourceSchemaFlags(schema map[string]*schema.Schema, required bool, keys ...string) {
+func fixDatasourceSchemaFlags(schema map[string]tfsdk.Attribute, required bool, keys ...string) {
 	for _, v := range keys {
-		schema[v].Computed = false
-		schema[v].Optional = !required
-		schema[v].Required = required
+		attr := schema[v]
+		(&attr).Computed = false
+		(&attr).Optional = !required
+		(&attr).Required = required
 	}
 }
 
-func addRequiredFieldsToSchema(schema map[string]*schema.Schema, keys ...string) {
+func addRequiredFieldsToSchema(schema map[string]tfsdk.Attribute, keys ...string) {
 	fixDatasourceSchemaFlags(schema, true, keys...)
 }
 
 // addExactlyOneOfFieldsToSchema is a convenience func that sets a list of keys Optional & ExactlyOneOf.
 // This is useful when the schema has been generated (using `datasourceSchemaFromResourceSchema` above for
 // example) and the datasource could take one multiple inputs (say a unique name or a unique id)
-func addExactlyOneOfFieldsToSchema(schema map[string]*schema.Schema, keys ...string) {
+func addExactlyOneOfFieldsToSchema(schema map[string]tfsdk.Attribute, keys ...string) {
 	for _, v := range keys {
-		schema[v].Computed = true
-		schema[v].Optional = true
-		schema[v].Required = false
-		schema[v].ExactlyOneOf = keys
+		attr := schema[v]
+		(&attr).Computed = true
+		(&attr).Optional = true
+		(&attr).Required = false
+		//(&attr).ExactlyOneOf = keys
 	}
 }

@@ -6,7 +6,7 @@ type DomainResourceData struct {
 	ID            types.String `tfsdk:"id"`
 	DomainAliases types.List   `tfsdk:"domain_aliases"`
 	Verified      types.Bool   `tfsdk:"verified"`
-	CreationTime  types.String `tfsdk:"creation_time"`
+	CreationTime  types.Int64  `tfsdk:"creation_time"`
 	IsPrimary     types.Bool   `tfsdk:"is_primary"`
 	DomainName    types.String `tfsdk:"domain_name"`
 }

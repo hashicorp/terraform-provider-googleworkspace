@@ -3,191 +3,201 @@ package googleworkspace
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
+	"github.com/hashicorp/terraform-provider-googleworkspace-pf/internal/model"
+	"google.golang.org/api/googleapi"
 	"log"
-
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-
-	directory "google.golang.org/api/admin/directory/v1"
 )
 
-func resourceDomain() *schema.Resource {
-	return &schema.Resource{
-		// This description is used by the documentation generator and the language server.
+type resourceDomainType struct{}
+
+// GetSchema Domain Resource
+func (r resourceDomainType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
+	return tfsdk.Schema{
 		Description: "Domain resource manages Google Workspace Domains. Domain resides under the " +
 			"`https://www.googleapis.com/auth/admin.directory.domain` client scope.",
-
-		CreateContext: resourceDomainCreate,
-		ReadContext:   resourceDomainRead,
-		DeleteContext: resourceDomainDelete,
-
-		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
-		},
-
-		Schema: map[string]*schema.Schema{
+		Attributes: map[string]tfsdk.Attribute{
 			"domain_aliases": {
 				Description: "asps.list of domain alias objects.",
-				Type:        schema.TypeList,
-				Computed:    true,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
+				Type: types.ListType{
+					ElemType: types.StringType,
 				},
+				Computed: true,
 			},
 			"verified": {
 				Description: "Indicates the verification state of a domain.",
-				Type:        schema.TypeBool,
-				Computed:    true,
-			},
-			"etag": {
-				Description: "ETag of the resource.",
-				Type:        schema.TypeString,
+				Type:        types.BoolType,
 				Computed:    true,
 			},
 			"creation_time": {
 				Description: "Creation time of the domain. Expressed in Unix time format.",
-				Type:        schema.TypeInt,
+				Type:        types.Int64Type,
 				Computed:    true,
 			},
 			"is_primary": {
 				Description: "Indicates if the domain is a primary domain.",
-				Type:        schema.TypeBool,
+				Type:        types.BoolType,
 				Computed:    true,
 			},
 			"domain_name": {
 				Description: "The domain name of the customer.",
-				Type:        schema.TypeString,
+				Type:        types.StringType,
 				Required:    true,
-				ForceNew:    true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					tfsdk.RequiresReplace(),
+				},
 			},
-			// Adding a computed id simply to override the `optional` id that gets added in the SDK
-			// that will then display improperly in the docs
 			"id": {
-				Description: "The ID of this resource.",
-				Type:        schema.TypeString,
-				Computed:    true,
+				Computed:            true,
+				MarkdownDescription: "Domain identifier",
+				PlanModifiers: tfsdk.AttributePlanModifiers{
+					tfsdk.UseStateForUnknown(),
+				},
+				Type: types.StringType,
 			},
 		},
-	}
+	}, nil
 }
 
-func resourceDomainCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	var diags diag.Diagnostics
+type domainResource struct {
+	provider provider
+}
 
-	// use the meta value to retrieve your client from the provider configure method
-	client := meta.(*apiClient)
+func (r resourceDomainType) NewResource(_ context.Context, in tfsdk.Provider) (tfsdk.Resource, diag.Diagnostics) {
+	p, diags := convertProviderType(in)
 
-	domainName := d.Get("domain_name").(string)
-	log.Printf("[DEBUG] Creating Domain %q: %#v", d.Id(), domainName)
+	return domainResource{
+		provider: p,
+	}, diags
+}
 
-	directoryService, diags := client.NewDirectoryService()
-	if diags.HasError() {
-		return diags
+// Create a new domain
+func (r domainResource) Create(ctx context.Context, req tfsdk.CreateResourceRequest, resp *tfsdk.CreateResourceResponse) {
+	if !r.provider.configured {
+		resp.Diagnostics.AddError(
+			"Provider not configured",
+			"The provider hasn't been configured before apply, likely because it depends on an unknown value from "+
+				"another resource. This leads to weird stuff happening, so we'd prefer if you didn't do that. Thanks!",
+		)
+		return
 	}
 
-	domainsService, diags := GetDomainsService(directoryService)
-	if diags.HasError() {
-		return diags
+	// Retrieve values from plan
+	var plan model.DomainResourceData
+	diags := req.Plan.Get(ctx, &plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
-	domainObj := directory.Domains{
-		DomainName: d.Get("domain_name").(string),
+	domainReq := DomainPlanToObj(&plan)
+
+	log.Printf("[DEBUG] Creating Domain %s", plan.DomainName.Value)
+	domainsService := GetDomainsService(&r.provider, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
-	domain, err := domainsService.Insert(client.Customer, &domainObj).Do()
+	domainObj, err := domainsService.Insert(r.provider.customer, &domainReq).Do()
 	if err != nil {
-		return diag.FromErr(err)
+		resp.Diagnostics.AddError("error while trying to create domain", err.Error())
+		return
 	}
 
-	// Use the domain name as the ID, as it should be unique
-	d.SetId(domain.DomainName)
-
-	log.Printf("[DEBUG] Finished creating Domain %q: %#v", d.Id(), domainName)
-
-	return resourceDomainRead(ctx, d, meta)
-}
-
-func resourceDomainRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	var diags diag.Diagnostics
-
-	// use the meta value to retrieve your client from the provider configure method
-	client := meta.(*apiClient)
-
-	directoryService, diags := client.NewDirectoryService()
-	if diags.HasError() {
-		return diags
+	if domainObj == nil {
+		resp.Diagnostics.AddError(fmt.Sprintf("no domain was returned for %s", plan.DomainName.Value), "object returned was nil")
+		return
 	}
+	numInserts := 1
 
-	domainsService, diags := GetDomainsService(directoryService)
-	if diags.HasError() {
-		return diags
+	// INSERT will respond with the Domain that will be created, after INSERT, the etag is updated along with the Domain,
+	// once we get a consistent etag, we can feel confident that our Domain is also consistent
+	cc := consistencyCheck{
+		resourceType: "domain",
+		timeout:      CreateTimeout,
 	}
+	err = retryTimeDuration(ctx, CreateTimeout, func() error {
+		if cc.reachedConsistency(numInserts) {
+			return nil
+		}
 
-	log.Printf("[DEBUG] Getting Domain %q: %#v", d.Id(), d.Id())
+		newOU, retryErr := domainsService.Get(r.provider.customer, domainObj.DomainName).IfNoneMatch(cc.lastEtag).Do()
+		if googleapi.IsNotModified(retryErr) {
+			cc.currConsistent += 1
+		} else if retryErr != nil {
+			return cc.is404(retryErr)
+		} else {
+			cc.handleNewEtag(newOU.Etag)
+		}
 
-	domain, err := domainsService.Get(client.Customer, d.Id()).Do()
+		return fmt.Errorf("timed out while waiting for %s to be inserted", cc.resourceType)
+	})
 	if err != nil {
-		return handleNotFoundError(err, d, d.Id())
+		return
 	}
 
-	if domain == nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  fmt.Sprintf("No domain was returned for %s.", d.Get("domain_name").(string)),
-		})
-
-		return diags
+	plan.ID.Value = domainObj.DomainName
+	domain := GetDomainData(&r.provider, &plan, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
-	if err := d.Set("domain_aliases", flattenDomainAliases(domain.DomainAliases, d)); err != nil {
-		return diag.FromErr(err)
+	diags = resp.State.Set(ctx, domain)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
-	d.Set("verified", domain.Verified)
-	d.Set("creation_time", domain.CreationTime)
-	d.Set("is_primary", domain.IsPrimary)
-	d.Set("domain_name", domain.DomainName)
-	d.SetId(domain.DomainName)
-	log.Printf("[DEBUG] Finished getting Domain %q: %#v", d.Id(), domain.DomainName)
-
-	return diags
+	log.Printf("[DEBUG] Finished creating Domain %s: %s", domain.ID.Value, domain.DomainName.Value)
 }
 
-func resourceDomainDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	var diags diag.Diagnostics
-
-	// use the meta value to retrieve your client from the provider configure method
-	client := meta.(*apiClient)
-
-	domainName := d.Get("domain_name").(string)
-	log.Printf("[DEBUG] Deleting Domain %q: %#v", d.Id(), domainName)
-
-	directoryService, diags := client.NewDirectoryService()
-	if diags.HasError() {
-		return diags
+// Read a domain
+func (r domainResource) Read(ctx context.Context, req tfsdk.ReadResourceRequest, resp *tfsdk.ReadResourceResponse) {
+	if !r.provider.configured {
+		resp.Diagnostics.AddError(
+			"Provider not configured",
+			"The provider hasn't been configured before apply, likely because it depends on an unknown value from "+
+				"another resource. This leads to weird stuff happening, so we'd prefer if you didn't do that. Thanks!",
+		)
+		return
 	}
 
-	domainsService, diags := GetDomainsService(directoryService)
-	if diags.HasError() {
-		return diags
+	// Retrieve values from state
+	var state model.DomainResourceData
+	diags := req.State.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
-	err := domainsService.Delete(client.Customer, domainName).Do()
-	if err != nil {
-		return handleNotFoundError(err, d, domainName)
-	}
+	domain := GetDomainData(&r.provider, &state, &resp.Diagnostics)
 
-	log.Printf("[DEBUG] Finished deleting Domain %q: %#v", d.Id(), domainName)
-
-	return diags
+	diags = resp.State.Set(ctx, &domain)
+	resp.Diagnostics.Append(diags...)
 }
 
-func flattenDomainAliases(domainAliases []*directory.DomainAlias, d *schema.ResourceData) interface{} {
-	var v []string
+// Update is not applicable to domain
+func (r domainResource) Update(ctx context.Context, req tfsdk.UpdateResourceRequest, resp *tfsdk.UpdateResourceResponse) {
+}
 
-	for _, domainAlias := range domainAliases {
-		v = append(v, domainAlias.DomainAliasName)
+// Delete a domain
+func (r domainResource) Delete(ctx context.Context, req tfsdk.DeleteResourceRequest, resp *tfsdk.DeleteResourceResponse) {
+	var state model.DomainResourceData
+	diags := req.State.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
-	return v
+	log.Printf("[DEBUG] Removing Domain %s", state.DomainName.Value)
+
+	resp.State.RemoveResource(ctx)
+}
+
+// ImportState a domain
+func (r domainResource) ImportState(ctx context.Context, req tfsdk.ImportResourceStateRequest, resp *tfsdk.ImportResourceStateResponse) {
+	tfsdk.ResourceImportStatePassthroughID(ctx, tftypes.NewAttributePath().WithAttributeName("id"), req, resp)
 }
