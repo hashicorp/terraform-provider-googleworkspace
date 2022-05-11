@@ -3,66 +3,97 @@ package googleworkspace
 import (
 	"context"
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-provider-googleworkspace-pf/internal/model"
+	directory "google.golang.org/api/admin/directory/v1"
+	"log"
+
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
-func dataSourceGroupMember() *schema.Resource {
-	// Generate datasource schema from resource
-	dsSchema := datasourceSchemaFromResourceSchema(resourceGroupMember().Schema)
-	addRequiredFieldsToSchema(dsSchema, "group_id")
-	addExactlyOneOfFieldsToSchema(dsSchema, "member_id", "email")
+type datasourceGroupMemberType struct{}
 
-	return &schema.Resource{
-		// This description is used by the documentation generator and the language server.
+func (t datasourceGroupMemberType) GetSchema(ctx context.Context) (tfsdk.Schema, diag.Diagnostics) {
+	resourceType := resourceDomainType{}
+
+	resourceSchema, diags := resourceType.GetSchema(ctx)
+	if diags.HasError() {
+		return tfsdk.Schema{}, diags
+	}
+
+	attrs := datasourceSchemaFromResourceSchema(resourceSchema.Attributes)
+	addRequiredFieldsToSchema(attrs, "group_id")
+	addExactlyOneOfFieldsToSchema(attrs, "member_id", "email")
+
+	return tfsdk.Schema{
 		Description: "Group Member data source in the Terraform Googleworkspace provider. Group Member resides under the " +
 			"`https://www.googleapis.com/auth/admin.directory.group` client scope.",
-
-		ReadContext: dataSourceGroupMemberRead,
-
-		Schema: dsSchema,
-	}
+		Attributes: attrs,
+	}, nil
 }
 
-func dataSourceGroupMemberRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	if d.Get("member_id") != "" {
-		groupId := d.Get("group_id").(string)
-		memberId := d.Get("member_id").(string)
-		d.SetId(fmt.Sprintf("groups/%s/members/%s", groupId, memberId))
-	} else {
-		var diags diag.Diagnostics
+type groupMemberDatasource struct {
+	provider provider
+}
 
-		// use the meta value to retrieve your client from the provider configure method
-		client := meta.(*apiClient)
+func (t datasourceGroupMemberType) NewDataSource(ctx context.Context, in tfsdk.Provider) (tfsdk.DataSource, diag.Diagnostics) {
+	p, diags := convertProviderType(in)
 
-		directoryService, diags := client.NewDirectoryService()
-		if diags.HasError() {
-			return diags
-		}
+	return groupMemberDatasource{
+		provider: p,
+	}, diags
+}
 
-		membersService, diags := GetMembersService(directoryService)
-		if diags.HasError() {
-			return diags
-		}
+func (d groupMemberDatasource) Read(ctx context.Context, req tfsdk.ReadDataSourceRequest, resp *tfsdk.ReadDataSourceResponse) {
+	var data model.GroupMemberResourceData
 
-		groupId := d.Get("group_id").(string)
-		member, err := membersService.Get(groupId, d.Get("email").(string)).Do()
-		if err != nil {
-			return diag.FromErr(err)
-		}
-
-		if member == nil {
-			diags = append(diags, diag.Diagnostic{
-				Severity: diag.Error,
-				Summary:  fmt.Sprintf("No group member was returned for %s in group %s", d.Get("email").(string), groupId),
-			})
-
-			return diags
-		}
-
-		d.Set("member_id", member.Id)
-		d.SetId(fmt.Sprintf("groups/%s/members/%s", groupId, member.Id))
+	diags := req.Config.Get(ctx, &data)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
-	return resourceGroupMemberRead(ctx, d, meta)
+	if data.MemberId.Null {
+		data.MemberId = data.Email
+	}
+
+	groupMember := GetGroupMemberData(&d.provider, &data, &resp.Diagnostics)
+	if groupMember.ID.Value == "" {
+		resp.Diagnostics.AddError("object does not exist",
+			fmt.Sprintf("Group Member %s does not exist in %s", data.MemberId.Value, data.GroupId.Value))
+	}
+
+	diags = resp.State.Set(ctx, groupMember)
+	resp.Diagnostics.Append(diags...)
+}
+
+func GetGroupMemberData(prov *provider, plan *model.GroupMemberResourceData, diags *diag.Diagnostics) *model.GroupMemberResourceData {
+	membersService := GetMembersService(prov, diags)
+	log.Printf("[DEBUG] Getting Group Member %s", plan.MemberId.Value)
+
+	groupMemberObj, err := membersService.Get(plan.GroupId.Value, plan.MemberId.Value).Do()
+	if err != nil {
+		plan.ID.Value = handleNotFoundError(err, plan.ID.Value, diags)
+	}
+
+	if groupMemberObj == nil {
+		diags.AddError("returned obj is nil", fmt.Sprintf("GET %s in %s returned nil object",
+			plan.MemberId.Value, plan.GroupId.Value))
+	}
+
+	return SetGroupMemberData(plan, groupMemberObj)
+}
+
+func SetGroupMemberData(plan *model.GroupMemberResourceData, obj *directory.Member) *model.GroupMemberResourceData {
+	return &model.GroupMemberResourceData{
+		ID:               types.String{Value: fmt.Sprintf("groups/%s/members/%s", plan.GroupId.Value, obj.Id)},
+		GroupId:          types.String{Value: plan.GroupId.Value},
+		Email:            types.String{Value: obj.Email},
+		Role:             types.String{Value: obj.Role},
+		Type:             types.String{Value: obj.Type},
+		Status:           types.String{Value: obj.Status},
+		DeliverySettings: types.String{Value: obj.DeliverySettings},
+		MemberId:         types.String{Value: obj.Id},
+	}
 }

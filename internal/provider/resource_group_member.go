@@ -3,52 +3,39 @@ package googleworkspace
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
+	"github.com/hashicorp/terraform-provider-googleworkspace-pf/internal/model"
 	"google.golang.org/api/googleapi"
 	"log"
 	"strings"
-	"time"
-
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
-
-	directory "google.golang.org/api/admin/directory/v1"
 )
 
-func resourceGroupMember() *schema.Resource {
-	return &schema.Resource{
-		// This description is used by the documentation generator and the language server.
+type resourceGroupMemberType struct{}
+
+// GetSchema Group Member Resource
+func (r resourceGroupMemberType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
+	return tfsdk.Schema{
 		Description: "Group Member resource manages Google Workspace Groups Members. Group Member resides under the " +
 			"`https://www.googleapis.com/auth/admin.directory.group` client scope.",
-
-		CreateContext: resourceGroupMemberCreate,
-		ReadContext:   resourceGroupMemberRead,
-		UpdateContext: resourceGroupMemberUpdate,
-		DeleteContext: resourceGroupMemberDelete,
-
-		Timeouts: &schema.ResourceTimeout{
-			Create: schema.DefaultTimeout(5 * time.Minute),
-			Update: schema.DefaultTimeout(5 * time.Minute),
-		},
-
-		Importer: &schema.ResourceImporter{
-			StateContext: resourceGroupMemberImport,
-		},
-
-		Schema: map[string]*schema.Schema{
+		Attributes: map[string]tfsdk.Attribute{
 			"group_id": {
 				Description: "Identifies the group in the API request. The value can be the group's email address, " +
 					"group alias, or the unique group ID.",
-				Type:     schema.TypeString,
+				Type:     types.StringType,
 				Required: true,
 			},
 			"email": {
 				Description: "The member's email address. A member can be a user or another group. This property is " +
 					"required when adding a member to a group. The email must be unique and cannot be an alias of " +
 					"another group. If the email address is changed, the API automatically reflects the email address changes.",
-				Type:     schema.TypeString,
-				ForceNew: true,
+				Type:     types.StringType,
 				Required: true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					tfsdk.RequiresReplace(),
+				},
 			},
 			"role": {
 				Description: "The member's role in a group. The API returns an error for cycles in group memberships. " +
@@ -62,16 +49,18 @@ func resourceGroupMember() *schema.Resource {
 					"`OWNER`: This role can send messages to the group, add or remove members, change member roles, " +
 					"change group's settings, and delete the group. An OWNER must be a member of the group. " +
 					"A group can have more than one OWNER.",
-				Type:     schema.TypeString,
+				Type:     types.StringType,
 				Optional: true,
-				Default:  "MEMBER",
-				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"MANAGER", "MEMBER", "OWNER"},
-					false)),
-			},
-			"etag": {
-				Description: "ETag of the resource.",
-				Type:        schema.TypeString,
-				Computed:    true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					DefaultModifier{
+						DefaultValue: types.String{Value: "MEMBER"},
+					},
+				},
+				Validators: []tfsdk.AttributeValidator{
+					StringInSliceValidator{
+						Options: []string{"MANAGER", "MEMBER", "OWNER"},
+					},
+				},
 			},
 			"type": {
 				Description: "The type of group member. Acceptable values are: " +
@@ -79,15 +68,22 @@ func resourceGroupMember() *schema.Resource {
 					"ID returned is the customer ID. " +
 					"`GROUP`: The member is another group. " +
 					"`USER`: The member is a user.",
-				Type:     schema.TypeString,
+				Type:     types.StringType,
 				Optional: true,
-				Default:  "USER",
-				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"CUSTOMER", "GROUP", "USER"},
-					false)),
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					DefaultModifier{
+						DefaultValue: types.String{Value: "USER"},
+					},
+				},
+				Validators: []tfsdk.AttributeValidator{
+					StringInSliceValidator{
+						Options: []string{"CUSTOMER", "GROUP", "USER"},
+					},
+				},
 			},
 			"status": {
 				Description: "Status of member.",
-				Type:        schema.TypeString,
+				Type:        types.StringType,
 				Computed:    true,
 			},
 			"delivery_settings": {
@@ -97,262 +93,261 @@ func resourceGroupMember() *schema.Resource {
 					"`DIGEST`: Up to 25 messages bundled into a single message. " +
 					"`DISABLED`: Remove subscription. " +
 					"`NONE`: No messages.",
-				Type:     schema.TypeString,
+				Type:     types.StringType,
 				Optional: true,
-				Default:  "ALL_MAIL",
-				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"ALL_MAIL", "DAILY", "DIGEST",
-					"DISABLED", "NONE"}, false)),
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					DefaultModifier{
+						DefaultValue: types.String{Value: "ALL_MAIL"},
+					},
+				},
+				Validators: []tfsdk.AttributeValidator{
+					StringInSliceValidator{
+						Options: []string{"ALL_MAIL", "DAILY", "DIGEST", "DISABLED", "NONE"},
+					},
+				},
 			},
 			"member_id": {
 				Description: "The unique ID of the group member. A member id can be used as a member request URI's memberKey.",
-				Type:        schema.TypeString,
+				Type:        types.StringType,
 				Computed:    true,
 			},
-			// Adding a computed id simply to override the `optional` id that gets added in the SDK
-			// that will then display improperly in the docs
 			"id": {
-				Description: "The ID of this resource.",
-				Type:        schema.TypeString,
-				Computed:    true,
+				Computed:            true,
+				MarkdownDescription: "Group Member identifier",
+				PlanModifiers: tfsdk.AttributePlanModifiers{
+					tfsdk.UseStateForUnknown(),
+				},
+				Type: types.StringType,
 			},
 		},
-	}
+	}, nil
 }
 
-func resourceGroupMemberCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	var diags diag.Diagnostics
+type groupMemberResource struct {
+	provider provider
+}
 
-	// use the meta value to retrieve your client from the provider configure method
-	client := meta.(*apiClient)
+func (r resourceGroupMemberType) NewResource(_ context.Context, in tfsdk.Provider) (tfsdk.Resource, diag.Diagnostics) {
+	p, diags := convertProviderType(in)
 
-	email := d.Get("email").(string)
-	groupId := d.Get("group_id").(string)
-	log.Printf("[DEBUG] Creating Group Member %q in groupu %s: %#v", email, groupId, email)
+	return groupMemberResource{
+		provider: p,
+	}, diags
+}
 
-	directoryService, diags := client.NewDirectoryService()
-	if diags.HasError() {
-		return diags
+// Create a new group member
+func (r groupMemberResource) Create(ctx context.Context, req tfsdk.CreateResourceRequest, resp *tfsdk.CreateResourceResponse) {
+	if !r.provider.configured {
+		resp.Diagnostics.AddError(
+			"Provider not configured",
+			"The provider hasn't been configured before apply, likely because it depends on an unknown value from "+
+				"another resource. This leads to weird stuff happening, so we'd prefer if you didn't do that. Thanks!",
+		)
+		return
 	}
 
-	membersService, diags := GetMembersService(directoryService)
-	if diags.HasError() {
-		return diags
+	// Retrieve values from plan
+	var plan model.GroupMemberResourceData
+	diags := req.Plan.Get(ctx, &plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
-	memberObj := directory.Member{
-		Email:            d.Get("email").(string),
-		Role:             d.Get("role").(string),
-		Type:             d.Get("type").(string),
-		DeliverySettings: d.Get("delivery_settings").(string),
+	groupMemberReq := GroupMemberPlanToObj(&plan)
+
+	log.Printf("[DEBUG] Creating Group Member in group %s: %s", plan.GroupId.Value, plan.Email.Value)
+	membersService := GetMembersService(&r.provider, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
-	member, err := membersService.Insert(groupId, &memberObj).Do()
-
-	// If we receive a 409 that the member already exists, ignore it, we'll import it next
+	groupMemberObj, err := membersService.Insert(plan.GroupId.Value, &groupMemberReq).Do()
 	if err != nil {
-		return diag.FromErr(err)
+		resp.Diagnostics.AddError("error while trying to create group member", err.Error())
+		return
 	}
 
-	d.Set("member_id", member.Id)
-	d.SetId(fmt.Sprintf("groups/%s/members/%s", groupId, member.Id))
+	if groupMemberObj == nil {
+		resp.Diagnostics.AddError(fmt.Sprintf("no group member was returned for %s in %s",
+			plan.Email.Value, plan.GroupId.Value), "object returned was nil")
+		return
+	}
+	memberId := groupMemberObj.Id
+	numInserts := 1
 
-	// INSERT will respond with the Group Member that will be created, however, it is eventually consistent
-	// After INSERT, the etag is updated along with the Group Member,
-	// once we get a consistent etag, we can feel confident that our Group Member is also consistent
+	// INSERT will respond with the Domain that will be created, after INSERT, the etag is updated along with the Domain,
+	// once we get a consistent etag, we can feel confident that our Domain is also consistent
 	cc := consistencyCheck{
-		resourceType: "group_member",
-		timeout:      d.Timeout(schema.TimeoutCreate),
+		resourceType: "group member",
+		timeout:      CreateTimeout,
 	}
-	err = retryTimeDuration(ctx, d.Timeout(schema.TimeoutCreate), func() error {
-		var retryErr error
-
-		if cc.reachedConsistency(1) {
+	err = retryTimeDuration(ctx, CreateTimeout, func() error {
+		if cc.reachedConsistency(numInserts) {
 			return nil
 		}
 
-		newMember, retryErr := membersService.Get(groupId, member.Id).IfNoneMatch(cc.lastEtag).Do()
+		newDomain, retryErr := membersService.Get(r.provider.customer, memberId).IfNoneMatch(cc.lastEtag).Do()
 		if googleapi.IsNotModified(retryErr) {
 			cc.currConsistent += 1
 		} else if retryErr != nil {
-			return fmt.Errorf("unexpected error during retries of %s: %s", cc.resourceType, retryErr)
+			return cc.is404(retryErr)
 		} else {
-			cc.handleNewEtag(newMember.Etag)
+			cc.handleNewEtag(newDomain.Etag)
 		}
 
 		return fmt.Errorf("timed out while waiting for %s to be inserted", cc.resourceType)
 	})
+	if err != nil {
+		return
+	}
+
+	plan.ID.Value = memberId
+	groupMember := GetGroupMemberData(&r.provider, &plan, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	diags = resp.State.Set(ctx, groupMember)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	log.Printf("[DEBUG] Finished creating Group Member %s: %s", groupMember.ID.Value, groupMember.Email.Value)
+}
+
+// Read a group member
+func (r groupMemberResource) Read(ctx context.Context, req tfsdk.ReadResourceRequest, resp *tfsdk.ReadResourceResponse) {
+	if !r.provider.configured {
+		resp.Diagnostics.AddError(
+			"Provider not configured",
+			"The provider hasn't been configured before apply, likely because it depends on an unknown value from "+
+				"another resource. This leads to weird stuff happening, so we'd prefer if you didn't do that. Thanks!",
+		)
+		return
+	}
+
+	// Retrieve values from state
+	var state model.GroupMemberResourceData
+	diags := req.State.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	domain := GetGroupMemberData(&r.provider, &state, &resp.Diagnostics)
+
+	diags = resp.State.Set(ctx, &domain)
+	resp.Diagnostics.Append(diags...)
+}
+
+// Update a group member
+func (r groupMemberResource) Update(ctx context.Context, req tfsdk.UpdateResourceRequest, resp *tfsdk.UpdateResourceResponse) {
+	// Retrieve values from plan
+	var plan model.GroupMemberResourceData
+	diags := req.Plan.Get(ctx, &plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Retrieve values from plan
+	var state model.GroupMemberResourceData
+	diags = req.State.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	groupMemberReq := GroupMemberPlanToObj(&plan)
+
+	log.Printf("[DEBUG] Updating Group Member %s: %s", plan.ID.Value, plan.Email.Value)
+	membersService := GetMembersService(&r.provider, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	groupMemberObj, err := membersService.Update(state.GroupId.Value, state.MemberId.Value, &groupMemberReq).Do()
 
 	if err != nil {
-		return diag.FromErr(err)
+		diags.AddError("error while trying to update group member", err.Error())
 	}
 
-	log.Printf("[DEBUG] Finished creating Group Member %q: %#v", member.Id, email)
-
-	return resourceGroupMemberRead(ctx, d, meta)
-}
-
-func resourceGroupMemberRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	var diags diag.Diagnostics
-
-	// use the meta value to retrieve your client from the provider configure method
-	client := meta.(*apiClient)
-
-	directoryService, diags := client.NewDirectoryService()
-	if diags.HasError() {
-		return diags
+	if groupMemberObj == nil {
+		diags.AddError(fmt.Sprintf("no group member was returned for %s in group %s",
+			plan.MemberId.Value, plan.GroupId.Value), "object returned was nil")
+		return
 	}
 
-	membersService, diags := GetMembersService(directoryService)
-	if diags.HasError() {
-		return diags
+	numInserts := 1
+
+	// UPDATE will respond with the Org Unit that will be created, however, it is eventually consistent
+	// After UPDATE, the etag is updated along with the Org Unit,
+	// once we get a consistent etag, we can feel confident that our Org Unit is also consistent
+	cc := consistencyCheck{
+		resourceType: "group member",
+		timeout:      UpdateTimeout,
 	}
+	err = retryTimeDuration(ctx, UpdateTimeout, func() error {
+		if cc.reachedConsistency(numInserts) {
+			return nil
+		}
 
-	groupId := d.Get("group_id").(string)
-	memberId := d.Get("member_id").(string)
+		newOU, retryErr := membersService.Get(state.GroupId.Value, state.MemberId.Value).IfNoneMatch(cc.lastEtag).Do()
+		if googleapi.IsNotModified(retryErr) {
+			cc.currConsistent += 1
+		} else if retryErr != nil {
+			return cc.is404(retryErr)
+		} else {
+			cc.handleNewEtag(newOU.Etag)
+		}
 
-	member, err := membersService.Get(groupId, memberId).Do()
+		return fmt.Errorf("timed out while waiting for %s to be updated", cc.resourceType)
+	})
 	if err != nil {
-		return handleNotFoundError(err, d, d.Id())
+		return
 	}
 
-	d.Set("email", member.Email)
-	d.Set("role", member.Role)
-	d.Set("etag", member.Etag)
-	d.Set("type", member.Type)
-	d.Set("status", member.Status)
-	d.Set("delivery_settings", member.DeliverySettings)
-	d.Set("member_id", member.Id)
+	groupMember := GetGroupMemberData(&r.provider, &plan, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
-	d.SetId(fmt.Sprintf("groups/%s/members/%s", groupId, member.Id))
+	diags = resp.State.Set(ctx, groupMember)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
-	return diags
+	log.Printf("[DEBUG] Finished updating Group Member %s: %s", state.ID.Value, plan.Email.Value)
 }
 
-func resourceGroupMemberUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	var diags diag.Diagnostics
-
-	// use the meta value to retrieve your client from the provider configure method
-	client := meta.(*apiClient)
-
-	email := d.Get("email").(string)
-	memberId := d.Get("member_id").(string)
-	log.Printf("[DEBUG] Updating Group Member %q: %#v", memberId, email)
-
-	directoryService, diags := client.NewDirectoryService()
-	if diags.HasError() {
-		return diags
+// Delete a group member
+func (r groupMemberResource) Delete(ctx context.Context, req tfsdk.DeleteResourceRequest, resp *tfsdk.DeleteResourceResponse) {
+	var state model.GroupMemberResourceData
+	diags := req.State.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
-	membersService, diags := GetMembersService(directoryService)
-	if diags.HasError() {
-		return diags
-	}
+	log.Printf("[DEBUG] Removing Group Member %s", state.ID.Value)
 
-	memberObj := directory.Member{}
-
-	if d.HasChange("email") {
-		memberObj.Email = d.Get("email").(string)
-	}
-
-	if d.HasChange("role") {
-		memberObj.Role = d.Get("role").(string)
-	}
-
-	if d.HasChange("type") {
-		memberObj.Type = d.Get("type").(string)
-	}
-
-	if d.HasChange("delivery_settings") {
-		memberObj.DeliverySettings = d.Get("delivery_settings").(string)
-	}
-
-	if &memberObj != new(directory.Member) {
-		groupId := d.Get("group_id").(string)
-		memberId := d.Get("member_id").(string)
-		member, err := membersService.Update(groupId, memberId, &memberObj).Do()
-		if err != nil {
-			return diag.FromErr(err)
-		}
-
-		d.SetId(fmt.Sprintf("groups/%s/members/%s", groupId, member.Id))
-
-		// UPDATE will respond with the Group Member that will be created, however, it is eventually consistent
-		// After UPDATE, the etag is updated along with the Group Member,
-		// once we get a consistent etag, we can feel confident that our Group Member is also consistent
-		cc := consistencyCheck{
-			resourceType: "group_member",
-			timeout:      d.Timeout(schema.TimeoutUpdate),
-		}
-		err = retryTimeDuration(ctx, d.Timeout(schema.TimeoutUpdate), func() error {
-			var retryErr error
-
-			if cc.reachedConsistency(1) {
-				return nil
-			}
-
-			newMember, retryErr := membersService.Get(groupId, member.Id).IfNoneMatch(cc.lastEtag).Do()
-			if googleapi.IsNotModified(retryErr) {
-				cc.currConsistent += 1
-			} else if retryErr != nil {
-				return fmt.Errorf("unexpected error during retries of %s: %s", cc.resourceType, retryErr)
-			} else {
-				cc.handleNewEtag(newMember.Etag)
-			}
-
-			return fmt.Errorf("timed out while waiting for %s to be updated", cc.resourceType)
-		})
-
-		if err != nil {
-			return diag.FromErr(err)
-		}
-	}
-
-	log.Printf("[DEBUG] Finished creating Group Member %q: %#v", memberId, email)
-
-	return resourceGroupMemberRead(ctx, d, meta)
+	resp.State.RemoveResource(ctx)
 }
 
-func resourceGroupMemberDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	var diags diag.Diagnostics
-
-	// use the meta value to retrieve your client from the provider configure method
-	client := meta.(*apiClient)
-
-	email := d.Get("email").(string)
-	groupId := d.Get("group_id").(string)
-	memberId := d.Get("member_id").(string)
-	log.Printf("[DEBUG] Deleting Group Member %q from Group %s: %#v", memberId, groupId, email)
-
-	directoryService, diags := client.NewDirectoryService()
-	if diags.HasError() {
-		return diags
-	}
-
-	membersService, diags := GetMembersService(directoryService)
-	if diags.HasError() {
-		return diags
-	}
-
-	err := membersService.Delete(groupId, memberId).Do()
-	if err != nil {
-		return handleNotFoundError(err, d, d.Id())
-	}
-
-	log.Printf("[DEBUG] Finished deleting Group Member %q: %#v", memberId, email)
-
-	return diags
-}
-
-func resourceGroupMemberImport(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-	parts := strings.Split(d.Id(), "/")
+// ImportState a group member
+func (r groupMemberResource) ImportState(ctx context.Context, req tfsdk.ImportResourceStateRequest, resp *tfsdk.ImportResourceStateResponse) {
+	parts := strings.Split(req.ID, "/")
 
 	// id is of format "groups/<group_id>/members/<member_id>"
 	if len(parts) != 4 {
-		return nil, fmt.Errorf("Group Member Id (%s) is not of the correct format (groups/<group_id>/members/<member_id>)", d.Id())
+		resp.Diagnostics.AddError("import id is not of the correct format",
+			fmt.Sprintf("Group Member Id (%s) is not of the correct format (groups/<group_id>/members/<member_id>)", req.ID))
+		return
 	}
 
-	d.Set("group_id", parts[1])
-	d.Set("member_id", parts[3])
-
-	return []*schema.ResourceData{d}, nil
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, tftypes.NewAttributePath().WithAttributeName("group_id"), parts[1])...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, tftypes.NewAttributePath().WithAttributeName("member_id"), parts[3])...)
 }
