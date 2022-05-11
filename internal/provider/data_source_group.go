@@ -23,7 +23,7 @@ func (t datasourceGroupType) GetSchema(ctx context.Context) (tfsdk.Schema, diag.
 	}
 
 	attrs := datasourceSchemaFromResourceSchema(resourceSchema.Attributes)
-	addRequiredFieldsToSchema(attrs, "id", "email")
+	addExactlyOneOfFieldsToSchema(attrs, "id", "email")
 
 	return tfsdk.Schema{
 		Description: "Group data source in the Terraform Googleworkspace provider. Group resides under the " +

@@ -53,8 +53,7 @@ func (r resourceOrgUnitType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Di
 				Computed: true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
 					DefaultModifier{
-						ValType:    types.BoolType,
-						DefaultVal: false,
+						DefaultValue: types.Bool{Value: false},
 					},
 				},
 			},
@@ -82,8 +81,8 @@ func (r resourceOrgUnitType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Di
 				Optional:    true,
 				Computed:    true,
 				Validators: []tfsdk.AttributeValidator{
-					exactlyOneOfValidator{
-						requiredAttrs: []string{"parent_org_unit_id", "parent_org_unit_path"},
+					ExactlyOneOfValidator{
+						RequiredAttrs: []string{"parent_org_unit_id", "parent_org_unit_path"},
 					},
 				},
 			},
@@ -94,8 +93,8 @@ func (r resourceOrgUnitType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Di
 				Optional: true,
 				Computed: true,
 				Validators: []tfsdk.AttributeValidator{
-					exactlyOneOfValidator{
-						requiredAttrs: []string{"parent_org_unit_id", "parent_org_unit_path"},
+					ExactlyOneOfValidator{
+						RequiredAttrs: []string{"parent_org_unit_id", "parent_org_unit_path"},
 					},
 				},
 			},
@@ -168,7 +167,7 @@ func (r orgUnitResource) Create(ctx context.Context, req tfsdk.CreateResourceReq
 	// After INSERT, the etag is updated along with the Org Unit,
 	// once we get a consistent etag, we can feel confident that our Org Unit is also consistent
 	cc := consistencyCheck{
-		resourceType: "org_unit",
+		resourceType: "org unit",
 		timeout:      CreateTimeout,
 	}
 	err = retryTimeDuration(ctx, CreateTimeout, func() error {
@@ -192,7 +191,7 @@ func (r orgUnitResource) Create(ctx context.Context, req tfsdk.CreateResourceReq
 	}
 
 	plan.ID.Value = orgUnitId
-	orgUnit := GetOrgUnitData(&r.provider, plan, &resp.Diagnostics)
+	orgUnit := GetOrgUnitData(&r.provider, &plan, &resp.Diagnostics)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -215,7 +214,7 @@ func (r orgUnitResource) Read(ctx context.Context, req tfsdk.ReadResourceRequest
 		return
 	}
 
-	orgUnit := GetOrgUnitData(&r.provider, state, &resp.Diagnostics)
+	orgUnit := GetOrgUnitData(&r.provider, &state, &resp.Diagnostics)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -270,7 +269,41 @@ func (r orgUnitResource) Update(ctx context.Context, req tfsdk.UpdateResourceReq
 		return
 	}
 
-	orgUnit := SetOrgUnitData(orgUnitObj, plan)
+	orgUnitId := strings.TrimPrefix(orgUnitObj.OrgUnitId, "id:")
+	numInserts := 1
+
+	// UPDATE will respond with the Org Unit that will be created, however, it is eventually consistent
+	// After UPDATE, the etag is updated along with the Org Unit,
+	// once we get a consistent etag, we can feel confident that our Org Unit is also consistent
+	cc := consistencyCheck{
+		resourceType: "org unit",
+		timeout:      UpdateTimeout,
+	}
+	err = retryTimeDuration(ctx, UpdateTimeout, func() error {
+		if cc.reachedConsistency(numInserts) {
+			return nil
+		}
+
+		newOU, retryErr := orgUnitsService.Get(r.provider.customer, GetOrgUnitId(orgUnitId)).IfNoneMatch(cc.lastEtag).Do()
+		if googleapi.IsNotModified(retryErr) {
+			cc.currConsistent += 1
+		} else if retryErr != nil {
+			return cc.is404(retryErr)
+		} else {
+			cc.handleNewEtag(newOU.Etag)
+		}
+
+		return fmt.Errorf("timed out while waiting for %s to be updated", cc.resourceType)
+	})
+	if err != nil {
+		return
+	}
+
+	plan.ID.Value = orgUnitId
+	orgUnit := GetOrgUnitData(&r.provider, &plan, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	diags = resp.State.Set(ctx, orgUnit)
 	resp.Diagnostics.Append(diags...)

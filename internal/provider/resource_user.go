@@ -43,9 +43,9 @@ func (r resourceUserType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagn
 				Required:  true,
 				Sensitive: true,
 				Validators: []tfsdk.AttributeValidator{
-					stringLenBetweenValidator{
-						min: 8,
-						max: 100,
+					StringLenBetweenValidator{
+						Min: 8,
+						Max: 100,
 					},
 				},
 			},
@@ -84,8 +84,7 @@ func (r resourceUserType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagn
 				Computed:    true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
 					DefaultModifier{
-						ValType:    types.BoolType,
-						DefaultVal: false,
+						DefaultValue: types.Bool{Value: false},
 					},
 				},
 			},
@@ -97,8 +96,7 @@ func (r resourceUserType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagn
 				Computed: true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
 					DefaultModifier{
-						ValType:    types.BoolType,
-						DefaultVal: false,
+						DefaultValue: types.Bool{Value: false},
 					},
 				},
 			},
@@ -109,8 +107,7 @@ func (r resourceUserType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagn
 				Computed:    true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
 					DefaultModifier{
-						ValType:    types.BoolType,
-						DefaultVal: false,
+						DefaultValue: types.Bool{Value: false},
 					},
 				},
 			},
@@ -133,9 +130,9 @@ func (r resourceUserType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagn
 						Type:        types.StringType,
 						Required:    true,
 						Validators: []tfsdk.AttributeValidator{
-							stringLenBetweenValidator{
-								min: 1,
-								max: 60,
+							StringLenBetweenValidator{
+								Min: 1,
+								Max: 60,
 							},
 						},
 					},
@@ -144,9 +141,9 @@ func (r resourceUserType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagn
 						Type:        types.StringType,
 						Required:    true,
 						Validators: []tfsdk.AttributeValidator{
-							stringLenBetweenValidator{
-								min: 1,
-								max: 60,
+							StringLenBetweenValidator{
+								Min: 1,
+								Max: 60,
 							},
 						},
 					},
@@ -183,8 +180,7 @@ func (r resourceUserType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagn
 						Computed: true,
 						PlanModifiers: []tfsdk.AttributePlanModifier{
 							DefaultModifier{
-								ValType:    types.BoolType,
-								DefaultVal: false,
+								DefaultValue: types.Bool{Value: false},
 							},
 						},
 					},
@@ -194,8 +190,8 @@ func (r resourceUserType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagn
 						Type:     types.StringType,
 						Required: true,
 						Validators: []tfsdk.AttributeValidator{
-							stringInSliceValidator{
-								stringOptions: []string{"custom", "home", "other", "work"},
+							StringInSliceValidator{
+								Options: []string{"custom", "home", "other", "work"},
 							},
 						},
 					},
@@ -220,8 +216,8 @@ func (r resourceUserType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagn
 						Type:     types.StringType,
 						Required: true,
 						Validators: []tfsdk.AttributeValidator{
-							stringInSliceValidator{
-								stringOptions: []string{"account", "custom", "customer", "login_id",
+							StringInSliceValidator{
+								Options: []string{"account", "custom", "customer", "login_id",
 									"network", "organization"},
 							},
 						},
@@ -255,8 +251,8 @@ func (r resourceUserType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagn
 						Type:     types.StringType,
 						Required: true,
 						Validators: []tfsdk.AttributeValidator{
-							stringInSliceValidator{
-								stringOptions: []string{"admin_assistant", "assistant", "brother", "child",
+							StringInSliceValidator{
+								Options: []string{"admin_assistant", "assistant", "brother", "child",
 									"custom", "domestic_partner", "dotted_line_manager", "exec_assistant", "father",
 									"friend", "manager", "mother", "parent", "partner", "referred_by", "relative",
 									"sister"},
@@ -367,8 +363,8 @@ func (r resourceUserType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagn
 						Type:     types.StringType,
 						Required: true,
 						Validators: []tfsdk.AttributeValidator{
-							stringInSliceValidator{
-								stringOptions: []string{"custom", "home", "other", "work"},
+							StringInSliceValidator{
+								Options: []string{"custom", "home", "other", "work"},
 							},
 						},
 					},
@@ -444,8 +440,8 @@ func (r resourceUserType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagn
 						Type:     types.StringType,
 						Required: true,
 						Validators: []tfsdk.AttributeValidator{
-							stringInSliceValidator{
-								stringOptions: []string{"domain_only", "school", "unknown", "work"},
+							StringInSliceValidator{
+								Options: []string{"domain_only", "school", "unknown", "work"},
 							},
 						},
 					},
@@ -485,8 +481,8 @@ func (r resourceUserType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagn
 						Type:     types.StringType,
 						Required: true,
 						Validators: []tfsdk.AttributeValidator{
-							stringInSliceValidator{
-								stringOptions: []string{"assistant", "callback", "car", "company_main",
+							StringInSliceValidator{
+								Options: []string{"assistant", "callback", "car", "company_main",
 									"custom", "grand_central", "home", "home_fax", "isdn", "main", "mobile", "other",
 									"other_fax", "pager", "radio", "telex", "tty_tdd", "work", "work_fax",
 									"work_mobile", "work_pager"},
@@ -532,8 +528,7 @@ func (r resourceUserType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagn
 						Computed: true,
 						PlanModifiers: []tfsdk.AttributePlanModifier{
 							DefaultModifier{
-								ValType:    types.StringType,
-								DefaultVal: "en",
+								DefaultValue: types.String{Value: "en"},
 							},
 						},
 						// TODO: (mbang) https://github.com/hashicorp/terraform-plugin-sdk/issues/470
@@ -547,8 +542,7 @@ func (r resourceUserType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagn
 						Computed: true,
 						PlanModifiers: []tfsdk.AttributePlanModifier{
 							DefaultModifier{
-								ValType:    types.StringType,
-								DefaultVal: "preferred",
+								DefaultValue: types.String{Value: "preferred"},
 							},
 						},
 						// TODO: (mbang) https://github.com/hashicorp/terraform-plugin-sdk/issues/470
@@ -590,8 +584,8 @@ func (r resourceUserType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagn
 						Type:     types.StringType,
 						Optional: true,
 						Validators: []tfsdk.AttributeValidator{
-							stringInSliceValidator{
-								stringOptions: []string{"linux", "unspecified", "windows"},
+							StringInSliceValidator{
+								Options: []string{"linux", "unspecified", "windows"},
 							},
 						},
 					},
@@ -685,8 +679,8 @@ func (r resourceUserType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagn
 						Type:     types.StringType,
 						Required: true,
 						Validators: []tfsdk.AttributeValidator{
-							stringInSliceValidator{
-								stringOptions: []string{"app_install_page", "blog", "custom", "ftp",
+							StringInSliceValidator{
+								Options: []string{"app_install_page", "blog", "custom", "ftp",
 									"home", "home_page", "other", "profile", "reservations", "resume", "work"},
 							},
 						},
@@ -743,8 +737,8 @@ func (r resourceUserType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagn
 						Type:     types.StringType,
 						Required: true,
 						Validators: []tfsdk.AttributeValidator{
-							stringInSliceValidator{
-								stringOptions: []string{"custom", "default", "desk"},
+							StringInSliceValidator{
+								Options: []string{"custom", "default", "desk"},
 							},
 						},
 					},
@@ -758,8 +752,7 @@ func (r resourceUserType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagn
 				Computed: true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
 					DefaultModifier{
-						ValType:    types.BoolType,
-						DefaultVal: true,
+						DefaultValue: types.Bool{Value: true},
 					},
 				},
 			},
@@ -783,8 +776,8 @@ func (r resourceUserType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagn
 						Type:     types.StringType,
 						Required: true,
 						Validators: []tfsdk.AttributeValidator{
-							stringInSliceValidator{
-								stringOptions: []string{"custom", "mission", "occupation", "outlook"},
+							StringInSliceValidator{
+								Options: []string{"custom", "mission", "occupation", "outlook"},
 							},
 						},
 					},
@@ -846,8 +839,8 @@ func (r resourceUserType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagn
 						Type:     types.StringType,
 						Required: true,
 						Validators: []tfsdk.AttributeValidator{
-							stringInSliceValidator{
-								stringOptions: []string{"aim", "custom_protocol", "gtalk", "icq",
+							StringInSliceValidator{
+								Options: []string{"aim", "custom_protocol", "gtalk", "icq",
 									"jabber", "msn", "net_meeting", "qq", "skype", "yahoo"},
 							},
 						},
@@ -857,8 +850,8 @@ func (r resourceUserType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagn
 						Type:        types.StringType,
 						Required:    true,
 						Validators: []tfsdk.AttributeValidator{
-							stringInSliceValidator{
-								stringOptions: []string{"custom", "home", "other", "work"},
+							StringInSliceValidator{
+								Options: []string{"custom", "home", "other", "work"},
 							},
 						},
 					},
@@ -904,8 +897,7 @@ func (r resourceUserType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagn
 				Computed:    true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
 					DefaultModifier{
-						ValType:    types.BoolType,
-						DefaultVal: false,
+						DefaultValue: types.Bool{Value: false},
 					},
 				},
 			},
