@@ -47,6 +47,10 @@ func (v StringLenBetweenValidator) Description(ctx context.Context) string {
 	return "Validates that the length of the supplied string is between Min and Max (inclusive)."
 }
 
+func (v StringLenBetweenValidator) MarkdownDescription(ctx context.Context) string {
+	return "Validates that the length of the supplied string is between Min and Max (inclusive)."
+}
+
 // StringInSliceValidator validates that the provided string is a valid option
 type StringInSliceValidator struct {
 	Options []string
