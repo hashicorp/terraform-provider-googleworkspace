@@ -3,390 +3,359 @@ package googleworkspace
 import (
 	"context"
 	"fmt"
-	"log"
-	"reflect"
-	"strings"
-
-	"github.com/hashicorp/go-cty/cty"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
-
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
+	"github.com/hashicorp/terraform-provider-googleworkspace-pf/internal/model"
 	directory "google.golang.org/api/admin/directory/v1"
+	"log"
+	"strings"
 )
 
 const deliverySettingsDefault = "ALL_MAIL"
 
-type MemberChange struct {
-	Old, New map[string]interface{}
-}
+type resourceGroupMembersType struct{}
 
-func resourceGroupMembers() *schema.Resource {
-	return &schema.Resource{
-		// This description is used by the documentation generator and the language server.
+// GetSchema Group Members Resource
+func (r resourceGroupMembersType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
+	return tfsdk.Schema{
 		Description: "Group Members resource manages Google Workspace Groups Members. Group Members resides under the " +
 			"`https://www.googleapis.com/auth/admin.directory.group` client scope.",
-
-		CreateContext: resourceGroupMembersCreate,
-		ReadContext:   resourceGroupMembersRead,
-		UpdateContext: resourceGroupMembersUpdate,
-		DeleteContext: resourceGroupMembersDelete,
-
-		Importer: &schema.ResourceImporter{
-			StateContext: resourceGroupMembersImport,
-		},
-
-		Schema: map[string]*schema.Schema{
+		Attributes: map[string]tfsdk.Attribute{
 			"group_id": {
 				Description: "Identifies the group in the API request. The value can be the group's email address, " +
 					"group alias, or the unique group ID.",
-				Type:     schema.TypeString,
+				Type:     types.StringType,
 				Required: true,
-				ForceNew: true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					tfsdk.RequiresReplace(),
+				},
 			},
 			"members": {
 				Description: "The members of the group",
-				Type:        schema.TypeSet,
 				Optional:    true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"email": {
-							Description: "The member's email address. A member can be a user or another group. This property is" +
-								"required when adding a member to a group. The email must be unique and cannot be an alias of " +
-								"another group. If the email address is changed, the API automatically reflects the email address changes.",
-							Type:     schema.TypeString,
-							Required: true,
+				Attributes: tfsdk.SetNestedAttributes(map[string]tfsdk.Attribute{
+					"email": {
+						Description: "The member's email address. A member can be a user or another group. This property is" +
+							"required when adding a member to a group. The email must be unique and cannot be an alias of " +
+							"another group. If the email address is changed, the API automatically reflects the email address changes.",
+						Type:     types.StringType,
+						Required: true,
+					},
+					"role": {
+						Description: "The member's role in a group. The API returns an error for cycles in group memberships. " +
+							"For example, if group1 is a member of group2, group2 cannot be a member of group1. " +
+							"Acceptable values are: " +
+							"`MANAGER`: This role is only available if the Google Groups for Business is " +
+							"enabled using the Admin Console. A `MANAGER` role can do everything done by an `OWNER` role except " +
+							"make a member an `OWNER` or delete the group. A group can have multiple `MANAGER` members. " +
+							"`MEMBER`: This role can subscribe to a group, view discussion archives, and view the group's " +
+							"membership list. " +
+							"`OWNER`: This role can send messages to the group, add or remove members, change member roles, " +
+							"change group's settings, and delete the group. An OWNER must be a member of the group. " +
+							"A group can have more than one OWNER.",
+						Type:     types.StringType,
+						Optional: true,
+						PlanModifiers: []tfsdk.AttributePlanModifier{
+							DefaultModifier{
+								DefaultValue: types.String{Value: "MEMBER"},
+							},
 						},
-						"role": {
-							Description: "The member's role in a group. The API returns an error for cycles in group memberships. " +
-								"For example, if group1 is a member of group2, group2 cannot be a member of group1. " +
-								"Acceptable values are: " +
-								"`MANAGER`: This role is only available if the Google Groups for Business is " +
-								"enabled using the Admin Console. A `MANAGER` role can do everything done by an `OWNER` role except " +
-								"make a member an `OWNER` or delete the group. A group can have multiple `MANAGER` members. " +
-								"`MEMBER`: This role can subscribe to a group, view discussion archives, and view the group's " +
-								"membership list. " +
-								"`OWNER`: This role can send messages to the group, add or remove members, change member roles, " +
-								"change group's settings, and delete the group. An OWNER must be a member of the group. " +
-								"A group can have more than one OWNER.",
-							Type:     schema.TypeString,
-							Optional: true,
-							Default:  "MEMBER",
-							ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"MANAGER", "MEMBER", "OWNER"},
-								false)),
-						},
-						"type": {
-							Description: "The type of group member. Acceptable values are: " +
-								"`CUSTOMER`: The member represents all users in a domain. An email address is not returned and the " +
-								"ID returned is the customer ID. " +
-								"`GROUP`: The member is another group. " +
-								"`USER`: The member is a user.",
-							Type:     schema.TypeString,
-							Optional: true,
-							Default:  "USER",
-							ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"CUSTOMER", "GROUP", "USER"},
-								false)),
-						},
-						"delivery_settings": {
-							Description: "Defines mail delivery preferences of member. Acceptable values are:" +
-								"`ALL_MAIL`: All messages, delivered as soon as they arrive. " +
-								"`DAILY`: No more than one message a day. " +
-								"`DIGEST`: Up to 25 messages bundled into a single message. " +
-								"`DISABLED`: Remove subscription. " +
-								"`NONE`: No messages.",
-							Type:     schema.TypeString,
-							Optional: true,
-							Default:  deliverySettingsDefault,
-							ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice([]string{"ALL_MAIL", "DAILY", "DIGEST",
-								"DISABLED", "NONE"}, false)),
-						},
-						"status": {
-							Description: "Status of member.",
-							Type:        schema.TypeString,
-							Computed:    true,
-						},
-						"id": {
-							Description: "The unique ID of the group member. A member id can be used as a member request URI's memberKey.",
-							Type:        schema.TypeString,
-							Computed:    true,
+						Validators: []tfsdk.AttributeValidator{
+							StringInSliceValidator{
+								Options: []string{"MANAGER", "MEMBER", "OWNER"},
+							},
 						},
 					},
-				},
+					"type": {
+						Description: "The type of group member. Acceptable values are: " +
+							"`CUSTOMER`: The member represents all users in a domain. An email address is not returned and the " +
+							"ID returned is the customer ID. " +
+							"`GROUP`: The member is another group. " +
+							"`USER`: The member is a user.",
+						Type:     types.StringType,
+						Optional: true,
+						PlanModifiers: []tfsdk.AttributePlanModifier{
+							DefaultModifier{
+								DefaultValue: types.String{Value: "USER"},
+							},
+						},
+						Validators: []tfsdk.AttributeValidator{
+							StringInSliceValidator{
+								Options: []string{"CUSTOMER", "GROUP", "USER"},
+							},
+						},
+					},
+					"delivery_settings": {
+						Description: "Defines mail delivery preferences of member. Acceptable values are:" +
+							"`ALL_MAIL`: All messages, delivered as soon as they arrive. " +
+							"`DAILY`: No more than one message a day. " +
+							"`DIGEST`: Up to 25 messages bundled into a single message. " +
+							"`DISABLED`: Remove subscription. " +
+							"`NONE`: No messages.",
+						Type:     types.StringType,
+						Optional: true,
+						PlanModifiers: []tfsdk.AttributePlanModifier{
+							DefaultModifier{
+								DefaultValue: types.String{Value: deliverySettingsDefault},
+							},
+						},
+						Validators: []tfsdk.AttributeValidator{
+							StringInSliceValidator{
+								Options: []string{"ALL_MAIL", "DAILY", "DIGEST", "DISABLED", "NONE"},
+							},
+						},
+					},
+					"status": {
+						Description: "Status of member.",
+						Type:        types.StringType,
+						Computed:    true,
+					},
+					"id": {
+						Description: "The unique ID of the group member. A member id can be used as a member request URI's memberKey.",
+						Type:        types.StringType,
+						Computed:    true,
+					},
+				}, tfsdk.SetNestedAttributesOptions{}),
 			},
-
-			"etag": {
-				Description: "ETag of the resource.",
-				Type:        schema.TypeString,
-				Computed:    true,
-			},
-
-			// Adding a computed id simply to override the `optional` id that gets added in the SDK
-			// that will then display improperly in the docs
 			"id": {
-				Description: "The ID of this resource.",
-				Type:        schema.TypeString,
-				Computed:    true,
+				Computed:            true,
+				MarkdownDescription: "Group Members identifier",
+				PlanModifiers: tfsdk.AttributePlanModifiers{
+					tfsdk.UseStateForUnknown(),
+				},
+				Type: types.StringType,
 			},
 		},
-	}
+	}, nil
 }
 
-func resourceGroupMembersCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	var diags diag.Diagnostics
+type groupMembersResource struct {
+	provider provider
+}
 
-	// use the meta value to retrieve your client from the provider configure method
-	client := meta.(*apiClient)
-	groupId := d.Get("group_id").(string)
+func (r resourceGroupMembersType) NewResource(_ context.Context, in tfsdk.Provider) (tfsdk.Resource, diag.Diagnostics) {
+	p, diags := convertProviderType(in)
 
-	log.Printf("[DEBUG] Creating Group Members in group %s", groupId)
+	return groupMembersResource{
+		provider: p,
+	}, diags
+}
 
-	directoryService, diags := client.NewDirectoryService()
-	if diags.HasError() {
-		return diags
+// Create new group members
+func (r groupMembersResource) Create(ctx context.Context, req tfsdk.CreateResourceRequest, resp *tfsdk.CreateResourceResponse) {
+	if !r.provider.configured {
+		resp.Diagnostics.AddError(
+			"Provider not configured",
+			"The provider hasn't been configured before apply, likely because it depends on an unknown value from "+
+				"another resource. This leads to weird stuff happening, so we'd prefer if you didn't do that. Thanks!",
+		)
+		return
 	}
 
-	membersService, diags := GetMembersService(directoryService)
-	if diags.HasError() {
-		return diags
+	// Retrieve values from plan
+	var plan model.GroupMembersResourceData
+	diags := req.Plan.Get(ctx, &plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
-	members := d.Get("members").(*schema.Set)
-	for _, mMap := range members.List() {
-		memb := mMap.(map[string]interface{})
+	groupMemberReqs := GroupMembersPlanToObj(ctx, &plan, &diags)
 
-		memberObj := directory.Member{
-			Email:            memb["email"].(string),
-			Role:             memb["role"].(string),
-			Type:             memb["type"].(string),
-			DeliverySettings: memb["delivery_settings"].(string),
-		}
+	membersService := GetMembersService(&r.provider, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
-		log.Printf("[DEBUG] Creating Group Member %q in group %s: %#v", memberObj.Email, groupId, memberObj.Email)
+	var memObjs []*directory.Member
+	for _, memReq := range groupMemberReqs {
+		log.Printf("[DEBUG] Creating Group Member in group %s: %s", plan.GroupId.Value, memReq.Email)
 
-		_, err := membersService.Insert(groupId, &memberObj).Do()
+		mo, err := membersService.Insert(plan.GroupId.Value, &memReq).Do()
 		if err != nil {
-			return diag.FromErr(err)
+			resp.Diagnostics.AddError("error while trying to create group member", err.Error())
 		}
+
+		if mo == nil {
+			resp.Diagnostics.AddError("object returned was nil", fmt.Sprintf("no group member was returned for %s", memReq.Email))
+		}
+
+		memObjs = append(memObjs, mo)
+	}
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
-	d.SetId(fmt.Sprintf("groups/%s", groupId))
+	groupMembers := SetGroupMembersData(&plan, memObjs)
 
-	return resourceGroupMembersRead(ctx, d, meta)
+	diags = resp.State.Set(ctx, groupMembers)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	log.Printf("[DEBUG] Finished creating Group Members in group %s: %s", groupMembers.GroupId.Value, groupMembers.ID.Value)
 }
 
-func resourceGroupMembersRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	var diags diag.Diagnostics
-
-	// use the meta value to retrieve your client from the provider configure method
-	client := meta.(*apiClient)
-
-	directoryService, diags := client.NewDirectoryService()
-	if diags.HasError() {
-		return diags
+// Read group members information
+func (r groupMembersResource) Read(ctx context.Context, req tfsdk.ReadResourceRequest, resp *tfsdk.ReadResourceResponse) {
+	var state model.GroupMembersResourceData
+	diags := req.State.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
-	membersService, diags := GetMembersService(directoryService)
-	if diags.HasError() {
-		return diags
+	groupMembers := GetGroupMembersData(ctx, &r.provider, &state, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	if groupMembers.ID.Null {
+		resp.State.RemoveResource(ctx)
+		log.Printf("[DEBUG] Removed Org Unit from state because it was not found %s", state.ID.Value)
+		return
 	}
 
-	groupId := d.Get("group_id").(string)
-	// include_derived_membership is a read-only option available in the datasource, but not in the resource
-	// because the datasource and resource share the same Read function, we can add it in here, but need to
-	// make sure it is always false for the resource
-	includeDerivedMembership := false
-	if includeDM, ok := d.GetOk("include_derived_membership"); ok {
-		includeDerivedMembership = includeDM.(bool)
+	diags = resp.State.Set(ctx, groupMembers)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
-	var result []*directory.Member
-	membersCall := membersService.List(groupId).MaxResults(200).IncludeDerivedMembership(includeDerivedMembership)
+	log.Printf("[DEBUG] Finished getting Group Members in group %s: %s", groupMembers.GroupId.Value, groupMembers.ID.Value)
+}
 
-	err := membersCall.Pages(ctx, func(resp *directory.Members) error {
-		for _, member := range resp.Members {
-			result = append(result, member)
-		}
-
-		return nil
-	})
-	if err != nil {
-		return handleNotFoundError(err, d, d.Id())
+// Update group members
+func (r groupMembersResource) Update(ctx context.Context, req tfsdk.UpdateResourceRequest, resp *tfsdk.UpdateResourceResponse) {
+	// Retrieve values from plan
+	var plan model.GroupMembersResourceData
+	diags := req.Plan.Get(ctx, &plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
-	configMembers := d.Get("members").(*schema.Set)
+	// Retrieve values from state
+	var state model.GroupMembersResourceData
+	diags = req.State.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
-	members := make([]interface{}, len(result))
-	for i, member := range result {
+	groupMemberReqs := GroupMembersPlanToObj(ctx, &plan, &diags)
 
-		// Use value if present or default as "delivery_settings" is not provided by API
-		deliverySettings := deliverySettingsDefault
+	log.Printf("[DEBUG] Updating Group Members: %#v", state.ID.Value)
+	membersService := GetMembersService(&r.provider, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
-		for _, cm := range configMembers.List() {
-			cMem := cm.(map[string]interface{})
-			if cMem["email"].(string) == member.Email {
-				if cMem["delivery_settings"] == "" {
-					continue
+	var planned []string
+
+	for _, m := range plan.Members.Elems {
+		var mem model.GroupMembersResourceMember
+		d := m.(types.Object).As(ctx, &mem, types.ObjectAsOptions{})
+		resp.Diagnostics.Append(d...)
+
+		planned = append(planned, mem.Email.Value)
+	}
+
+	for _, m := range state.Members.Elems {
+		var mem model.GroupMembersResourceMember
+		d := m.(types.Object).As(ctx, &mem, types.ObjectAsOptions{})
+		resp.Diagnostics.Append(d...)
+
+		if !stringInSlice(planned, mem.Email.Value) {
+			err := membersService.Delete(state.GroupId.Value, mem.Id.Value).Do()
+			if err != nil {
+				resp.Diagnostics.AddError("error deleting object on update", err.Error())
+				if resp.Diagnostics.HasError() {
+					return
 				}
-
-				deliverySettings = cMem["delivery_settings"].(string)
-				break
 			}
 		}
-
-		members[i] = map[string]interface{}{
-			"email":             member.Email,
-			"role":              member.Role,
-			"type":              member.Type,
-			"status":            member.Status,
-			"delivery_settings": deliverySettings,
-			"id":                member.Id,
-		}
 	}
 
-	if err := d.Set("members", members); err != nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity:      diag.Error,
-			Summary:       "Error setting attribute",
-			Detail:        err.Error(),
-			AttributePath: cty.IndexStringPath("members"),
-		})
-	}
+	var memObjs []*directory.Member
+	for _, memReq := range groupMemberReqs {
+		var err error
+		var mo *directory.Member
 
-	d.SetId(fmt.Sprintf("groups/%s", groupId))
-
-	return diags
-}
-
-func resourceGroupMembersUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	var diags diag.Diagnostics
-
-	// use the meta value to retrieve your client from the provider configure method
-	client := meta.(*apiClient)
-
-	groupId := d.Get("group_id").(string)
-	log.Printf("[DEBUG] Updating Group Members of group: %s", groupId)
-
-	directoryService, diags := client.NewDirectoryService()
-	if diags.HasError() {
-		return diags
-	}
-
-	membersService, diags := GetMembersService(directoryService)
-	if diags.HasError() {
-		return diags
-	}
-
-	o, n := d.GetChange("members")
-	vals := make(map[string]*MemberChange)
-	for _, raw := range o.(*schema.Set).List() {
-		obj := raw.(map[string]interface{})
-		k := obj["email"].(string)
-		vals[k] = &MemberChange{Old: obj}
-	}
-	for _, raw := range n.(*schema.Set).List() {
-		obj := raw.(map[string]interface{})
-		k := obj["email"].(string)
-		if _, ok := vals[k]; !ok {
-			vals[k] = &MemberChange{}
-		}
-		vals[k].New = obj
-	}
-
-	for name, change := range vals {
-		// Create a new one if old is nil
-		if change.Old == nil {
-			memberObj := directory.Member{
-				Email:            change.New["email"].(string),
-				Role:             change.New["role"].(string),
-				Type:             change.New["type"].(string),
-				DeliverySettings: change.New["delivery_settings"].(string),
-			}
-
-			log.Printf("[DEBUG] Creating Group Member %q in group %s: %#v", memberObj.Email, groupId, memberObj.Email)
-
-			_, err := membersService.Insert(groupId, &memberObj).Do()
-			if err != nil {
-				return diag.FromErr(err)
-			}
-			continue
-		}
-		// Delete member if new is nil
-		if change.New == nil {
-			memberKey := change.Old["id"].(string)
-			log.Printf("[DEBUG] Remove Group Member %q from group %s: %#v", name, groupId, memberKey)
-			err := membersService.Delete(groupId, memberKey).Do()
-			if err != nil {
-				return diag.FromErr(err)
-			}
-			continue
-		}
-		// no change
-		if reflect.DeepEqual(change.Old, change.New) {
-			continue
+		if memReq.Id == "" {
+			log.Printf("[DEBUG] Creating Group Member in group %s: %s", plan.GroupId.Value, memReq.Email)
+			mo, err = membersService.Insert(plan.GroupId.Value, &memReq).Do()
+		} else {
+			log.Printf("[DEBUG] Updating Group Member in group %s: %s", plan.GroupId.Value, memReq.Email)
+			mo, err = membersService.Update(plan.GroupId.Value, memReq.Id, &memReq).Do()
 		}
 
-		memberObj := directory.Member{
-			Email:            change.New["email"].(string),
-			Role:             change.New["role"].(string),
-			Type:             change.New["type"].(string),
-			DeliverySettings: change.New["delivery_settings"].(string),
-		}
-
-		_, err := membersService.Update(groupId, change.Old["id"].(string), &memberObj).Do()
 		if err != nil {
-			return diag.FromErr(err)
+			resp.Diagnostics.AddError("error while trying to update group members", err.Error())
 		}
 
-		d.SetId(fmt.Sprintf("groups/%s", groupId))
-		log.Printf("[DEBUG] Finished updating Group Members %q", groupId)
+		if mo == nil {
+			resp.Diagnostics.AddError("object returned was nil", fmt.Sprintf("no group member was returned for %s", memReq.Email))
+		}
+
+		memObjs = append(memObjs, mo)
 	}
 
-	return resourceGroupMembersRead(ctx, d, meta)
+	groupMembers := SetGroupMembersData(&plan, memObjs)
+
+	diags = resp.State.Set(ctx, groupMembers)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	log.Printf("[DEBUG] Finished updating Group Members %s", state.ID.Value)
 }
 
-func resourceGroupMembersDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	var diags diag.Diagnostics
-
-	// use the meta value to retrieve your client from the provider configure method
-	client := meta.(*apiClient)
-
-	groupId := d.Get("group_id").(string)
-	members := d.Get("members").(*schema.Set)
-	log.Printf("[DEBUG] Deleting Group Members from Group %s", groupId)
-
-	directoryService, diags := client.NewDirectoryService()
-	if diags.HasError() {
-		return diags
+// Delete group members
+func (r groupMembersResource) Delete(ctx context.Context, req tfsdk.DeleteResourceRequest, resp *tfsdk.DeleteResourceResponse) {
+	var state model.GroupMembersResourceData
+	diags := req.State.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
-	membersService, diags := GetMembersService(directoryService)
-	if diags.HasError() {
-		return diags
+	log.Printf("[DEBUG] Deleting Group Members : %s", state.ID.Value)
+	membersService := GetMembersService(&r.provider, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
-	for _, raw := range members.List() {
-		member := raw.(map[string]interface{})
-		memberKey := member["id"].(string)
-		err := membersService.Delete(groupId, memberKey).Do()
+	for _, m := range state.Members.Elems {
+		var mem model.GroupMembersResourceMember
+		d := m.(types.Object).As(ctx, &mem, types.ObjectAsOptions{})
+		resp.Diagnostics.Append(d...)
+
+		err := membersService.Delete(state.GroupId.Value, mem.Id.Value).Do()
 		if err != nil {
-			return handleNotFoundError(err, d, d.Id())
+			state.ID = types.String{Value: handleNotFoundError(err, state.ID.Value, &resp.Diagnostics)}
+			if resp.Diagnostics.HasError() {
+				return
+			}
 		}
-		log.Printf("[DEBUG] Finished deleting Group Member %q: %#v", memberKey, member["email"].(string))
 	}
 
-	log.Printf("[DEBUG] Finished deleting Group Members %s", groupId)
-
-	return diags
+	resp.State.RemoveResource(ctx)
+	log.Printf("[DEBUG] Finished deleting Group Members: %s", state.ID.Value)
 }
 
-func resourceGroupMembersImport(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-	parts := strings.Split(d.Id(), "/")
+// ImportState group members
+func (r groupMembersResource) ImportState(ctx context.Context, req tfsdk.ImportResourceStateRequest, resp *tfsdk.ImportResourceStateResponse) {
+	parts := strings.Split(req.ID, "/")
 
 	// id is of format "groups/<group_id>"
 	if len(parts) != 2 {
-		return nil, fmt.Errorf("Group Member Id (%s) is not of the correct format (groups/<group_id>)", d.Id())
+		resp.Diagnostics.AddError("import id is not of the correct format",
+			fmt.Sprintf("Group Members Id (%s) is not of the correct format (groups/<group_id>)", req.ID))
+		return
 	}
 
-	d.Set("group_id", parts[1])
-
-	return []*schema.ResourceData{d}, nil
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, tftypes.NewAttributePath().WithAttributeName("group_id"), parts[1])...)
 }
