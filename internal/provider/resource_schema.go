@@ -66,8 +66,8 @@ func (r resourceSchemaType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Dia
 							tfsdk.RequiresReplace(),
 						},
 						Validators: []tfsdk.AttributeValidator{
-							stringInSliceValidator{
-								stringOptions: []string{"BOOL", "DATE", "DOUBLE", "EMAIL", "INT64", "PHONE", "STRING"},
+							StringInSliceValidator{
+								Options: []string{"BOOL", "DATE", "DOUBLE", "EMAIL", "INT64", "PHONE", "STRING"},
 							},
 						},
 					},
@@ -78,8 +78,7 @@ func (r resourceSchemaType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Dia
 						Computed:    true,
 						PlanModifiers: []tfsdk.AttributePlanModifier{
 							DefaultModifier{
-								ValType:    types.BoolType,
-								DefaultVal: false,
+								DefaultValue: types.Bool{Value: false},
 							},
 						},
 					},
@@ -90,8 +89,7 @@ func (r resourceSchemaType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Dia
 						Computed:    true,
 						PlanModifiers: []tfsdk.AttributePlanModifier{
 							DefaultModifier{
-								ValType:    types.BoolType,
-								DefaultVal: true,
+								DefaultValue: types.Bool{Value: true},
 							},
 						},
 					},
@@ -111,13 +109,12 @@ func (r resourceSchemaType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Dia
 						Computed: true,
 						PlanModifiers: []tfsdk.AttributePlanModifier{
 							DefaultModifier{
-								ValType:    types.StringType,
-								DefaultVal: "ALL_DOMAIN_USERS",
+								DefaultValue: types.String{Value: "ALL_DOMAIN_USERS"},
 							},
 						},
 						Validators: []tfsdk.AttributeValidator{
-							stringInSliceValidator{
-								stringOptions: []string{"ADMINS_AND_SELF", "ALL_DOMAIN_USERS"},
+							StringInSliceValidator{
+								Options: []string{"ADMINS_AND_SELF", "ALL_DOMAIN_USERS"},
 							},
 						},
 					},

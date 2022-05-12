@@ -16,7 +16,7 @@ import (
 type datasourceRoleType struct{}
 
 func (t datasourceRoleType) GetSchema(ctx context.Context) (tfsdk.Schema, diag.Diagnostics) {
-	resourceType := resourceDomainType{}
+	resourceType := resourceRoleType{}
 
 	resourceSchema, diags := resourceType.GetSchema(ctx)
 	if diags.HasError() {

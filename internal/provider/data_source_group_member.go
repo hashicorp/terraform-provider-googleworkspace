@@ -15,7 +15,7 @@ import (
 type datasourceGroupMemberType struct{}
 
 func (t datasourceGroupMemberType) GetSchema(ctx context.Context) (tfsdk.Schema, diag.Diagnostics) {
-	resourceType := resourceDomainType{}
+	resourceType := resourceGroupMemberType{}
 
 	resourceSchema, diags := resourceType.GetSchema(ctx)
 	if diags.HasError() {
