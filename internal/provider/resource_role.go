@@ -2,241 +2,294 @@ package googleworkspace
 
 import (
 	"context"
+	"fmt"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
+	"github.com/hashicorp/terraform-provider-googleworkspace-pf/internal/model"
 	"log"
-	"strconv"
-
-	"github.com/hashicorp/go-cty/cty"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-
-	directory "google.golang.org/api/admin/directory/v1"
 )
 
-func resourceRole() *schema.Resource {
-	return &schema.Resource{
+type resourceRoleType struct{}
+
+// GetSchema Role Resource
+func (r resourceRoleType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
+	return tfsdk.Schema{
 		Description: "Role resource in the Terraform Googleworkspace provider. Role resides " +
 			"under the `https://www.googleapis.com/auth/admin.directory.rolemanagement` client scope.",
-
-		CreateContext: resourceRoleCreate,
-		ReadContext:   resourceRoleRead,
-		UpdateContext: resourceRoleUpdate,
-		DeleteContext: resourceRoleDelete,
-
-		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
-		},
-
-		Schema: map[string]*schema.Schema{
-			"id": {
-				Description: "ID of the role.",
-				Type:        schema.TypeString,
-				Computed:    true,
-			},
+		Attributes: map[string]tfsdk.Attribute{
 			"name": {
 				Description: "Name of the role.",
-				Type:        schema.TypeString,
+				Type:        types.StringType,
 				Required:    true,
 			},
 			"description": {
 				Description: "A short description of the role.",
-				Type:        schema.TypeString,
+				Type:        types.StringType,
 				Optional:    true,
 			},
 			"privileges": {
 				Description: "The set of privileges that are granted to this role.",
 				Required:    true,
-				Type:        schema.TypeSet,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"service_id": {
-							Description: "The obfuscated ID of the service this privilege is for.",
-							Required:    true,
-							Type:        schema.TypeString,
-						},
-						"privilege_name": {
-							Description: "The name of the privilege.",
-							Required:    true,
-							Type:        schema.TypeString,
-						},
+				Attributes: tfsdk.SetNestedAttributes(map[string]tfsdk.Attribute{
+					"service_id": {
+						Description: "The obfuscated ID of the service this privilege is for.",
+						Required:    true,
+						Type:        types.StringType,
 					},
-				},
+					"privilege_name": {
+						Description: "The name of the privilege.",
+						Required:    true,
+						Type:        types.StringType,
+					},
+				}, tfsdk.SetNestedAttributesOptions{}),
 			},
 			"is_system_role": {
 				Description: "Returns true if this is a pre-defined system role.",
-				Type:        schema.TypeBool,
+				Type:        types.BoolType,
 				Computed:    true,
 			},
 			"is_super_admin_role": {
 				Description: "Returns true if the role is a super admin role.",
-				Type:        schema.TypeBool,
+				Type:        types.BoolType,
 				Computed:    true,
 			},
-			"etag": {
-				Description: "ETag of the resource.",
-				Type:        schema.TypeString,
-				Computed:    true,
+			"id": {
+				Computed:            true,
+				MarkdownDescription: "Org Unit identifier",
+				PlanModifiers: tfsdk.AttributePlanModifiers{
+					tfsdk.UseStateForUnknown(),
+				},
+				Type: types.StringType,
 			},
 		},
-	}
+	}, nil
 }
 
-func resourceRoleCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*apiClient)
+type roleResource struct {
+	provider provider
+}
 
-	directoryService, diags := client.NewDirectoryService()
-	if diags.HasError() {
-		return diags
+func (r resourceRoleType) NewResource(_ context.Context, in tfsdk.Provider) (tfsdk.Resource, diag.Diagnostics) {
+	p, diags := convertProviderType(in)
+
+	return roleResource{
+		provider: p,
+	}, diags
+}
+
+// Create a new Role
+func (r roleResource) Create(ctx context.Context, req tfsdk.CreateResourceRequest, resp *tfsdk.CreateResourceResponse) {
+	if !r.provider.configured {
+		resp.Diagnostics.AddError(
+			"Provider not configured",
+			"The provider hasn't been configured before apply, likely because it depends on an unknown value from "+
+				"another resource. This leads to weird stuff happening, so we'd prefer if you didn't do that. Thanks!",
+		)
+		return
 	}
 
-	rolesService, diags := GetRolesService(directoryService)
-	if diags.HasError() {
-		return diags
+	// Retrieve values from plan
+	var plan model.RoleResourceData
+	diags := req.Plan.Get(ctx, &plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
-	log.Printf("[DEBUG] Creating Role %q", d.Get("name").(string))
+	roleReq := RolePlanToObj(ctx, &plan, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
-	role, err := rolesService.Insert(client.Customer, getRole(d)).Do()
+	log.Printf("[DEBUG] Creating Role %s", plan.Name.Value)
+	rolesService := GetRolesService(&r.provider, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	roleObj, err := rolesService.Insert(r.provider.customer, &roleReq).Do()
 	if err != nil {
-		return diag.FromErr(err)
+		resp.Diagnostics.AddError("error while trying to create role", err.Error())
+		return
 	}
-	d.SetId(strconv.FormatInt(role.RoleId, 10))
 
-	log.Printf("[DEBUG] Finished creating Role %q", d.Get("name").(string))
+	if roleObj == nil {
+		resp.Diagnostics.AddError(fmt.Sprintf("no role was returned for %s", plan.Name.Value),
+			"object returned was nil")
+		return
+	}
 
-	return resourceRoleRead(ctx, d, meta)
+	role := SetRoleData(&plan, roleObj)
+
+	diags = resp.State.Set(ctx, role)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	log.Printf("[DEBUG] Finished creating Role %s: %s", role.ID.Value, role.Name.Value)
 }
 
-func resourceRoleUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*apiClient)
-
-	directoryService, diags := client.NewDirectoryService()
-	if diags.HasError() {
-		return diags
+// Read Role information
+func (r roleResource) Read(ctx context.Context, req tfsdk.ReadResourceRequest, resp *tfsdk.ReadResourceResponse) {
+	var state model.RoleResourceData
+	diags := req.State.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
-	rolesService, diags := GetRolesService(directoryService)
-	if diags.HasError() {
-		return diags
+	role := GetRoleData(&r.provider, &state, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	if role.ID.Null {
+		resp.State.RemoveResource(ctx)
+		log.Printf("[DEBUG] Removed Role from state because it was not found %s", state.ID.Value)
+		return
 	}
 
-	log.Printf("[DEBUG] Updating Role %q", d.Id())
+	diags = resp.State.Set(ctx, role)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	log.Printf("[DEBUG] Finished getting Role %s: %s", state.ID.Value, role.Name.Value)
+}
 
-	_, err := rolesService.Update(client.Customer, d.Id(), getRole(d)).Do()
+// Update Role
+func (r roleResource) Update(ctx context.Context, req tfsdk.UpdateResourceRequest, resp *tfsdk.UpdateResourceResponse) {
+	// Retrieve values from plan
+	var plan model.RoleResourceData
+	diags := req.Plan.Get(ctx, &plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Retrieve values from state
+	var state model.RoleResourceData
+	diags = req.State.Get(ctx, &plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	roleReq := RolePlanToObj(ctx, &plan, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	log.Printf("[DEBUG] Updating Role %s: %s", state.ID.Value, plan.Name.Value)
+	rolesService := GetRolesService(&r.provider, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	roleObj, err := rolesService.Update(r.provider.customer, state.ID.Value, &roleReq).Do()
 	if err != nil {
-		return diag.FromErr(err)
+		resp.Diagnostics.AddError("error while trying to update role", err.Error())
+		return
 	}
 
-	log.Printf("[DEBUG] Finished updating Role %q", d.Id())
+	if roleObj == nil {
+		resp.Diagnostics.AddError(fmt.Sprintf("no role was returned for %s", plan.Name.Value),
+			"object returned was nil")
+		return
+	}
 
-	return resourceRoleRead(ctx, d, meta)
+	role := SetRoleData(&plan, roleObj)
+
+	diags = resp.State.Set(ctx, role)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	log.Printf("[DEBUG] Finished updating Role %q: %#v", role.ID.Value, role.Name.Value)
 }
 
-func resourceRoleRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*apiClient)
-
-	directoryService, diags := client.NewDirectoryService()
-	if diags.HasError() {
-		return diags
+// Delete Role
+func (r roleResource) Delete(ctx context.Context, req tfsdk.DeleteResourceRequest, resp *tfsdk.DeleteResourceResponse) {
+	var state model.RoleResourceData
+	diags := req.State.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
-	rolesService, diags := GetRolesService(directoryService)
-	if diags.HasError() {
-		return diags
+	log.Printf("[DEBUG] Deleting Rolet %s: %s", state.ID.Value, state.Name.Value)
+	rolesService := GetRolesService(&r.provider, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
-	log.Printf("[DEBUG] Getting Role %q", d.Id())
-
-	role, err := rolesService.Get(client.Customer, d.Id()).Do()
+	err := rolesService.Delete(r.provider.customer, state.ID.Value).Do()
 	if err != nil {
-		return handleNotFoundError(err, d, d.Id())
-	}
-	if role == nil {
-		return diag.Errorf("No Role was returned for %s.", d.Id())
-	}
-
-	if diags := setRole(d, role); diags.HasError() {
-		return diags
-	}
-
-	log.Printf("[DEBUG] Finished getting Role %q", d.Id())
-
-	return diags
-}
-
-func resourceRoleDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	var diags diag.Diagnostics
-
-	client := meta.(*apiClient)
-
-	log.Printf("[DEBUG] Deleting Role %q", d.Id())
-
-	directoryService, diags := client.NewDirectoryService()
-	if diags.HasError() {
-		return diags
-	}
-
-	roleService, diags := GetRolesService(directoryService)
-	if diags.HasError() {
-		return diags
-	}
-
-	err := roleService.Delete(client.Customer, d.Id()).Do()
-	if err != nil {
-		return handleNotFoundError(err, d, d.Id())
-	}
-
-	log.Printf("[DEBUG] Finished deleting Role %q", d.Id())
-
-	return diags
-}
-
-func getRole(d *schema.ResourceData) *directory.Role {
-	role := &directory.Role{
-		RoleName:        d.Get("name").(string),
-		RoleDescription: d.Get("description").(string),
-	}
-
-	privileges := d.Get("privileges").(*schema.Set)
-	for _, pMap := range privileges.List() {
-		priv := pMap.(map[string]interface{})
-		role.RolePrivileges = append(role.RolePrivileges, &directory.RoleRolePrivileges{
-			PrivilegeName: priv["privilege_name"].(string),
-			ServiceId:     priv["service_id"].(string),
-		})
-	}
-
-	if d.Id() != "" {
-		id, _ := strconv.ParseInt(d.Id(), 10, 64)
-		role.RoleId = id
-	}
-	return role
-}
-
-func setRole(d *schema.ResourceData, role *directory.Role) diag.Diagnostics {
-	var diags diag.Diagnostics
-
-	d.SetId(strconv.FormatInt(role.RoleId, 10))
-	d.Set("name", role.RoleName)
-	d.Set("description", role.RoleDescription)
-	d.Set("is_system_role", role.IsSystemRole)
-	d.Set("is_super_admin_role", role.IsSuperAdminRole)
-	d.Set("etag", role.Etag)
-
-	privileges := make([]interface{}, len(role.RolePrivileges))
-	for i, priv := range role.RolePrivileges {
-		privileges[i] = map[string]interface{}{
-			"service_id":     priv.ServiceId,
-			"privilege_name": priv.PrivilegeName,
+		state.ID = types.String{Value: handleNotFoundError(err, state.ID.Value, &resp.Diagnostics)}
+		if resp.Diagnostics.HasError() {
+			return
 		}
 	}
-	if err := d.Set("privileges", privileges); err != nil {
-		diags = append(diags, diag.Diagnostic{
-			Severity:      diag.Error,
-			Summary:       "Error setting attribute",
-			Detail:        err.Error(),
-			AttributePath: cty.IndexStringPath("privileges"),
-		})
-	}
 
-	return diags
+	resp.State.RemoveResource(ctx)
+	log.Printf("[DEBUG] Finished deleting Role %s: %s", state.ID.Value, state.Name.Value)
 }
+
+// ImportState Role
+func (r roleResource) ImportState(ctx context.Context, req tfsdk.ImportResourceStateRequest, resp *tfsdk.ImportResourceStateResponse) {
+	tfsdk.ResourceImportStatePassthroughID(ctx, tftypes.NewAttributePath().WithAttributeName("id"), req, resp)
+}
+
+//func getRole(d *schema.ResourceData) *directory.Role {
+//	role := &directory.Role{
+//		RoleName:        d.Get("name").(string),
+//		RoleDescription: d.Get("description").(string),
+//	}
+//
+//	privileges := d.Get("privileges").(*schema.Set)
+//	for _, pMap := range privileges.List() {
+//		priv := pMap.(map[string]interface{})
+//		role.RolePrivileges = append(role.RolePrivileges, &directory.RoleRolePrivileges{
+//			PrivilegeName: priv["privilege_name"].(string),
+//			ServiceId:     priv["service_id"].(string),
+//		})
+//	}
+//
+//	if d.Id() != "" {
+//		id, _ := strconv.ParseInt(d.Id(), 10, 64)
+//		role.RoleId = id
+//	}
+//	return role
+//}
+//
+//func setRole(d *schema.ResourceData, role *directory.Role) diag.Diagnostics {
+//	var diags diag.Diagnostics
+//
+//	d.SetId(strconv.FormatInt(role.RoleId, 10))
+//	d.Set("name", role.RoleName)
+//	d.Set("description", role.RoleDescription)
+//	d.Set("is_system_role", role.IsSystemRole)
+//	d.Set("is_super_admin_role", role.IsSuperAdminRole)
+//	d.Set("etag", role.Etag)
+//
+//	privileges := make([]interface{}, len(role.RolePrivileges))
+//	for i, priv := range role.RolePrivileges {
+//		privileges[i] = map[string]interface{}{
+//			"service_id":     priv.ServiceId,
+//			"privilege_name": priv.PrivilegeName,
+//		}
+//	}
+//	if err := d.Set("privileges", privileges); err != nil {
+//		diags = append(diags, diag.Diagnostic{
+//			Severity:      diag.Error,
+//			Summary:       "Error setting attribute",
+//			Detail:        err.Error(),
+//			AttributePath: cty.IndexStringPath("privileges"),
+//		})
+//	}
+//
+//	return diags
+//}

@@ -6,7 +6,7 @@ type RoleResourceData struct {
 	ID               types.String `tfsdk:"id"`
 	Name             types.String `tfsdk:"name"`
 	Description      types.String `tfsdk:"description"`
-	Privileges       types.List   `tfsdk:"privileges"`
+	Privileges       types.Set    `tfsdk:"privileges"`
 	IsSystemRole     types.Bool   `tfsdk:"is_system_role"`
 	IsSuperAdminRole types.Bool   `tfsdk:"is_super_admin_role"`
 }

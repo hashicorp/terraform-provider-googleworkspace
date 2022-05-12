@@ -82,7 +82,7 @@ func GetGroupMembersData(ctx context.Context, prov *provider, plan *model.GroupM
 
 	err := membersCall.Pages(ctx, func(resp *directory.Members) error {
 		for _, member := range resp.Members {
-			result = append(result, member)
+			groupMemberObjs = append(groupMemberObjs, member)
 		}
 
 		return nil
@@ -100,7 +100,7 @@ func GetGroupMembersData(ctx context.Context, prov *provider, plan *model.GroupM
 }
 
 func SetGroupMembersData(plan *model.GroupMembersResourceData, objs []*directory.Member) *model.GroupMembersResourceData {
-	var members []model.GroupMembersResourceMember
+	var members types.Set
 	for _, mo := range objs {
 		mem := model.GroupMembersResourceMember{
 			Email:            types.String{Value: mo.Email},
@@ -111,7 +111,7 @@ func SetGroupMembersData(plan *model.GroupMembersResourceData, objs []*directory
 			Id:               types.String{Value: mo.Id},
 		}
 
-		members = append(members, mem)
+		members.Elems = append(members.Elems, mem)
 	}
 
 	return &model.GroupMembersResourceData{

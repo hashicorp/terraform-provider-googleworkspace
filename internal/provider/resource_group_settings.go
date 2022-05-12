@@ -565,7 +565,7 @@ func (r groupSettingsResource) Delete(ctx context.Context, req tfsdk.DeleteResou
 	log.Printf("[DEBUG] Removing Group Settings %s from state", state.ID.Value)
 
 	resp.State.RemoveResource(ctx)
-	log.Printf("[DEBUG] Finished deleting Org Unit %s: %s", state.ID.Value, state.Name.Value)
+	log.Printf("[DEBUG] Finished removing Group Settings from State: %s", state.ID.Value)
 }
 
 // ImportState group settings
