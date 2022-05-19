@@ -56,3 +56,31 @@ func TestIsOperationReadQuotaError_rateLimitExceeded(t *testing.T) {
 		t.Errorf("Error not detected as retryable")
 	}
 }
+
+func TestGoogle404Error(t *testing.T) {
+	gerr := googleapi.Error{
+		Code:    404,
+		Message: "notfound",
+	}
+	err := &gerr
+
+	expected := true
+
+	if isNotFound(err) != expected {
+		t.Error("Failed: The error should have been detected as 404")
+	}
+}
+
+func TestGoogleNot404Error(t *testing.T) {
+	gerr := googleapi.Error{
+		Code:    200,
+		Message: "notfound",
+	}
+	err := &gerr
+
+	expected := false
+
+	if isNotFound(err) != expected {
+		t.Error("Failed: The error should have been detected as 404")
+	}
+}
