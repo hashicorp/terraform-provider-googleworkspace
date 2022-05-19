@@ -3,7 +3,6 @@ package googleworkspace
 import (
 	"context"
 	"fmt"
-	"google.golang.org/api/googleapi"
 	"log"
 	"strings"
 	"time"
@@ -13,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
 	directory "google.golang.org/api/admin/directory/v1"
+	"google.golang.org/api/googleapi"
 )
 
 func resourceGroupMember() *schema.Resource {
@@ -173,6 +173,9 @@ func resourceGroupMemberCreate(ctx context.Context, d *schema.ResourceData, meta
 		newMember, retryErr := membersService.Get(groupId, member.Id).IfNoneMatch(cc.lastEtag).Do()
 		if googleapi.IsNotModified(retryErr) {
 			cc.currConsistent += 1
+		} else if isNotFound(retryErr) {
+			// groupmember was not found yet therefore setting currConsistent back to null value
+			cc.currConsistent = 0
 		} else if retryErr != nil {
 			return fmt.Errorf("unexpected error during retries of %s: %s", cc.resourceType, retryErr)
 		} else {
