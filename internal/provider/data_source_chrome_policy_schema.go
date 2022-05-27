@@ -101,7 +101,6 @@ func dataSourceChromePolicySchema() *schema.Resource {
 							},
 						},
 						"syntax": {
-							// TODO(SarahFrench) - subbullets?
 							Description: "The syntax of the proto file. The supported values are 'proto' and 'proto3'.",
 							Type:        schema.TypeString,
 							Computed:    true,
