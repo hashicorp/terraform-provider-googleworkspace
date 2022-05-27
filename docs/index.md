@@ -55,6 +55,17 @@ by a super administrator for the domain. Follow the instructions in the
 * Note: The Oauth scopes granted to your service account must match, or be a superset, of the `oauth_scopes` granted to
 the `googleworkspace` provider.
 
+More information about scopes is below.
+
+#### Configuring scopes requested by the provider
+
+The provider can be configured with a `oauth_scopes` field containing a list of requested scopes. If `oauth_scopes` is _not_ set in the provider configuration the provider will fall back to a default list of scopes, which are all the scopes needed to manage resources that can be provisioned by the provider ([see default scopes for v0.6.0 here](https://github.com/hashicorp/terraform-provider-googleworkspace/blob/v0.6.0/internal/provider/provider.go#L17-L30). If default scopes are used, the service account needs to be granted all of those scopes in Google Workspace.
+
+The scopes declared in the provider's configuration need to match, or be a subset of, the scopes granted to the service account. If a provider is configured with scopes the service account isn't granted to use, the provider will receive a `401 Unauthorized` response when it requests an access token.
+
+**It's recommended to include `oath_scopes` in your provider configuration to make the requested scopes explicit and easier to debug issues.**
+
+
 #### Impersonating a Google Workspace User
 
 Only users with access to the Admin APIs can access the Admin SDK Directory API, therefore your service account needs to impersonate one of those users to access the Admin SDK Directory API. This user's email
