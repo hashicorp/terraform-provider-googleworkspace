@@ -58,7 +58,7 @@ func dataSourceChromePolicySchema() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"name": {
-							Description: "file name, relative to root of source tree",
+							Description: "File name, relative to root of source tree",
 							Type:        schema.TypeString,
 							Computed:    true,
 						},
@@ -101,6 +101,7 @@ func dataSourceChromePolicySchema() *schema.Resource {
 							},
 						},
 						"syntax": {
+							// TODO(SarahFrench) - subbullets?
 							Description: "The syntax of the proto file. The supported values are 'proto' and 'proto3'.",
 							Type:        schema.TypeString,
 							Computed:    true,
