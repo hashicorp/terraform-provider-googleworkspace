@@ -62,5 +62,5 @@ Optional:
 Import is supported using the following syntax:
 
 ```shell
-terraform import googleworkspace_group.sales 01abcde23fg4h5i
+terraform import googleworkspace_group.sales {{email}}
 ```

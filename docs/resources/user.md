@@ -401,5 +401,5 @@ Optional:
 Import is supported using the following syntax:
 
 ```shell
-terraform import googleworkspace_user.dwight 123456789012345678901
+terraform import googleworkspace_user.dwight {{primary_email}}
 ```
