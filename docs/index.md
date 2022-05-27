@@ -80,7 +80,7 @@ You can also provide an exported service account key in the `credentials` parame
 
 ### Optional
 
-- **access_token** (String) A temporary [OAuth 2.0 access token] obtained from the Google Authorization server, i.e. the `Authorization: Bearer` token used to authenticate HTTP requests to Google Admin SDK APIs. This is an alternative to `credentials`, and ignores the `scopes` field. If both are specified, `access_token` will be used over the `credentials` field.
+- **access_token** (String) A temporary [OAuth 2.0 access token] obtained from the Google Authorization server, i.e. the `Authorization: Bearer` token used to authenticate HTTP requests to Google Admin SDK APIs. This is an alternative to `credentials`, and ignores the `oauth_scopes` field. If both are specified, `access_token` will be used over the `credentials` field.
 - **credentials** (String) Either the path to or the contents of a service account key file in JSON format you can manage key files using the Cloud Console).  If not provided, the application default credentials will be used.
 - **customer_id** (String) The customer id provided with your Google Workspace subscription. It is found in the admin console under Account Settings.
 - **impersonated_user_email** (String) The impersonated user's email with access to the Admin APIs can access the Admin SDK Directory API. `impersonated_user_email` is required for all services except group and user management.
