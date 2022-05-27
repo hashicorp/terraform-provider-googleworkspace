@@ -46,7 +46,7 @@ Terraform uses a GCP service account to manage resources created by the provider
 2. Save the json file containing your service account key credentials locally and set the `GOOGLEWORKSPACE_CREDENTIALS` environment variable to the path of that file. Terraform will now use that key for authentication.
    * Other environment variable options include: `GOOGLEWORKSPACE_CLOUD_KEYFILE_JSON` or `GOOGLE_CREDENTIALS` (>= 0.2.0)
 
-#### Configuring the Service Account
+#### Configuring the Service Account's granted scopes in Google Workspace
 
 To access user data on a Google Workspace domain, the service account that you created needs to be granted access
 by a super administrator for the domain. Follow the instructions in the
@@ -59,7 +59,7 @@ More information about scopes is below.
 
 #### Configuring scopes requested by the provider
 
-The provider can be configured with a `oauth_scopes` field containing a list of requested scopes. If `oauth_scopes` is _not_ set in the provider configuration the provider will fall back to a default list of scopes, which are all the scopes needed to manage resources that can be provisioned by the provider ([see default scopes for v0.6.0 here](https://github.com/hashicorp/terraform-provider-googleworkspace/blob/v0.6.0/internal/provider/provider.go#L17-L30). If default scopes are used, the service account needs to be granted all of those scopes in Google Workspace.
+The provider can be configured with a `oauth_scopes` field containing a list of requested scopes. If `oauth_scopes` is _not_ set in the provider configuration the provider will fall back to a default list of scopes, which are all the scopes needed to manage resources that can be provisioned by the provider ([see default scopes for v0.6.0 here](https://github.com/hashicorp/terraform-provider-googleworkspace/blob/v0.6.0/internal/provider/provider.go#L17-L30)). If default scopes are used, the service account needs to be granted all of those scopes in Google Workspace.
 
 The scopes declared in the provider's configuration need to match, or be a subset of, the scopes granted to the service account. If a provider is configured with scopes the service account isn't granted to use, the provider will receive a `401 Unauthorized` response when it requests an access token.
 
