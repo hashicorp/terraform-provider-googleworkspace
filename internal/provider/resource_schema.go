@@ -98,7 +98,7 @@ func resourceSchema() *schema.Resource {
 						"read_access_type": {
 							Description: "Specifies who can view values of this field. " +
 								"See Retrieve users as a non-administrator for more information. " +
-								"Acceptable values are: ADMINS_AND_SELF or ALL_DOMAIN_USERS. " +
+								"Acceptable values are: `ADMINS_AND_SELF` or `ALL_DOMAIN_USERS`. " +
 								"Note: It may take up to 24 hours for changes to this field to be reflected.",
 							Type:             schema.TypeString,
 							Optional:         true,
