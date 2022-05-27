@@ -114,6 +114,7 @@ func New(version string) func() *schema.Provider {
 				"googleworkspace_domain":               dataSourceDomain(),
 				"googleworkspace_domain_alias":         dataSourceDomainAlias(),
 				"googleworkspace_group":                dataSourceGroup(),
+				"googleworkspace_groups":               dataSourceGroups(),
 				"googleworkspace_group_member":         dataSourceGroupMember(),
 				"googleworkspace_group_members":        dataSourceGroupMembers(),
 				"googleworkspace_group_settings":       dataSourceGroupSettings(),
