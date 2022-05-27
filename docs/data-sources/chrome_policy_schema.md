@@ -27,29 +27,26 @@ output "field_descriptions" {
 
 ### Required
 
-- **schema_name** (String) The full qualified name of the policy schema
-
-### Optional
-
-- **id** (String) The ID of this resource.
+- `schema_name` (String) The full qualified name of the policy schema
 
 ### Read-Only
 
-- **access_restrictions** (List of String) Specific access restrictions related to this policy.
-- **additional_target_key_names** (List of Object) Additional key names that will be used to identify the target of the policy value. When specifying a policyTargetKey, each of the additional keys specified here will have to be included in the additionalTargetKeys map. (see [below for nested schema](#nestedatt--additional_target_key_names))
-- **definition** (List of Object) Schema definition using proto descriptor. (see [below for nested schema](#nestedatt--definition))
-- **field_descriptions** (String) Detailed description of each field that is part of the schema, represented as a JSON string.
-- **notices** (List of Object) Special notice messages related to setting certain values in certain fields in the schema. (see [below for nested schema](#nestedatt--notices))
-- **policy_description** (String) Description about the policy schema for user consumption.
-- **support_uri** (String) URI to related support article for this schema.
+- `access_restrictions` (List of String) Specific access restrictions related to this policy.
+- `additional_target_key_names` (List of Object) Additional key names that will be used to identify the target of the policy value. When specifying a policyTargetKey, each of the additional keys specified here will have to be included in the additionalTargetKeys map. (see [below for nested schema](#nestedatt--additional_target_key_names))
+- `definition` (List of Object) Schema definition using proto descriptor. (see [below for nested schema](#nestedatt--definition))
+- `field_descriptions` (String) Detailed description of each field that is part of the schema, represented as a JSON string.
+- `id` (String) The ID of this resource.
+- `notices` (List of Object) Special notice messages related to setting certain values in certain fields in the schema. (see [below for nested schema](#nestedatt--notices))
+- `policy_description` (String) Description about the policy schema for user consumption.
+- `support_uri` (String) URI to related support article for this schema.
 
 <a id="nestedatt--additional_target_key_names"></a>
 ### Nested Schema for `additional_target_key_names`
 
 Read-Only:
 
-- **key** (String)
-- **key_description** (String)
+- `key` (String)
+- `key_description` (String)
 
 
 <a id="nestedatt--definition"></a>
@@ -57,27 +54,27 @@ Read-Only:
 
 Read-Only:
 
-- **enum_type** (List of Object) (see [below for nested schema](#nestedobjatt--definition--enum_type))
-- **message_type** (String)
-- **name** (String)
-- **package** (String)
-- **syntax** (String)
+- `enum_type` (List of Object) (see [below for nested schema](#nestedobjatt--definition--enum_type))
+- `message_type` (String)
+- `name` (String)
+- `package` (String)
+- `syntax` (String)
 
 <a id="nestedobjatt--definition--enum_type"></a>
 ### Nested Schema for `definition.enum_type`
 
 Read-Only:
 
-- **name** (String)
-- **value** (List of Object) (see [below for nested schema](#nestedobjatt--definition--enum_type--value))
+- `name` (String)
+- `value` (List of Object) (see [below for nested schema](#nestedobjatt--definition--enum_type--value))
 
 <a id="nestedobjatt--definition--enum_type--value"></a>
 ### Nested Schema for `definition.enum_type.value`
 
 Read-Only:
 
-- **name** (String)
-- **number** (Number)
+- `name` (String)
+- `number` (Number)
 
 
 
@@ -87,9 +84,9 @@ Read-Only:
 
 Read-Only:
 
-- **acknowledgement_required** (Boolean)
-- **field** (String)
-- **notice_message** (String)
-- **notice_value** (String)
+- `acknowledgement_required` (Boolean)
+- `field` (String)
+- `notice_message` (String)
+- `notice_value` (String)
 
 

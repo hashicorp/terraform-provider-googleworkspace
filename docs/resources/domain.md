@@ -23,16 +23,16 @@ resource "googleworkspace_domain" "example" {
 
 ### Required
 
-- **domain_name** (String) The domain name of the customer.
+- `domain_name` (String) The domain name of the customer.
 
 ### Read-Only
 
-- **creation_time** (Number) Creation time of the domain. Expressed in Unix time format.
-- **domain_aliases** (List of String) asps.list of domain alias objects.
-- **etag** (String) ETag of the resource.
-- **id** (String) The ID of this resource.
-- **is_primary** (Boolean) Indicates if the domain is a primary domain.
-- **verified** (Boolean) Indicates the verification state of a domain.
+- `creation_time` (Number) Creation time of the domain. Expressed in Unix time format.
+- `domain_aliases` (List of String) asps.list of domain alias objects.
+- `etag` (String) ETag of the resource.
+- `id` (String) The ID of this resource.
+- `is_primary` (Boolean) Indicates if the domain is a primary domain.
+- `verified` (Boolean) Indicates the verification state of a domain.
 
 ## Import
 

@@ -27,37 +27,37 @@ output "schema_display_name" {
 
 ### Optional
 
-- **schema_id** (String) The unique identifier of the schema.
-- **schema_name** (String) The schema's name.
+- `schema_id` (String) The unique identifier of the schema.
+- `schema_name` (String) The schema's name.
 
 ### Read-Only
 
-- **display_name** (String) Display name for the schema.
-- **etag** (String) ETag of the resource.
-- **fields** (List of Object) A list of fields in the schema. (see [below for nested schema](#nestedatt--fields))
-- **id** (String) The ID of this resource.
+- `display_name` (String) Display name for the schema.
+- `etag` (String) ETag of the resource.
+- `fields` (List of Object) A list of fields in the schema. (see [below for nested schema](#nestedatt--fields))
+- `id` (String) The ID of this resource.
 
 <a id="nestedatt--fields"></a>
 ### Nested Schema for `fields`
 
 Read-Only:
 
-- **display_name** (String)
-- **etag** (String)
-- **field_id** (String)
-- **field_name** (String)
-- **field_type** (String)
-- **indexed** (Boolean)
-- **multi_valued** (Boolean)
-- **numeric_indexing_spec** (List of Object) (see [below for nested schema](#nestedobjatt--fields--numeric_indexing_spec))
-- **read_access_type** (String)
+- `display_name` (String)
+- `etag` (String)
+- `field_id` (String)
+- `field_name` (String)
+- `field_type` (String)
+- `indexed` (Boolean)
+- `multi_valued` (Boolean)
+- `numeric_indexing_spec` (List of Object) (see [below for nested schema](#nestedobjatt--fields--numeric_indexing_spec))
+- `read_access_type` (String)
 
 <a id="nestedobjatt--fields--numeric_indexing_spec"></a>
 ### Nested Schema for `fields.numeric_indexing_spec`
 
 Read-Only:
 
-- **max_value** (Number)
-- **min_value** (Number)
+- `max_value` (Number)
+- `min_value` (Number)
 
 

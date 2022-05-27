@@ -31,28 +31,28 @@ output "group_members" {
 
 ### Required
 
-- **group_id** (String) Identifies the group in the API request. The value can be the group's email address, group alias, or the unique group ID.
+- `group_id` (String) Identifies the group in the API request. The value can be the group's email address, group alias, or the unique group ID.
 
 ### Optional
 
-- **include_derived_membership** (Boolean) If true, lists indirect group memberships
+- `include_derived_membership` (Boolean) If true, lists indirect group memberships
 
 ### Read-Only
 
-- **etag** (String) ETag of the resource.
-- **id** (String) The ID of this resource.
-- **members** (Set of Object) The members of the group (see [below for nested schema](#nestedatt--members))
+- `etag` (String) ETag of the resource.
+- `id` (String) The ID of this resource.
+- `members` (Set of Object) The members of the group (see [below for nested schema](#nestedatt--members))
 
 <a id="nestedatt--members"></a>
 ### Nested Schema for `members`
 
 Read-Only:
 
-- **delivery_settings** (String)
-- **email** (String)
-- **id** (String)
-- **role** (String)
-- **status** (String)
-- **type** (String)
+- `delivery_settings` (String)
+- `email` (String)
+- `id` (String)
+- `role` (String)
+- `status` (String)
+- `type` (String)
 
 
