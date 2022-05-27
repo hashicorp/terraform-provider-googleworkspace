@@ -203,7 +203,7 @@ func resourceGroupSettings() *schema.Resource {
 			},
 			"custom_reply_to": {
 				Description: "An email address used when replying to a message if the `reply_to` property is set to " +
-					"\n\t- `REPLY_TO_CUSTOM`. This address is defined by an account administrator. When the group's `reply_to` " +
+					"`REPLY_TO_CUSTOM`. This address is defined by an account administrator. When the group's `reply_to` " +
 					"property is set to `REPLY_TO_CUSTOM`, the `custom_reply_to` property holds a custom email address " +
 					"used when replying to a message, the `custom_reply_to` property must have a text value or an error is returned.",
 				Type:     schema.TypeString,
