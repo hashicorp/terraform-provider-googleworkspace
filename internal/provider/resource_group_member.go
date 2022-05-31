@@ -53,13 +53,13 @@ func resourceGroupMember() *schema.Resource {
 			"role": {
 				Description: "The member's role in a group. The API returns an error for cycles in group memberships. " +
 					"For example, if group1 is a member of group2, group2 cannot be a member of group1. " +
-					"Acceptable values are: " +
-					"`MANAGER`: This role is only available if the Google Groups for Business is " +
+					"Acceptable values are:" +
+					"\n\t- `MANAGER`: This role is only available if the Google Groups for Business is " +
 					"enabled using the Admin Console. A `MANAGER` role can do everything done by an `OWNER` role except " +
 					"make a member an `OWNER` or delete the group. A group can have multiple `MANAGER` members. " +
-					"`MEMBER`: This role can subscribe to a group, view discussion archives, and view the group's " +
-					"membership list. " +
-					"`OWNER`: This role can send messages to the group, add or remove members, change member roles, " +
+					"\n\t- `MEMBER`: This role can subscribe to a group, view discussion archives, and view the group's " +
+					"membership list." +
+					"\n\t- `OWNER`: This role can send messages to the group, add or remove members, change member roles, " +
 					"change group's settings, and delete the group. An OWNER must be a member of the group. " +
 					"A group can have more than one OWNER.",
 				Type:     schema.TypeString,
@@ -75,10 +75,10 @@ func resourceGroupMember() *schema.Resource {
 			},
 			"type": {
 				Description: "The type of group member. Acceptable values are: " +
-					"`CUSTOMER`: The member represents all users in a domain. An email address is not returned and the " +
+					"\n\t- `CUSTOMER`: The member represents all users in a domain. An email address is not returned and the " +
 					"ID returned is the customer ID. " +
-					"`GROUP`: The member is another group. " +
-					"`USER`: The member is a user.",
+					"\n\t- `GROUP`: The member is another group. " +
+					"\n\t- `USER`: The member is a user.",
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "USER",
@@ -91,12 +91,12 @@ func resourceGroupMember() *schema.Resource {
 				Computed:    true,
 			},
 			"delivery_settings": {
-				Description: "Defines mail delivery preferences of member. Acceptable values are:" +
-					"`ALL_MAIL`: All messages, delivered as soon as they arrive. " +
-					"`DAILY`: No more than one message a day. " +
-					"`DIGEST`: Up to 25 messages bundled into a single message. " +
-					"`DISABLED`: Remove subscription. " +
-					"`NONE`: No messages.",
+				Description: "Defines mail delivery preferences of member. Acceptable values are: " +
+					"\n\t- `ALL_MAIL`: All messages, delivered as soon as they arrive." +
+					"\n\t- `DAILY`: No more than one message a day." +
+					"\n\t- `DIGEST`: Up to 25 messages bundled into a single message." +
+					"\n\t- `DISABLED`: Remove subscription." +
+					"\n\t- `NONE`: No messages.",
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "ALL_MAIL",

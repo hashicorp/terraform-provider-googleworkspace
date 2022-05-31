@@ -34,19 +34,19 @@ resource "googleworkspace_chrome_policy" "example" {
 
 ### Required
 
-- **org_unit_id** (String) The target org unit on which this policy is applied.
-- **policies** (Block List, Min: 1) Policies to set for the org unit (see [below for nested schema](#nestedblock--policies))
+- `org_unit_id` (String) The target org unit on which this policy is applied.
+- `policies` (Block List, Min: 1) Policies to set for the org unit (see [below for nested schema](#nestedblock--policies))
 
-### Optional
+### Read-Only
 
-- **id** (String) The ID of this resource.
+- `id` (String) The ID of this resource.
 
 <a id="nestedblock--policies"></a>
 ### Nested Schema for `policies`
 
 Required:
 
-- **schema_name** (String) The full qualified name of the policy schema.
-- **schema_values** (Map of String) JSON encoded map that represents key/value pairs that correspond to the given schema.
+- `schema_name` (String) The full qualified name of the policy schema.
+- `schema_values` (Map of String) JSON encoded map that represents key/value pairs that correspond to the given schema.
 
 

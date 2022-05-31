@@ -24,18 +24,18 @@ resource "googleworkspace_domain_alias" "example" {
 
 ### Required
 
-- **domain_alias_name** (String) The domain alias name.
+- `domain_alias_name` (String) The domain alias name.
 
 ### Optional
 
-- **parent_domain_name** (String) The parent domain name that the domain alias is associated with. This can either be a primary or secondary domain name within a customer.
+- `parent_domain_name` (String) The parent domain name that the domain alias is associated with. This can either be a primary or secondary domain name within a customer.
 
 ### Read-Only
 
-- **creation_time** (Number) Creation time of the domain alias.
-- **etag** (String) ETag of the resource.
-- **id** (String) The ID of this resource.
-- **verified** (Boolean) Indicates the verification state of a domain alias.
+- `creation_time` (Number) Creation time of the domain alias.
+- `etag` (String) ETag of the resource.
+- `id` (String) The ID of this resource.
+- `verified` (Boolean) Indicates the verification state of a domain alias.
 
 ## Import
 

@@ -28,48 +28,58 @@ resource "googleworkspace_schema" "birthday" {
 
 ### Required
 
-- **fields** (Block List, Min: 1) A list of fields in the schema. (see [below for nested schema](#nestedblock--fields))
-- **schema_name** (String) The schema's name.
+- `fields` (Block List, Min: 1) A list of fields in the schema. (see [below for nested schema](#nestedblock--fields))
+- `schema_name` (String) The schema's name.
 
 ### Optional
 
-- **display_name** (String) Display name for the schema.
-- **timeouts** (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
+- `display_name` (String) Display name for the schema.
+- `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
 
 ### Read-Only
 
-- **etag** (String) ETag of the resource.
-- **id** (String) The ID of this resource.
-- **schema_id** (String) The unique identifier of the schema.
+- `etag` (String) ETag of the resource.
+- `id` (String) The ID of this resource.
+- `schema_id` (String) The unique identifier of the schema.
 
 <a id="nestedblock--fields"></a>
 ### Nested Schema for `fields`
 
 Required:
 
-- **field_name** (String) The name of the field.
-- **field_type** (String) The type of the field. Acceptable values are: BOOL, DATE, DOUBLE, EMAIL, INT64, PHONE, STRING
+- `field_name` (String) The name of the field.
+- `field_type` (String) The type of the field. Acceptable values are: 
+	- `BOOL`
+	- `DATE`
+	- `DOUBLE`
+	- `EMAIL`
+	- `INT64`
+	- `PHONE`
+	- `STRING`
 
 Optional:
 
-- **display_name** (String) Display Name of the field.
-- **indexed** (Boolean) Boolean specifying whether the field is indexed or not. Defaults to `true`.
-- **multi_valued** (Boolean) A boolean specifying whether this is a multi-valued field or not. Defaults to `false`.
-- **numeric_indexing_spec** (Block List, Max: 1) Indexing spec for a numeric field. By default, only exact match queries will be supported for numeric fields. Setting the numericIndexingSpec allows range queries to be supported. (see [below for nested schema](#nestedblock--fields--numeric_indexing_spec))
-- **read_access_type** (String) Specifies who can view values of this field. See Retrieve users as a non-administrator for more information. Acceptable values are: ADMINS_AND_SELF or ALL_DOMAIN_USERS. Note: It may take up to 24 hours for changes to this field to be reflected. Defaults to `ALL_DOMAIN_USERS`.
+- `display_name` (String) Display Name of the field.
+- `indexed` (Boolean) Defaults to `true`. Boolean specifying whether the field is indexed or not.
+- `multi_valued` (Boolean) Defaults to `false`. A boolean specifying whether this is a multi-valued field or not.
+- `numeric_indexing_spec` (Block List, Max: 1) Indexing spec for a numeric field. By default, only exact match queries will be supported for numeric fields. Setting the numericIndexingSpec allows range queries to be supported. (see [below for nested schema](#nestedblock--fields--numeric_indexing_spec))
+- `read_access_type` (String) Defaults to `ALL_DOMAIN_USERS`. Specifies who can view values of this field. See Retrieve users as a non-administrator for more information. Acceptable values are: 
+	- `ADMINS_AND_SELF`
+	- `ALL_DOMAIN_USERS`
+	Note: It may take up to 24 hours for changes to this field to be reflected.
 
 Read-Only:
 
-- **etag** (String) The ETag of the field.
-- **field_id** (String) The unique identifier of the field.
+- `etag` (String) The ETag of the field.
+- `field_id` (String) The unique identifier of the field.
 
 <a id="nestedblock--fields--numeric_indexing_spec"></a>
 ### Nested Schema for `fields.numeric_indexing_spec`
 
 Optional:
 
-- **max_value** (Number) Maximum value of this field. This is meant to be indicative rather than enforced. Values outside this range will still be indexed, but search may not be as performant.
-- **min_value** (Number) Minimum value of this field. This is meant to be indicative rather than enforced. Values outside this range will still be indexed, but search may not be as performant.
+- `max_value` (Number) Maximum value of this field. This is meant to be indicative rather than enforced. Values outside this range will still be indexed, but search may not be as performant.
+- `min_value` (Number) Minimum value of this field. This is meant to be indicative rather than enforced. Values outside this range will still be indexed, but search may not be as performant.
 
 
 
@@ -78,9 +88,9 @@ Optional:
 
 Optional:
 
-- **create** (String)
-- **delete** (String)
-- **update** (String)
+- `create` (String)
+- `delete` (String)
+- `update` (String)
 
 ## Import
 

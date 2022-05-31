@@ -74,18 +74,20 @@ resource "googleworkspace_role_assignment" "org-unit-scope" {
 
 ### Required
 
-- **assigned_to** (String) The unique ID of the user this role is assigned to.
-- **role_id** (String) The ID of the role that is assigned.
+- `assigned_to` (String) The unique ID of the user this role is assigned to.
+- `role_id` (String) The ID of the role that is assigned.
 
 ### Optional
 
-- **org_unit_id** (String) If the role is restricted to an organization unit, this contains the ID for the organization unit the exercise of this role is restricted to.
-- **scope_type** (String) The scope in which this role is assigned. Valid values are 'CUSTOMER' or 'ORG_UNIT' Defaults to `CUSTOMER`.
+- `org_unit_id` (String) If the role is restricted to an organization unit, this contains the ID for the organization unit the exercise of this role is restricted to.
+- `scope_type` (String) Defaults to `CUSTOMER`. The scope in which this role is assigned. Valid values are :
+	- `CUSTOMER`
+	- `ORG_UNIT`
 
 ### Read-Only
 
-- **etag** (String) ETag of the resource.
-- **id** (String) ID of this roleAssignment.
+- `etag` (String) ETag of the resource.
+- `id` (String) ID of this roleAssignment.
 
 ## Import
 
