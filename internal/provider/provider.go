@@ -55,7 +55,10 @@ func New(version string) func() *schema.Provider {
 						"authenticate HTTP requests to Google Admin SDK APIs. This is an alternative to `credentials`, " +
 						"and ignores the `scopes` field. If both are specified, `access_token` will be " +
 						"used over the `credentials` field.",
-					Type:     schema.TypeString,
+					Type: schema.TypeString,
+					DefaultFunc: schema.MultiEnvDefaultFunc([]string{
+						"GOOGLE_OAUTH_ACCESS_TOKEN",
+					}, nil),
 					Optional: true,
 				},
 
