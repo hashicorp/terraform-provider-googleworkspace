@@ -172,6 +172,9 @@ func resourceGroupCreate(ctx context.Context, d *schema.ResourceData, meta inter
 		newGroup, retryErr := groupsService.Get(d.Id()).IfNoneMatch(cc.lastEtag).Do()
 		if googleapi.IsNotModified(retryErr) {
 			cc.currConsistent += 1
+		} else if isNotFound(retryErr) {
+			// group was not found yet therefore setting currConsistent back to null value
+			cc.currConsistent = 0
 		} else if retryErr != nil {
 			return fmt.Errorf("unexpected error during retries of %s: %s", cc.resourceType, retryErr)
 		} else {

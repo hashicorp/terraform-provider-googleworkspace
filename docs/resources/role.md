@@ -40,27 +40,27 @@ resource "googleworkspace_role" "read-only" {
 
 ### Required
 
-- **name** (String) Name of the role.
-- **privileges** (Block Set, Min: 1) The set of privileges that are granted to this role. (see [below for nested schema](#nestedblock--privileges))
+- `name` (String) Name of the role.
+- `privileges` (Block Set, Min: 1) The set of privileges that are granted to this role. (see [below for nested schema](#nestedblock--privileges))
 
 ### Optional
 
-- **description** (String) A short description of the role.
+- `description` (String) A short description of the role.
 
 ### Read-Only
 
-- **etag** (String) ETag of the resource.
-- **id** (String) ID of the role.
-- **is_super_admin_role** (Boolean) Returns true if the role is a super admin role.
-- **is_system_role** (Boolean) Returns true if this is a pre-defined system role.
+- `etag` (String) ETag of the resource.
+- `id` (String) ID of the role.
+- `is_super_admin_role` (Boolean) Returns true if the role is a super admin role.
+- `is_system_role` (Boolean) Returns true if this is a pre-defined system role.
 
 <a id="nestedblock--privileges"></a>
 ### Nested Schema for `privileges`
 
 Required:
 
-- **privilege_name** (String) The name of the privilege.
-- **service_id** (String) The obfuscated ID of the service this privilege is for.
+- `privilege_name` (String) The name of the privilege.
+- `service_id` (String) The obfuscated ID of the service this privilege is for.
 
 ## Import
 

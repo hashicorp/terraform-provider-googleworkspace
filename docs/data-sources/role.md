@@ -27,23 +27,23 @@ output "is_system_role" {
 
 ### Required
 
-- **name** (String) Name of the role.
+- `name` (String) Name of the role.
 
 ### Read-Only
 
-- **description** (String) A short description of the role.
-- **etag** (String) ETag of the resource.
-- **id** (String) ID of the role.
-- **is_super_admin_role** (Boolean) Returns true if the role is a super admin role.
-- **is_system_role** (Boolean) Returns true if this is a pre-defined system role.
-- **privileges** (Set of Object) The set of privileges that are granted to this role. (see [below for nested schema](#nestedatt--privileges))
+- `description` (String) A short description of the role.
+- `etag` (String) ETag of the resource.
+- `id` (String) ID of the role.
+- `is_super_admin_role` (Boolean) Returns true if the role is a super admin role.
+- `is_system_role` (Boolean) Returns true if this is a pre-defined system role.
+- `privileges` (Set of Object) The set of privileges that are granted to this role. (see [below for nested schema](#nestedatt--privileges))
 
 <a id="nestedatt--privileges"></a>
 ### Nested Schema for `privileges`
 
 Read-Only:
 
-- **privilege_name** (String)
-- **service_id** (String)
+- `privilege_name` (String)
+- `service_id` (String)
 
 

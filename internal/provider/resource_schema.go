@@ -65,7 +65,13 @@ func resourceSchema() *schema.Resource {
 						},
 						"field_type": {
 							Description: "The type of the field. Acceptable values are: " +
-								"BOOL, DATE, DOUBLE, EMAIL, INT64, PHONE, STRING",
+								"\n\t- `BOOL`" +
+								"\n\t- `DATE`" +
+								"\n\t- `DOUBLE`" +
+								"\n\t- `EMAIL`" +
+								"\n\t- `INT64`" +
+								"\n\t- `PHONE`" +
+								"\n\t- `STRING`",
 							Type:     schema.TypeString,
 							Required: true,
 							ForceNew: true,
@@ -98,7 +104,10 @@ func resourceSchema() *schema.Resource {
 						"read_access_type": {
 							Description: "Specifies who can view values of this field. " +
 								"See Retrieve users as a non-administrator for more information. " +
-								"Acceptable values are: ADMINS_AND_SELF or ALL_DOMAIN_USERS. " +
+								"Acceptable values are: " +
+								"\n\t- `ADMINS_AND_SELF`" +
+								"\n\t- `ALL_DOMAIN_USERS`" +
+								"\n\t" +
 								"Note: It may take up to 24 hours for changes to this field to be reflected.",
 							Type:             schema.TypeString,
 							Optional:         true,

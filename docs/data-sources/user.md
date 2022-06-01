@@ -27,71 +27,71 @@ output "is_user_admin" {
 
 ### Optional
 
-- **id** (String) The unique ID for the user.
-- **primary_email** (String) The user's primary email address. The primaryEmail must be unique and cannot be an alias of another user.
+- `id` (String) The unique ID for the user.
+- `primary_email` (String) The user's primary email address. The primaryEmail must be unique and cannot be an alias of another user.
 
 ### Read-Only
 
-- **addresses** (List of Object) A list of the user's addresses. The maximum allowed data size is 10Kb. (see [below for nested schema](#nestedatt--addresses))
-- **agreed_to_terms** (Boolean) This property is true if the user has completed an initial login and accepted the Terms of Service agreement.
-- **aliases** (List of String) asps.list of the user's alias email addresses.
-- **archived** (Boolean) Indicates if user is archived.
-- **change_password_at_next_login** (Boolean) Indicates if the user is forced to change their password at next login. This setting doesn't apply when the user signs in via a third-party identity provider.
-- **creation_time** (String) The time the user's account was created. The value is in ISO 8601 date and time format. The time is the complete date plus hours, minutes, and seconds in the form YYYY-MM-DDThh:mm:ssTZD. For example, 2010-04-05T17:30:04+01:00.
-- **custom_schemas** (List of Object) Custom fields of the user. (see [below for nested schema](#nestedatt--custom_schemas))
-- **customer_id** (String) The customer ID to retrieve all account users. You can use the alias my_customer to represent your account's customerId. As a reseller administrator, you can use the resold customer account's customerId. To get a customerId, use the account's primary domain in the domain parameter of a users.list request.
-- **deletion_time** (String) The time the user's account was deleted. The value is in ISO 8601 date and time format The time is the complete date plus hours, minutes, and seconds in the form YYYY-MM-DDThh:mm:ssTZD. For example 2010-04-05T17:30:04+01:00.
-- **emails** (List of Object) A list of the user's email addresses. The maximum allowed data size is 10Kb. (see [below for nested schema](#nestedatt--emails))
-- **etag** (String) ETag of the resource.
-- **external_ids** (List of Object) A list of external IDs for the user, such as an employee or network ID. The maximum allowed data size is 2Kb. (see [below for nested schema](#nestedatt--external_ids))
-- **hash_function** (String) Stores the hash format of the password property. We recommend sending the password property value as a base 16 bit hexadecimal-encoded hash value. Set the hashFunction values as either the SHA-1, MD5, or crypt hash format.
-- **ims** (List of Object) The user's Instant Messenger (IM) accounts. A user account can have multiple ims properties. But, only one of these ims properties can be the primary IM contact. The maximum allowed data size is 2Kb. (see [below for nested schema](#nestedatt--ims))
-- **include_in_global_address_list** (Boolean) Indicates if the user's profile is visible in the Google Workspace global address list when the contact sharing feature is enabled for the domain.
-- **ip_allowlist** (Boolean) If true, the user's IP address is added to the allow list.
-- **is_admin** (Boolean) Indicates a user with super admininistrator privileges.
-- **is_delegated_admin** (Boolean) Indicates if the user is a delegated administrator.
-- **is_enforced_in_2_step_verification** (Boolean) Is 2-step verification enforced.
-- **is_enrolled_in_2_step_verification** (Boolean) Is enrolled in 2-step verification.
-- **is_mailbox_setup** (Boolean) Indicates if the user's Google mailbox is created. This property is only applicable if the user has been assigned a Gmail license.
-- **keywords** (List of Object) A list of the user's keywords. The maximum allowed data size is 1Kb. (see [below for nested schema](#nestedatt--keywords))
-- **languages** (List of Object) A list of the user's languages. The maximum allowed data size is 1Kb. (see [below for nested schema](#nestedatt--languages))
-- **last_login_time** (String) The last time the user logged into the user's account. The value is in ISO 8601 date and time format. The time is the complete date plus hours, minutes, and seconds in the form YYYY-MM-DDThh:mm:ssTZD. For example, 2010-04-05T17:30:04+01:00.
-- **locations** (List of Object) A list of the user's locations. The maximum allowed data size is 10Kb. (see [below for nested schema](#nestedatt--locations))
-- **name** (List of Object) Holds the given and family names of the user, and the read-only fullName value. The maximum number of characters in the givenName and in the familyName values is 60. In addition, name values support unicode/UTF-8 characters, and can contain spaces, letters (a-z), numbers (0-9), dashes (-), forward slashes (/), and periods (.). Maximum allowed data size for this field is 1Kb. (see [below for nested schema](#nestedatt--name))
-- **non_editable_aliases** (List of String) asps.list of the user's non-editable alias email addresses. These are typically outside the account's primary domain or sub-domain.
-- **org_unit_path** (String) The full path of the parent organization associated with the user. If the parent organization is the top-level, it is represented as a forward slash (/).
-- **organizations** (List of Object) A list of organizations the user belongs to. The maximum allowed data size is 10Kb. (see [below for nested schema](#nestedatt--organizations))
-- **password** (String) Stores the password for the user account. A password can contain any combination of ASCII characters. A minimum of 8 characters is required. The maximum length is 100 characters. As the API does not return the value of password, this field is write-only, and the value stored in the state will be what is provided in the configuration. The field is required on create and will be empty on import.
-- **phones** (List of Object) A list of the user's phone numbers. The maximum allowed data size is 1Kb. (see [below for nested schema](#nestedatt--phones))
-- **posix_accounts** (List of Object) A list of POSIX account information for the user. (see [below for nested schema](#nestedatt--posix_accounts))
-- **recovery_email** (String) Recovery email of the user.
-- **recovery_phone** (String) Recovery phone of the user. The phone number must be in the E.164 format, starting with the plus sign (+). Example: +16506661212.
-- **relations** (List of Object) A list of the user's relationships to other users. The maximum allowed data size for this field is 2Kb. (see [below for nested schema](#nestedatt--relations))
-- **ssh_public_keys** (List of Object) A list of SSH public keys. The maximum allowed data size is 10Kb. (see [below for nested schema](#nestedatt--ssh_public_keys))
-- **suspended** (Boolean) Indicates if user is suspended.
-- **suspension_reason** (String) Has the reason a user account is suspended either by the administrator or by Google at the time of suspension. The property is returned only if the suspended property is true.
-- **thumbnail_photo_etag** (String) ETag of the user's photo
-- **thumbnail_photo_url** (String) Photo Url of the user.
-- **websites** (List of Object) A list of the user's websites. The maximum allowed data size is 2Kb. (see [below for nested schema](#nestedatt--websites))
+- `addresses` (List of Object) A list of the user's addresses. The maximum allowed data size is 10Kb. (see [below for nested schema](#nestedatt--addresses))
+- `agreed_to_terms` (Boolean) This property is true if the user has completed an initial login and accepted the Terms of Service agreement.
+- `aliases` (List of String) asps.list of the user's alias email addresses.
+- `archived` (Boolean) Indicates if user is archived.
+- `change_password_at_next_login` (Boolean) Indicates if the user is forced to change their password at next login. This setting doesn't apply when the user signs in via a third-party identity provider.
+- `creation_time` (String) The time the user's account was created. The value is in ISO 8601 date and time format. The time is the complete date plus hours, minutes, and seconds in the form YYYY-MM-DDThh:mm:ssTZD. For example, 2010-04-05T17:30:04+01:00.
+- `custom_schemas` (List of Object) Custom fields of the user. (see [below for nested schema](#nestedatt--custom_schemas))
+- `customer_id` (String) The customer ID to retrieve all account users. You can use the alias my_customer to represent your account's customerId. As a reseller administrator, you can use the resold customer account's customerId. To get a customerId, use the account's primary domain in the domain parameter of a users.list request.
+- `deletion_time` (String) The time the user's account was deleted. The value is in ISO 8601 date and time format The time is the complete date plus hours, minutes, and seconds in the form YYYY-MM-DDThh:mm:ssTZD. For example 2010-04-05T17:30:04+01:00.
+- `emails` (List of Object) A list of the user's email addresses. The maximum allowed data size is 10Kb. (see [below for nested schema](#nestedatt--emails))
+- `etag` (String) ETag of the resource.
+- `external_ids` (List of Object) A list of external IDs for the user, such as an employee or network ID. The maximum allowed data size is 2Kb. (see [below for nested schema](#nestedatt--external_ids))
+- `hash_function` (String) Stores the hash format of the password property. We recommend sending the password property value as a base 16 bit hexadecimal-encoded hash value. Set the hashFunction values as either the SHA-1, MD5, or crypt hash format.
+- `ims` (List of Object) The user's Instant Messenger (IM) accounts. A user account can have multiple ims properties. But, only one of these ims properties can be the primary IM contact. The maximum allowed data size is 2Kb. (see [below for nested schema](#nestedatt--ims))
+- `include_in_global_address_list` (Boolean) Indicates if the user's profile is visible in the Google Workspace global address list when the contact sharing feature is enabled for the domain.
+- `ip_allowlist` (Boolean) If true, the user's IP address is added to the allow list.
+- `is_admin` (Boolean) Indicates a user with super admininistrator privileges.
+- `is_delegated_admin` (Boolean) Indicates if the user is a delegated administrator.
+- `is_enforced_in_2_step_verification` (Boolean) Is 2-step verification enforced.
+- `is_enrolled_in_2_step_verification` (Boolean) Is enrolled in 2-step verification.
+- `is_mailbox_setup` (Boolean) Indicates if the user's Google mailbox is created. This property is only applicable if the user has been assigned a Gmail license.
+- `keywords` (List of Object) A list of the user's keywords. The maximum allowed data size is 1Kb. (see [below for nested schema](#nestedatt--keywords))
+- `languages` (List of Object) A list of the user's languages. The maximum allowed data size is 1Kb. (see [below for nested schema](#nestedatt--languages))
+- `last_login_time` (String) The last time the user logged into the user's account. The value is in ISO 8601 date and time format. The time is the complete date plus hours, minutes, and seconds in the form YYYY-MM-DDThh:mm:ssTZD. For example, 2010-04-05T17:30:04+01:00.
+- `locations` (List of Object) A list of the user's locations. The maximum allowed data size is 10Kb. (see [below for nested schema](#nestedatt--locations))
+- `name` (List of Object) Holds the given and family names of the user, and the read-only fullName value. The maximum number of characters in the givenName and in the familyName values is 60. In addition, name values support unicode/UTF-8 characters, and can contain spaces, letters (a-z), numbers (0-9), dashes (-), forward slashes (/), and periods (.). Maximum allowed data size for this field is 1Kb. (see [below for nested schema](#nestedatt--name))
+- `non_editable_aliases` (List of String) asps.list of the user's non-editable alias email addresses. These are typically outside the account's primary domain or sub-domain.
+- `org_unit_path` (String) The full path of the parent organization associated with the user. If the parent organization is the top-level, it is represented as a forward slash (/).
+- `organizations` (List of Object) A list of organizations the user belongs to. The maximum allowed data size is 10Kb. (see [below for nested schema](#nestedatt--organizations))
+- `password` (String) Stores the password for the user account. A password can contain any combination of ASCII characters. A minimum of 8 characters is required. The maximum length is 100 characters. As the API does not return the value of password, this field is write-only, and the value stored in the state will be what is provided in the configuration. The field is required on create and will be empty on import.
+- `phones` (List of Object) A list of the user's phone numbers. The maximum allowed data size is 1Kb. (see [below for nested schema](#nestedatt--phones))
+- `posix_accounts` (List of Object) A list of POSIX account information for the user. (see [below for nested schema](#nestedatt--posix_accounts))
+- `recovery_email` (String) Recovery email of the user.
+- `recovery_phone` (String) Recovery phone of the user. The phone number must be in the E.164 format, starting with the plus sign (+). Example: +16506661212.
+- `relations` (List of Object) A list of the user's relationships to other users. The maximum allowed data size for this field is 2Kb. (see [below for nested schema](#nestedatt--relations))
+- `ssh_public_keys` (List of Object) A list of SSH public keys. The maximum allowed data size is 10Kb. (see [below for nested schema](#nestedatt--ssh_public_keys))
+- `suspended` (Boolean) Indicates if user is suspended.
+- `suspension_reason` (String) Has the reason a user account is suspended either by the administrator or by Google at the time of suspension. The property is returned only if the suspended property is true.
+- `thumbnail_photo_etag` (String) ETag of the user's photo
+- `thumbnail_photo_url` (String) Photo Url of the user.
+- `websites` (List of Object) A list of the user's websites. The maximum allowed data size is 2Kb. (see [below for nested schema](#nestedatt--websites))
 
 <a id="nestedatt--addresses"></a>
 ### Nested Schema for `addresses`
 
 Read-Only:
 
-- **country** (String)
-- **country_code** (String)
-- **custom_type** (String)
-- **extended_address** (String)
-- **formatted** (String)
-- **locality** (String)
-- **po_box** (String)
-- **postal_code** (String)
-- **primary** (Boolean)
-- **region** (String)
-- **source_is_structured** (Boolean)
-- **street_address** (String)
-- **type** (String)
+- `country` (String)
+- `country_code` (String)
+- `custom_type` (String)
+- `extended_address` (String)
+- `formatted` (String)
+- `locality` (String)
+- `po_box` (String)
+- `postal_code` (String)
+- `primary` (Boolean)
+- `region` (String)
+- `source_is_structured` (Boolean)
+- `street_address` (String)
+- `type` (String)
 
 
 <a id="nestedatt--custom_schemas"></a>
@@ -99,8 +99,8 @@ Read-Only:
 
 Read-Only:
 
-- **schema_name** (String)
-- **schema_values** (Map of String)
+- `schema_name` (String)
+- `schema_values` (Map of String)
 
 
 <a id="nestedatt--emails"></a>
@@ -108,10 +108,10 @@ Read-Only:
 
 Read-Only:
 
-- **address** (String)
-- **custom_type** (String)
-- **primary** (Boolean)
-- **type** (String)
+- `address` (String)
+- `custom_type` (String)
+- `primary` (Boolean)
+- `type` (String)
 
 
 <a id="nestedatt--external_ids"></a>
@@ -119,9 +119,9 @@ Read-Only:
 
 Read-Only:
 
-- **custom_type** (String)
-- **type** (String)
-- **value** (String)
+- `custom_type` (String)
+- `type` (String)
+- `value` (String)
 
 
 <a id="nestedatt--ims"></a>
@@ -129,12 +129,12 @@ Read-Only:
 
 Read-Only:
 
-- **custom_protocol** (String)
-- **custom_type** (String)
-- **im** (String)
-- **primary** (Boolean)
-- **protocol** (String)
-- **type** (String)
+- `custom_protocol` (String)
+- `custom_type` (String)
+- `im` (String)
+- `primary` (Boolean)
+- `protocol` (String)
+- `type` (String)
 
 
 <a id="nestedatt--keywords"></a>
@@ -142,9 +142,9 @@ Read-Only:
 
 Read-Only:
 
-- **custom_type** (String)
-- **type** (String)
-- **value** (String)
+- `custom_type` (String)
+- `type` (String)
+- `value` (String)
 
 
 <a id="nestedatt--languages"></a>
@@ -152,9 +152,9 @@ Read-Only:
 
 Read-Only:
 
-- **custom_language** (String)
-- **language_code** (String)
-- **preference** (String)
+- `custom_language` (String)
+- `language_code` (String)
+- `preference` (String)
 
 
 <a id="nestedatt--locations"></a>
@@ -162,13 +162,13 @@ Read-Only:
 
 Read-Only:
 
-- **area** (String)
-- **building_id** (String)
-- **custom_type** (String)
-- **desk_code** (String)
-- **floor_name** (String)
-- **floor_section** (String)
-- **type** (String)
+- `area` (String)
+- `building_id` (String)
+- `custom_type` (String)
+- `desk_code` (String)
+- `floor_name` (String)
+- `floor_section` (String)
+- `type` (String)
 
 
 <a id="nestedatt--name"></a>
@@ -176,9 +176,9 @@ Read-Only:
 
 Read-Only:
 
-- **family_name** (String)
-- **full_name** (String)
-- **given_name** (String)
+- `family_name` (String)
+- `full_name` (String)
+- `given_name` (String)
 
 
 <a id="nestedatt--organizations"></a>
@@ -186,18 +186,18 @@ Read-Only:
 
 Read-Only:
 
-- **cost_center** (String)
-- **custom_type** (String)
-- **department** (String)
-- **description** (String)
-- **domain** (String)
-- **full_time_equivalent** (Number)
-- **location** (String)
-- **name** (String)
-- **primary** (Boolean)
-- **symbol** (String)
-- **title** (String)
-- **type** (String)
+- `cost_center` (String)
+- `custom_type` (String)
+- `department` (String)
+- `description` (String)
+- `domain` (String)
+- `full_time_equivalent` (Number)
+- `location` (String)
+- `name` (String)
+- `primary` (Boolean)
+- `symbol` (String)
+- `title` (String)
+- `type` (String)
 
 
 <a id="nestedatt--phones"></a>
@@ -205,10 +205,10 @@ Read-Only:
 
 Read-Only:
 
-- **custom_type** (String)
-- **primary** (Boolean)
-- **type** (String)
-- **value** (String)
+- `custom_type` (String)
+- `primary` (Boolean)
+- `type` (String)
+- `value` (String)
 
 
 <a id="nestedatt--posix_accounts"></a>
@@ -216,16 +216,16 @@ Read-Only:
 
 Read-Only:
 
-- **account_id** (String)
-- **gecos** (String)
-- **gid** (String)
-- **home_directory** (String)
-- **operating_system_type** (String)
-- **primary** (Boolean)
-- **shell** (String)
-- **system_id** (String)
-- **uid** (String)
-- **username** (String)
+- `account_id` (String)
+- `gecos` (String)
+- `gid` (String)
+- `home_directory` (String)
+- `operating_system_type` (String)
+- `primary` (Boolean)
+- `shell` (String)
+- `system_id` (String)
+- `uid` (String)
+- `username` (String)
 
 
 <a id="nestedatt--relations"></a>
@@ -233,9 +233,9 @@ Read-Only:
 
 Read-Only:
 
-- **custom_type** (String)
-- **type** (String)
-- **value** (String)
+- `custom_type` (String)
+- `type` (String)
+- `value` (String)
 
 
 <a id="nestedatt--ssh_public_keys"></a>
@@ -243,9 +243,9 @@ Read-Only:
 
 Read-Only:
 
-- **expiration_time_usec** (String)
-- **fingerprint** (String)
-- **key** (String)
+- `expiration_time_usec` (String)
+- `fingerprint` (String)
+- `key` (String)
 
 
 <a id="nestedatt--websites"></a>
@@ -253,9 +253,9 @@ Read-Only:
 
 Read-Only:
 
-- **custom_type** (String)
-- **primary** (Boolean)
-- **type** (String)
-- **value** (String)
+- `custom_type` (String)
+- `primary` (Boolean)
+- `type` (String)
+- `value` (String)
 
 

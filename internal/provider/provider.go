@@ -39,7 +39,7 @@ func init() {
 	schema.SchemaDescriptionBuilder = func(s *schema.Schema) string {
 		desc := s.Description
 		if s.Default != nil {
-			desc += fmt.Sprintf(" Defaults to `%v`.", s.Default)
+			desc = fmt.Sprintf("Defaults to `%v`. ", s.Default) + desc
 		}
 		return strings.TrimSpace(desc)
 	}
@@ -114,6 +114,7 @@ func New(version string) func() *schema.Provider {
 				"googleworkspace_domain":               dataSourceDomain(),
 				"googleworkspace_domain_alias":         dataSourceDomainAlias(),
 				"googleworkspace_group":                dataSourceGroup(),
+				"googleworkspace_groups":               dataSourceGroups(),
 				"googleworkspace_group_member":         dataSourceGroupMember(),
 				"googleworkspace_group_members":        dataSourceGroupMembers(),
 				"googleworkspace_group_settings":       dataSourceGroupSettings(),
