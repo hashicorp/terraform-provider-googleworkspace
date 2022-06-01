@@ -81,6 +81,6 @@ func TestGoogleNot404Error(t *testing.T) {
 	expected := false
 
 	if isNotFound(err) != expected {
-		t.Error("Failed: The error should have been detected as 404")
+		t.Error("Failed: The error was detected as a 404 but should not have been")
 	}
 }
