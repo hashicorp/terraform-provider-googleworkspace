@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"net"
+	"net/http"
 	"net/url"
 	"strings"
 
@@ -109,4 +110,16 @@ func isRateLimitExceeded(err error) (bool, string) {
 	}
 
 	return false, ""
+}
+
+// IsNotFound reports whether err is the result of the
+// server replying with http.StatusNotFound.
+// Such error values are sometimes returned by "Do" methods
+// on calls when creation of ressource was too recent to return values
+func isNotFound(err error) bool {
+	if err == nil {
+		return false
+	}
+	ae, ok := err.(*googleapi.Error)
+	return ok && ae.Code == http.StatusNotFound
 }
