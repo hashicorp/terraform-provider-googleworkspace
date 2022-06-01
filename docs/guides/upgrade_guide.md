@@ -1,6 +1,6 @@
 ---
 layout: ""
-page_title: "Google Workspace Provider"
+page_title: "Upgrading to the Google Workspace Provider"
 subcategory: ""
 description: |-
 Terraform Google Workspace Provider Upgrade Guide
