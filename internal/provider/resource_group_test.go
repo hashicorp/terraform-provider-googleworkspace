@@ -63,6 +63,8 @@ func TestAccResourceGroup_basic(t *testing.T) {
 		"email":      fmt.Sprintf("tf-test-%s", acctest.RandString(10)),
 	}
 
+	expectedEmail := fmt.Sprintf("%s@%s", testGroupVals["email"].(string), testGroupVals["domainName"].(string))
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: providerFactories,
@@ -71,8 +73,19 @@ func TestAccResourceGroup_basic(t *testing.T) {
 				Config: testAccResourceGroup_basic(testGroupVals),
 			},
 			{
+				// TestStep imports by `id` by default - an alphanumeric string
+				// https://developers.google.com/admin-sdk/directory/v1/guides/manage-groups#get_group
 				ResourceName:            "googleworkspace_group.my-group",
 				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"etag"},
+			},
+			{
+				// TestStep imports by `email`
+				// https://developers.google.com/admin-sdk/directory/v1/guides/manage-groups#get_group
+				ResourceName:            "googleworkspace_group.my-group",
+				ImportState:             true,
+				ImportStateId:           expectedEmail,
 				ImportStateVerify:       true,
 				ImportStateVerifyIgnore: []string{"etag"},
 			},

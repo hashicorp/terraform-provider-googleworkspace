@@ -25,6 +25,8 @@ func TestAccResourceUser_basic(t *testing.T) {
 		"password":   acctest.RandString(10),
 	}
 
+	expectedEmail := fmt.Sprintf("%s@%s", testUserVals["userEmail"].(string), testUserVals["domainName"].(string))
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: providerFactories,
@@ -33,8 +35,19 @@ func TestAccResourceUser_basic(t *testing.T) {
 				Config: testAccResourceUser_basic(testUserVals),
 			},
 			{
+				// TestStep imports by `id` by default - a 21 digit number
+				// https://developers.google.com/admin-sdk/directory/v1/guides/manage-users#get_user
 				ResourceName:            "googleworkspace_user.my-new-user",
 				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"etag", "password"},
+			},
+			{
+				// TestStep imports by `primary_email`
+				// https://developers.google.com/admin-sdk/directory/v1/guides/manage-users#get_user
+				ResourceName:            "googleworkspace_user.my-new-user",
+				ImportState:             true,
+				ImportStateId:           expectedEmail,
 				ImportStateVerify:       true,
 				ImportStateVerifyIgnore: []string{"etag", "password"},
 			},
