@@ -1,3 +1,10 @@
+## 0.7.0 (Unreleased)
+
+BUG FIXES:
+
+* directory: fixed bug where `custom_schemas` were not populating in `googleworkspace_users` [GH-279]
+* directory: fixed bug where `recovery_phone` and `recovery_email` could not be removed from the `googleworkspace_user` resource [GH-261]
+
 ## 0.6.0 (December 20, 2021)
 
 FEATURES:
