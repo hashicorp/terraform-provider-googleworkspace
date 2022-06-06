@@ -64,3 +64,9 @@ Import is supported using the following syntax:
 ```shell
 terraform import googleworkspace_group.sales {{email}}
 ```
+
+It is also possible to use an alphanumerical ID, which is present in the URL when viewing the Group's page in the Google Workspace UI:
+
+```shell
+terraform import googleworkspace_group.sales 01abcde23fg4h5i
+```

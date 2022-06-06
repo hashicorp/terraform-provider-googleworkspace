@@ -403,3 +403,9 @@ Import is supported using the following syntax:
 ```shell
 terraform import googleworkspace_user.dwight {{primary_email}}
 ```
+
+It is also possible to use the Google Account's unique ID, a 21-digit number:
+
+```shell
+terraform import googleworkspace_user.dwight 123456789012345678901
+```
