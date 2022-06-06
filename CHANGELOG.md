@@ -1,9 +1,14 @@
 ## 0.7.0 (Unreleased)
 
+FEATURES:
+
+* **New Datasource:** `googleworkspace_groups` ([#313](https://github.com/hashicorp/terraform-provider-googleworkspace/pull/313))
+
 BUG FIXES:
 
 * directory: fixed bug where `custom_schemas` were not populating in `googleworkspace_users` [GH-279]
 * directory: fixed bug where `recovery_phone` and `recovery_email` could not be removed from the `googleworkspace_user` resource [GH-261]
+* directory: fixed bug where creation of `user`, `group`, `group_member`, and `group_settings`resources were affected by 404s from the API [GH-287]
 
 ## 0.6.0 (December 20, 2021)
 
