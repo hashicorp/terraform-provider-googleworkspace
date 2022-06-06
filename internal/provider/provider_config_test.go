@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	googleoauth "golang.org/x/oauth2/google"
 
 	"google.golang.org/api/iamcredentials/v1"
 	"google.golang.org/api/option"
@@ -185,6 +186,60 @@ func TestConfigLoadAndValidate_accessToken(t *testing.T) {
 	}
 }
 
+// TestConfigLoadAndValidate_accessTokenOnly covers a scenario where:
+// 1. A service account is given an Admin Role in Google Workspace directly (no impersonation used in this test)
+// 2. That role gives it Admin API privileges to query the groups endpoint of the Admin API - `Groups Admin role`
+// The provider will then only need to be configured with the customer ID and an access token for that service account
+func TestConfigLoadAndValidate_accessTokenOnly(t *testing.T) {
+	if os.Getenv("TF_ACC") == "" {
+		t.Skip(fmt.Sprintf("Network access not allowed; use TF_ACC=1 to enable"))
+	}
+
+	testAccPreCheck(t)
+
+	// Get access token for the service account
+	// --- Use service account credentials to request the access token
+	// --- Request the `/auth/admin.directory.group` scope as it matches privileges in the Groups Admin role
+	credsFile := getTestCredsFromEnv()
+
+	contents, _, err := pathOrContents(credsFile)
+	if err != nil {
+		t.Fatalf("could not get credentials: %s", err.Error())
+	}
+
+	credParams := googleoauth.CredentialsParams{
+		Scopes: []string{"https://www.googleapis.com/auth/admin.directory.group"},
+	}
+
+	creds, err := googleoauth.CredentialsFromJSONWithParams(context.Background(), []byte(contents), credParams)
+	if err != nil {
+		t.Fatalf("could not get oauth2 credentials: %s", err.Error())
+	}
+
+	at, err := creds.TokenSource.Token()
+	if err != nil {
+		t.Fatalf("could not get token from oauth2 credentials: %s", err.Error())
+	}
+
+	// Configure the provider with the scoped access token from above + the customer ID
+	config := &apiClient{
+		AccessToken: at.AccessToken,
+		Customer:    os.Getenv("GOOGLEWORKSPACE_CUSTOMER_ID"),
+	}
+
+	diags := config.loadAndValidate(context.Background())
+	err = checkDiags(diags)
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	diags = checkValidCredsGroupAdmin(config)
+	err = checkDiags(diags)
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+}
+
 func checkValidCreds(config *apiClient) diag.Diagnostics {
 	var diags diag.Diagnostics
 
@@ -194,6 +249,25 @@ func checkValidCreds(config *apiClient) diag.Diagnostics {
 	}
 
 	_, err := directoryService.Customers.Get(config.Customer).Do()
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	return diags
+}
+
+// checkValidCredsGroupAdmin makes an arbitary API call to check the auth is set correctly.
+// It makes a groups-related API call, to be used when testing auth relted to service accounts
+// given the Group Admin role directly (no impersonisation done during the auth)
+func checkValidCredsGroupAdmin(config *apiClient) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	directoryService, diags := config.NewDirectoryService()
+	if diags.HasError() {
+		return diags
+	}
+	groupsService := directoryService.Groups
+	_, err := groupsService.List().Customer(config.Customer).Do()
 	if err != nil {
 		return diag.FromErr(err)
 	}
