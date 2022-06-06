@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 // this test requires the service account in the credentials file to have
@@ -77,6 +78,7 @@ func TestAccResourceGroup_basic(t *testing.T) {
 				// https://developers.google.com/admin-sdk/directory/v1/guides/manage-groups#get_group
 				ResourceName:            "googleworkspace_group.my-group",
 				ImportState:             true,
+				ImportStateCheck:        checkGroupImportState(),
 				ImportStateVerify:       true,
 				ImportStateVerifyIgnore: []string{"etag"},
 			},
@@ -86,11 +88,30 @@ func TestAccResourceGroup_basic(t *testing.T) {
 				ResourceName:            "googleworkspace_group.my-group",
 				ImportState:             true,
 				ImportStateId:           expectedEmail,
+				ImportStateCheck:        checkGroupImportState(),
 				ImportStateVerify:       true,
 				ImportStateVerifyIgnore: []string{"etag"},
 			},
 		},
 	})
+}
+
+func checkGroupImportState() resource.ImportStateCheckFunc {
+	return resource.ImportStateCheckFunc(
+		func(state []*terraform.InstanceState) error {
+			if len(state) > 1 {
+				return fmt.Errorf("state should only contain one user resource, got: %d", len(state))
+			}
+
+			id := state[0].ID
+			isEmail := isEmail(id)
+			if isEmail {
+				return fmt.Errorf("id should be random alphanumeric string, got email: %s", id)
+			}
+
+			return nil
+		},
+	)
 }
 
 func TestAccResourceGroup_full(t *testing.T) {

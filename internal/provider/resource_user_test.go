@@ -4,10 +4,12 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"strconv"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccResourceUser_basic(t *testing.T) {
@@ -48,11 +50,36 @@ func TestAccResourceUser_basic(t *testing.T) {
 				ResourceName:            "googleworkspace_user.my-new-user",
 				ImportState:             true,
 				ImportStateId:           expectedEmail,
+				ImportStateCheck:        checkUserImportState(),
 				ImportStateVerify:       true,
 				ImportStateVerifyIgnore: []string{"etag", "password"},
 			},
 		},
 	})
+}
+
+func checkUserImportState() resource.ImportStateCheckFunc {
+	return resource.ImportStateCheckFunc(
+		func(state []*terraform.InstanceState) error {
+			if len(state) > 1 {
+				return fmt.Errorf("state should only contain one user resource, got: %d", len(state))
+			}
+
+			id := state[0].ID
+			isEmail := isEmail(id)
+			if isEmail {
+				return fmt.Errorf("id should be numerical, got email: %s", id)
+			}
+
+			_, err := strconv.Atoi(id)
+			if err != nil {
+				// `id` is expected to be a number as a string
+				return err
+			}
+
+			return nil
+		},
+	)
 }
 
 func TestAccResourceUser_noPassword(t *testing.T) {

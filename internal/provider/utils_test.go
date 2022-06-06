@@ -37,3 +37,36 @@ func TestCamelToSnake(t *testing.T) {
 		}
 	}
 }
+
+func TestIsEmail(t *testing.T) {
+	type testCase struct {
+		input string
+		want  bool
+	}
+
+	tests := []testCase{
+		{
+			input: "",
+			want:  false,
+		},
+		{
+			input: "1234567890987654321",
+			want:  false,
+		},
+		{
+			input: "example.com",
+			want:  false,
+		},
+		{
+			input: "user@example.com",
+			want:  true,
+		},
+	}
+
+	for _, tc := range tests {
+		got := isEmail(tc.input)
+		if tc.want != got {
+			t.Fatalf("expected: %v, got: %v", tc.want, got)
+		}
+	}
+}
