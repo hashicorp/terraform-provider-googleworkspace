@@ -12,7 +12,9 @@ The Google Workspace provider provides resources to interact with Google Workspa
 
 ## Example Usage
 
-{{tffile "examples/provider/provider.tf"}}
+{{tffile "examples/provider/provider-user-impersonation.tf"}}
+
+{{tffile "examples/provider/provider-service-account-with-admin-roles.tf"}}
 
 ## Authorization
 This provider uses [Admin SDK](https://developers.google.com/admin-sdk) API methods to manage resources on a Workspace customer domain. There are multiple ways to set up proper authorization for a service account:
