@@ -4,6 +4,10 @@ FEATURES:
 
 * **New Datasource:** `googleworkspace_groups` ([#313](https://github.com/hashicorp/terraform-provider-googleworkspace/pull/313))
 
+IMPROVEMENTS:
+
+* provider: added support for using the GOOGLE_OAUTH_ACCESS_TOKEN environment variable for authentication ([#319](https://github.com/hashicorp/terraform-provider-googleworkspace/pull/319))
+
 BUG FIXES:
 
 * directory: fixed bug where `custom_schemas` were not populating in `googleworkspace_users` [GH-279]
