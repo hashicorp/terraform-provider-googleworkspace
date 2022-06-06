@@ -100,7 +100,7 @@ func checkGroupImportState() resource.ImportStateCheckFunc {
 	return resource.ImportStateCheckFunc(
 		func(state []*terraform.InstanceState) error {
 			if len(state) > 1 {
-				return fmt.Errorf("state should only contain one user resource, got: %d", len(state))
+				return fmt.Errorf("state should only contain one group resource, got: %d", len(state))
 			}
 
 			id := state[0].ID
