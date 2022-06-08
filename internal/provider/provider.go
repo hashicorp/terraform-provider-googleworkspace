@@ -53,7 +53,7 @@ func New(version string) func() *schema.Provider {
 					Description: "A temporary [OAuth 2.0 access token] obtained from " +
 						"the Google Authorization server, i.e. the `Authorization: Bearer` token used to " +
 						"authenticate HTTP requests to Google Admin SDK APIs. This is an alternative to `credentials`, " +
-						"and ignores the `scopes` field. If both are specified, `access_token` will be " +
+						"and ignores the `oauth_scopes` field. If both are specified, `access_token` will be " +
 						"used over the `credentials` field.",
 					Type: schema.TypeString,
 					DefaultFunc: schema.MultiEnvDefaultFunc([]string{
