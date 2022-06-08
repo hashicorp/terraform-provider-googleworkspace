@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"net/mail"
 	"os"
 	"reflect"
 	"sort"
@@ -196,4 +197,13 @@ func sortListOfInterfaces(v []interface{}) []string {
 	}
 	sort.Strings(newVal)
 	return newVal
+}
+
+// isEmail returns a boolean indicating if the input string is parsable as an email
+func isEmail(input string) bool {
+	_, err := mail.ParseAddress(input)
+	if err != nil {
+		return false
+	}
+	return true
 }
