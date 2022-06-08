@@ -2,12 +2,12 @@ package googleworkspace
 
 import (
 	"context"
-	"log"
-	"time"
-
+	"fmt"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	directory "google.golang.org/api/admin/directory/v1"
+	"google.golang.org/api/googleapi"
+	"log"
 )
 
 func resourceOrgUnit() *schema.Resource {
@@ -127,16 +127,43 @@ func resourceOrgUnitCreate(ctx context.Context, d *schema.ResourceData, meta int
 	}
 
 	var orgUnit *directory.OrgUnit
-	err := retryTimeDuration(ctx, time.Minute, func() error {
-		var retryErr error
-		orgUnit, retryErr = orgUnitsService.Insert(client.Customer, &orgUnitObj).Do()
-		return retryErr
-	})
+	orgUnit, err := orgUnitsService.Insert(client.Customer, &orgUnitObj).Do()
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	d.SetId(orgUnit.OrgUnitId)
+
+	numInserts := 1
+	// INSERT will respond with the Org Unit that will be created, however, it is eventually consistent
+	// After INSERT, the etag is updated along with the Org Unit, once we get a consistent etag,
+	// we can feel confident that our Org Unit is also consistent
+	cc := consistencyCheck{
+		resourceType: "org unit",
+		timeout:      d.Timeout(schema.TimeoutCreate),
+	}
+	err = retryTimeDuration(ctx, d.Timeout(schema.TimeoutCreate), func() error {
+		var retryErr error
+
+		if cc.reachedConsistency(numInserts) {
+			return nil
+		}
+
+		newOrgUnit, retryErr := orgUnitsService.Get(client.Customer, d.Id()).IfNoneMatch(cc.lastEtag).Do()
+		if googleapi.IsNotModified(retryErr) {
+			cc.currConsistent += 1
+		} else if isNotFound(retryErr) {
+			// org unit was not found yet therefore setting currConsistent back to null value
+			cc.currConsistent = 0
+		} else if retryErr != nil {
+			return fmt.Errorf("unexpected error during retries of %s: %s", cc.resourceType, retryErr)
+		} else {
+			cc.handleNewEtag(newOrgUnit.Etag)
+		}
+
+		return fmt.Errorf("timed out while waiting for %s to be inserted", cc.resourceType)
+	})
+
 	log.Printf("[DEBUG] Finished creating OrgUnit %q: %#v", d.Id(), ouName)
 
 	return resourceOrgUnitRead(ctx, d, meta)
@@ -222,6 +249,37 @@ func resourceOrgUnitUpdate(ctx context.Context, d *schema.ResourceData, meta int
 		}
 
 		d.SetId(orgUnit.OrgUnitId)
+	}
+
+	numInserts := 1
+	// UPDATE will respond with the Org Unit that will be updated, however, it is eventually consistent
+	// After UPDATE, the etag is updated along with the Org Unit, once we get a consistent etag,
+	// we can feel confident that our Org Unit is also consistent
+	cc := consistencyCheck{
+		resourceType: "group",
+		timeout:      d.Timeout(schema.TimeoutUpdate),
+	}
+	err := retryTimeDuration(ctx, d.Timeout(schema.TimeoutUpdate), func() error {
+		var retryErr error
+
+		if cc.reachedConsistency(numInserts) {
+			return nil
+		}
+
+		newOrgUnit, retryErr := orgUnitsService.Get(client.Customer, d.Id()).IfNoneMatch(cc.lastEtag).Do()
+		if googleapi.IsNotModified(retryErr) {
+			cc.currConsistent += 1
+		} else if retryErr != nil {
+			return fmt.Errorf("unexpected error during retries of %s: %s", cc.resourceType, retryErr)
+		} else {
+			cc.handleNewEtag(newOrgUnit.Etag)
+		}
+
+		return fmt.Errorf("timed out while waiting for %s to be updated", cc.resourceType)
+	})
+
+	if err != nil {
+		return diag.FromErr(err)
 	}
 
 	log.Printf("[DEBUG] Finished creating OrgUnit %q: %#v", d.Id(), ouName)
