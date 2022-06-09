@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"regexp"
-	"strconv"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
@@ -71,10 +70,13 @@ func checkUserImportState() resource.ImportStateCheckFunc {
 				return fmt.Errorf("id should be numerical, got email: %s", id)
 			}
 
-			_, err := strconv.Atoi(id)
+			isNumeric, err := regexp.MatchString(`\d*`, id)
 			if err != nil {
-				// `id` is expected to be a number as a string
 				return err
+			}
+
+			if !isNumeric {
+				return fmt.Errorf("id must be numeric, but got %s", id)
 			}
 
 			return nil
