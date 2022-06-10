@@ -6,7 +6,7 @@ FEATURES:
 
 IMPROVEMENTS:
 
-* provider: added support for using the GOOGLE_OAUTH_ACCESS_TOKEN environment variable for authentication ([#319](https://github.com/hashicorp/terraform-provider-googleworkspace/pull/319))
+* provider: added support for using the `GOOGLE_OAUTH_ACCESS_TOKEN` environment variable for authentication ([#319](https://github.com/hashicorp/terraform-provider-googleworkspace/pull/319))
 
 BUG FIXES:
 
