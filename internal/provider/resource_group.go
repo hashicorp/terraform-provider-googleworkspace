@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -42,9 +43,13 @@ func resourceGroup() *schema.Resource {
 			},
 			"email": {
 				Description: "The group's email address. If your account has multiple domains," +
-					"select the appropriate domain for the email address. The email must be unique.",
+					"select the appropriate domain for the email address. The email must be unique." +
+					"Values of `email` will be converted to lowercase by the API.",
 				Type:     schema.TypeString,
 				Required: true,
+				StateFunc: func(val interface{}) string {
+					return strings.ToLower(val.(string))
+				},
 			},
 			"name": {
 				Description: "The group's display name.",
