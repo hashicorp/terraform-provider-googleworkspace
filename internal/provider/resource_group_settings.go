@@ -526,7 +526,10 @@ func resourceGroupSettingsRead(ctx context.Context, d *schema.ResourceData, meta
 		return diag.FromErr(err)
 	}
 
-	d.Set("email", group.Email)
+	// Handle scenario importing group settings made with email containing upper case characters
+	emailDowncased := strings.ToLower(group.Email)
+
+	d.Set("email", emailDowncased)
 	d.Set("name", group.Name)
 	d.Set("description", group.Description)
 	d.Set("who_can_join", group.WhoCanJoin)
