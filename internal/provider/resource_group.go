@@ -110,6 +110,7 @@ func resourceGroupCreate(ctx context.Context, d *schema.ResourceData, meta inter
 	client := meta.(*apiClient)
 
 	email := d.Get("email").(string)
+	email = strings.ToLower(email)
 	log.Printf("[DEBUG] Creating Group %q: %#v", email, email)
 
 	directoryService, diags := client.NewDirectoryService()
@@ -123,7 +124,7 @@ func resourceGroupCreate(ctx context.Context, d *schema.ResourceData, meta inter
 	}
 
 	groupObj := directory.Group{
-		Email:       d.Get("email").(string),
+		Email:       email,
 		Name:        d.Get("name").(string),
 		Description: d.Get("description").(string),
 	}
