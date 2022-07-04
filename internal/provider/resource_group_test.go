@@ -3,6 +3,7 @@ package googleworkspace
 import (
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
@@ -19,12 +20,13 @@ func TestAccResourceGroup_basic(t *testing.T) {
 		t.Skip("GOOGLEWORKSPACE_DOMAIN needs to be set to run this test")
 	}
 
+	emailInput := fmt.Sprintf("tf-test-%s-%s", acctest.RandString(10), "CASE-TEST")
+	expectedEmail := fmt.Sprintf("%s@%s", strings.ToLower(emailInput), domainName) // API lower-cases email
+
 	testGroupVals := map[string]interface{}{
 		"domainName": domainName,
-		"email":      fmt.Sprintf("tf-test-%s", acctest.RandString(10)),
+		"email":      emailInput,
 	}
-
-	expectedEmail := fmt.Sprintf("%s@%s", testGroupVals["email"].(string), testGroupVals["domainName"].(string))
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
@@ -32,6 +34,9 @@ func TestAccResourceGroup_basic(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testAccResourceGroup_basic(testGroupVals),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("googleworkspace_group.my-group", "email", expectedEmail),
+				),
 			},
 			{
 				// TestStep imports by `id` by default - an alphanumeric string

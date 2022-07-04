@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -40,6 +41,9 @@ func resourceGroupSettings() *schema.Resource {
 				Description: "The group's email address.",
 				Type:        schema.TypeString,
 				Required:    true,
+				StateFunc: func(val interface{}) string {
+					return strings.ToLower(val.(string))
+				},
 			},
 			"name": {
 				Description: "Name of the group, which has a maximum size of 75 characters.",
@@ -359,6 +363,7 @@ func resourceGroupSettingsCreate(ctx context.Context, d *schema.ResourceData, me
 	client := meta.(*apiClient)
 
 	email := d.Get("email").(string)
+	email = strings.ToLower(email)
 	log.Printf("[DEBUG] Creating Group Settings %q: %#v", email, email)
 
 	groupsSettingsService, diags := client.NewGroupsSettingsService()
@@ -521,7 +526,10 @@ func resourceGroupSettingsRead(ctx context.Context, d *schema.ResourceData, meta
 		return diag.FromErr(err)
 	}
 
-	d.Set("email", group.Email)
+	// Handle scenario importing group settings made with email containing upper case characters
+	emailDowncased := strings.ToLower(group.Email)
+
+	d.Set("email", emailDowncased)
 	d.Set("name", group.Name)
 	d.Set("description", group.Description)
 	d.Set("who_can_join", group.WhoCanJoin)
