@@ -3,6 +3,7 @@ package googleworkspace
 import (
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
@@ -18,9 +19,12 @@ func TestAccResourceGroupSettings_basic(t *testing.T) {
 		t.Skip("GOOGLEWORKSPACE_DOMAIN needs to be set to run this test")
 	}
 
+	emailInput := fmt.Sprintf("tf-test-%s-%s", acctest.RandString(10), "CASE-TEST")
+	expectedEmail := fmt.Sprintf("%s@%s", strings.ToLower(emailInput), domainName) // API lower-cases email
+
 	testGroupVals := map[string]interface{}{
 		"domainName": domainName,
-		"email":      fmt.Sprintf("tf-test-%s", acctest.RandString(10)),
+		"email":      emailInput,
 	}
 
 	resource.Test(t, resource.TestCase{
@@ -29,6 +33,10 @@ func TestAccResourceGroupSettings_basic(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testAccResourceGroupSettings_basic(testGroupVals),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("googleworkspace_group.my-group", "email", expectedEmail),
+					resource.TestCheckResourceAttr("googleworkspace_group_settings.my-group-settings", "email", expectedEmail),
+				),
 			},
 			{
 				ResourceName:      "googleworkspace_group_settings.my-group-settings",
@@ -48,9 +56,12 @@ func TestAccResourceGroupSettings_full(t *testing.T) {
 		t.Skip("GOOGLEWORKSPACE_DOMAIN needs to be set to run this test")
 	}
 
+	emailInput := fmt.Sprintf("tf-test-%s-%s", acctest.RandString(10), "CASE-TEST")
+	expectedEmail := fmt.Sprintf("%s@%s", strings.ToLower(emailInput), domainName) // API lower-cases email
+
 	testGroupVals := map[string]interface{}{
 		"domainName": domainName,
-		"email":      fmt.Sprintf("tf-test-%s", acctest.RandString(10)),
+		"email":      emailInput,
 	}
 
 	resource.Test(t, resource.TestCase{
@@ -59,6 +70,10 @@ func TestAccResourceGroupSettings_full(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testAccResourceGroupSettings_full(testGroupVals),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("googleworkspace_group.my-group", "email", expectedEmail),
+					resource.TestCheckResourceAttr("googleworkspace_group_settings.my-group-settings", "email", expectedEmail),
+				),
 			},
 			{
 				ResourceName:      "googleworkspace_group_settings.my-group-settings",
@@ -67,6 +82,10 @@ func TestAccResourceGroupSettings_full(t *testing.T) {
 			},
 			{
 				Config: testAccResourceGroupSettings_fullUpdate(testGroupVals),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("googleworkspace_group.my-group", "email", expectedEmail),
+					resource.TestCheckResourceAttr("googleworkspace_group_settings.my-group-settings", "email", expectedEmail),
+				),
 			},
 			{
 				ResourceName:      "googleworkspace_group.my-group",
