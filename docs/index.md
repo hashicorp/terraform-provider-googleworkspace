@@ -1,9 +1,6 @@
 ---
-layout: ""
 page_title: "Google Workspace Provider"
 subcategory: ""
-description: |-
-  The Google Workspace provider provides resources to interact with Google Workspace.
 ---
 
 # Google Workspace Provider
