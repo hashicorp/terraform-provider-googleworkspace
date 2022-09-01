@@ -1006,15 +1006,16 @@ func resourceUser() *schema.Resource {
 
 func resourceUserCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var diags diag.Diagnostics
-
+	var generated_password string
 	// use the meta value to retrieve your client from the provider configure method
 	client := meta.(*apiClient)
-
+	generated_password = ""
 	if d.Get("password").(string) == "" {
 		// generate password
-		password, _ := password.Generate(rand.Intn(64)+8, 4, 4, false, true)
-		d.Set("password", password)
+		generated_password, _ = password.Generate(rand.Intn(64)+8, 4, 4, false, true)
 		log.Printf("[DEBUG] Auto Generating password for User %q", d.Id())
+	} else {
+		generated_password = d.Get("password").(string)
 	}
 
 	primaryEmail := d.Get("primary_email").(string)
@@ -1032,7 +1033,7 @@ func resourceUserCreate(ctx context.Context, d *schema.ResourceData, meta interf
 
 	userObj := directory.User{
 		PrimaryEmail:               primaryEmail,
-		Password:                   d.Get("password").(string),
+		Password:                   generated_password,
 		HashFunction:               d.Get("hash_function").(string),
 		Suspended:                  d.Get("suspended").(bool),
 		ChangePasswordAtNextLogin:  d.Get("change_password_at_next_login").(bool),
@@ -1241,21 +1242,15 @@ func resourceUserUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 	if d.HasChange("primary_email") {
 		userObj.PrimaryEmail = primaryEmail
 	}
-
-	if d.HasChange("password") {
-		userObj.Password = d.Get("password").(string)
-
-		if userObj.Password == "" {
-			forceSendFields = append(forceSendFields, "Password")
+	if d.Get("password").(string) != "" {
+		if d.HasChange("password") {
+			userObj.Password = d.Get("password").(string)
 		}
 	}
 
 	if d.HasChange("hash_function") {
 		userObj.HashFunction = d.Get("hash_function").(string)
 
-		if userObj.HashFunction == "" {
-			forceSendFields = append(forceSendFields, "HashFunction")
-		}
 	}
 
 	if d.HasChange("org_unit_path") {
