@@ -1007,15 +1007,6 @@ func resourceUserCreate(ctx context.Context, d *schema.ResourceData, meta interf
 	// use the meta value to retrieve your client from the provider configure method
 	client := meta.(*apiClient)
 
-	if d.Get("password").(string) == "" {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  fmt.Sprintf("Password is required when creating a new user"),
-		})
-
-		return diags
-	}
-
 	primaryEmail := d.Get("primary_email").(string)
 	log.Printf("[DEBUG] Creating User %q: %#v", d.Id(), primaryEmail)
 
