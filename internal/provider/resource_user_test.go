@@ -97,35 +97,17 @@ func TestAccResourceUser_noPassword(t *testing.T) {
 		"domainName": domainName,
 		"userEmail":  fmt.Sprintf("tf-test-%s", acctest.RandString(10)),
 	}
-	
-  resource.Test(t, resource.TestCase{
+
+	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: providerFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccResourceUser_noPassword(testUserVals),
-			},
-			{
-				// TestStep imports by `id` by default - a 21 digit number
-				// https://developers.google.com/admin-sdk/directory/v1/guides/manage-users#get_user
-				ResourceName:            "googleworkspace_user.my-new-user",
-				ImportState:             true,
-				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"etag", "password", "hash_function"},
-			},
-			{
-				// TestStep imports by `primary_email`
-				// https://developers.google.com/admin-sdk/directory/v1/guides/manage-users#get_user
-				ResourceName:            "googleworkspace_user.my-new-user",
-				ImportState:             true,
-				ImportStateId:           expectedEmail,
-				ImportStateCheck:        checkUserImportState(),
-				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"etag", "password", "hash_function"},
+				Config:      testAccResourceUser_noPassword(testUserVals),
+				ExpectError: regexp.MustCompile("Password is required"),
 			},
 		},
 	})
-
 }
 
 func TestAccResourceUser_full(t *testing.T) {
