@@ -1012,7 +1012,8 @@ func resourceUserCreate(ctx context.Context, d *schema.ResourceData, meta interf
 
 	if d.Get("password").(string) == "" {
 		// generate password
-		d.Set("password", password.Generate(rand.Intn(64)+8, 4, 4, false, true))
+		password, _ := password.Generate(rand.Intn(64)+8, 4, 4, false, true)
+		d.Set("password", password)
 		log.Printf("[DEBUG] Auto Generating password for User %q", d.Id())
 	}
 
