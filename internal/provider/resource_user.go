@@ -9,10 +9,13 @@ import (
 	"reflect"
 	"strconv"
 	"time"
+  "math/rand"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+ 
+  "github.com/sethvargo/go-password/password"
 
 	directory "google.golang.org/api/admin/directory/v1"
 	"google.golang.org/api/googleapi"
@@ -1009,6 +1012,8 @@ func resourceUserCreate(ctx context.Context, d *schema.ResourceData, meta interf
 
 	if d.Get("password").(string) == "" {
     // generate password
+    d.Set("password", password.Generate(rand.Intn(64) + 8, 4,4, false, true))
+	  log.Printf("[DEBUG] Auto Generating password for User %q", d.Id())
 	}
 
 	primaryEmail := d.Get("primary_email").(string)
