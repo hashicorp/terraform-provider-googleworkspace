@@ -182,7 +182,11 @@ Read-Only:
 
 Required:
 
-- `type` (String) The address type. Acceptable values: `custom`, `home`, `other`, `work`.
+- `type` (String) The address type. Acceptable values: 
+	- `custom`
+	- `home`
+	- `other`
+	- `work`
 
 Optional:
 
@@ -214,7 +218,11 @@ Required:
 
 Required:
 
-- `type` (String) The type of the email account. Acceptable values: `custom`, `home`, `other`, `work`.
+- `type` (String) The type of the email account. Acceptable values:
+	- `custom`,
+	- `home`,
+	- `other`,
+	- `work`.
 
 Optional:
 
@@ -228,7 +236,13 @@ Optional:
 
 Required:
 
-- `type` (String) The type of external ID. If set to custom, customType must also be set. Acceptable values: `account`, `custom`, `customer`, `login_id`, `network`, `organization`.
+- `type` (String) The type of external ID. If set to custom, customType must also be set. Acceptable values: 
+	- `account`
+	- `custom`
+	- `customer`
+	- `login_id`
+	- `network`
+	- `organization`
 - `value` (String) The value of the ID.
 
 Optional:
@@ -241,8 +255,22 @@ Optional:
 
 Required:
 
-- `protocol` (String) An IM protocol identifies the IM network. The value can be a custom network or the standard network. Acceptable values: `aim`, `custom_protocol`, `gtalk`, `icq`, `jabber`, `msn`, `net_meeting`, `qq`, `skype`, `yahoo`.
-- `type` (String) Acceptable values: `custom`, `home`, `other`, `work`.
+- `protocol` (String) An IM protocol identifies the IM network. The value can be a custom network or the standard network. Acceptable values: 
+	- `aim`
+	- `custom_protocol`
+	- `gtalk`
+	- `icq`
+	- `jabber`
+	- `msn`
+	- `net_meeting`
+	- `qq`
+	- `skype`
+	- `yahoo`
+- `type` (String) Acceptable values: 
+	- `custom`
+	- `home`
+	- `other`
+	- `work`
 
 Optional:
 
@@ -257,7 +285,11 @@ Optional:
 
 Required:
 
-- `type` (String) Each entry can have a type which indicates standard type of that entry. For example, keyword could be of type occupation or outlook. In addition to the standard type, an entry can have a custom type and can give it any name. Such types should have the CUSTOM value as type and also have a customType value. Acceptable values: `custom`, `mission`, `occupation`, `outlook`
+- `type` (String) Each entry can have a type which indicates standard type of that entry. For example, keyword could be of type occupation or outlook. In addition to the standard type, an entry can have a custom type and can give it any name. Such types should have the CUSTOM value as type and also have a customType value. Acceptable values: 
+	- `custom`
+	- `mission`
+	- `occupation`
+	- `outlook`
 - `value` (String) Keyword.
 
 Optional:
@@ -280,7 +312,10 @@ Optional:
 
 Required:
 
-- `type` (String) The location type. Acceptable values: `custom`, `default`, `desk`
+- `type` (String) The location type. Acceptable values: 
+	- `custom`
+	- `default`
+	- `desk`
 
 Optional:
 
@@ -297,7 +332,11 @@ Optional:
 
 Required:
 
-- `type` (String) The type of organization. Acceptable values: `domain_only`, `school`, `unknown`, `work`.
+- `type` (String) The type of organization. Acceptable values: 
+	- `domain_only`
+	- `school`
+	- `unknown`
+	- `work`.
 
 Optional:
 
@@ -319,7 +358,28 @@ Optional:
 
 Required:
 
-- `type` (String) The type of phone number. Acceptable values: `assistant`, `callback`, `car`, `company_main` , `custom`, `grand_central`, `home`, `home_fax`, `isdn`, `main`, `mobile`, `other`, `other_fax`, `pager`, `radio`, `telex`, `tty_tdd`, `work`, `work_fax`, `work_mobile`, `work_pager`.
+- `type` (String) The type of phone number. Acceptable values: 
+	- `assistant`
+	- `callback`
+	- `car`
+	- `company_main`
+	- `custom`
+	- `grand_central`
+	- `home`
+	- `home_fax`
+	- `isdn`
+	- `main`
+	- `mobile`
+	- `other`
+	- `other_fax`
+	- `pager`
+	- `radio`
+	- `telex`
+	- `tty_tdd`
+	- `work`
+	- `work_fax`
+	- `work_mobile`
+	- `work_pager`
 - `value` (String) A human-readable phone number. It may be in any telephone number format.
 
 Optional:
@@ -337,7 +397,10 @@ Optional:
 - `gecos` (String) The GECOS (user information) for this account.
 - `gid` (String) The default group ID.
 - `home_directory` (String) The path to the home directory for this account.
-- `operating_system_type` (String) The operating system type for this account. Acceptable values: `linux`, `unspecified`, `windows`.
+- `operating_system_type` (String) The operating system type for this account. Acceptable values: 
+	- `linux`
+	- `unspecified`
+	- `windows`
 - `primary` (Boolean) If this is user's primary account within the SystemId.
 - `shell` (String) The path to the login shell for this account.
 - `system_id` (String) System identifier for which account Username or Uid apply to.
@@ -350,7 +413,25 @@ Optional:
 
 Required:
 
-- `type` (String) The type of relation. Acceptable values: `admin_assistant`, `assistant`, `brother`, `child`, `custom`, `domestic_partner`, `dotted_line_manager`, `exec_assistant`, `father`, `friend`, `manager`, `mother`, `parent`, `partner`, `referred_by`, `relative`, `sister`, `spouse`.
+- `type` (String) The type of relation. Acceptable values: 
+	- `admin_assistant`
+	- `assistant`
+	- `brother`
+	- `child`
+	- `custom`
+	- `domestic_partner`
+	- `dotted_line_manager`
+	- `exec_assistant`
+	- `father`
+	- `friend`
+	- `manager`
+	- `mother`
+	- `parent`
+	- `partner`
+	- `referred_by`
+	- `relative`
+	- `sister`
+	- `spouse`
 - `value` (String) The name of the person the user is related to.
 
 Optional:
@@ -388,7 +469,18 @@ Optional:
 
 Required:
 
-- `type` (String) The type or purpose of the website. For example, a website could be labeled as home or blog. Alternatively, an entry can have a custom type Custom types must have a customType value. Acceptable values: `app_install_page`, `blog`, `custom`, `ftp` , `home`, `home_page`, `other`, `profile`, `reservations`, `resume`, `work`.
+- `type` (String) The type or purpose of the website. For example, a website could be labeled as home or blog. Alternatively, an entry can have a custom type Custom types must have a customType value. Acceptable values: 
+	- `app_install_page`
+	- `blog`
+	- `custom`
+	- `ftp`
+	- `home`
+	- `home_page`
+	- `other`
+	- `profile`
+	- `reservations`
+	- `resume`
+	- `work`
 - `value` (String) The URL of the website.
 
 Optional:
@@ -402,4 +494,8 @@ Import is supported using the following syntax:
 
 ```shell
 terraform import googleworkspace_user.dwight 123456789012345678901
+# or with email as id
+terraform import googleworkspace_user.dwight dwight.schrute@example.com
 ```
+
+
