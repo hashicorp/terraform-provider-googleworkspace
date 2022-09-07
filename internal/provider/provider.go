@@ -109,6 +109,9 @@ func New(version string) func() *schema.Provider {
 						"the `access_token` method and needing to impersonate a user. This service account will require the " +
 						"GCP role `Service Account Token Creator` if needing to impersonate a user.",
 					Type:     schema.TypeString,
+					DefaultFunc: schema.MultiEnvDefaultFunc([]string{
+						"GOOGLEWORKSPACE_SERVICE_ACCOUNT",
+					}, nil),
 					Optional: true,
 				},
 			},
