@@ -57,6 +57,7 @@ func New(version string) func() *schema.Provider {
 						"used over the `credentials` field.",
 					Type: schema.TypeString,
 					DefaultFunc: schema.MultiEnvDefaultFunc([]string{
+						"GOOGLEWORKSPACE_ACCESS_TOKEN",
 						"GOOGLE_OAUTH_ACCESS_TOKEN",
 					}, nil),
 					Optional: true,
