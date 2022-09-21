@@ -10,6 +10,7 @@ import (
 
 	"golang.org/x/oauth2"
 	googleoauth "golang.org/x/oauth2/google"
+	iamv1 "cloud.google.com/go/iam/credentials/apiv1"
 
 	directory "google.golang.org/api/admin/directory/v1"
 	"google.golang.org/api/chromepolicy/v1"
@@ -58,6 +59,8 @@ func (c *apiClient) loadAndValidate(ctx context.Context) diag.Diagnostics {
 
 				return diags
 			}
+
+			iamv1
 
 			tokenSource, err := impersonate.CredentialsTokenSource(context.TODO(), impersonate.CredentialsConfig{
 				TargetPrincipal: c.ServiceAccount,
