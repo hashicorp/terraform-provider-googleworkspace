@@ -149,7 +149,7 @@ func resourceUser() *schema.Resource {
 				Description: "Stores the password for the user account. A password can contain any combination of " +
 					"ASCII characters. A minimum of 8 characters is required. The maximum length is 100 characters. " +
 					"As the API does not return the value of password, this field is write-only, and the value stored " +
-					"in the state will be what is provided in the configuration. If The field is not set on create a random password bill be generated " +
+					"in the state will be what is provided in the configuration. If the field is not set on create a random password will be generated " +
 					"be empty on import.",
 				Type:             schema.TypeString,
 				Optional:         true,
