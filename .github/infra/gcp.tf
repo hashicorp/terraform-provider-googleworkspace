@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 variable "impersonated_user" {
   description = "Google Workspace Admin User to impersonate"
 }

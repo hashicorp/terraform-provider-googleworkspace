@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 data "googleworkspace_user" "example" {
   primary_email = "user.with.gmail.license@example.com"
 }

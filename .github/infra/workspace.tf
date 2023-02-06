@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 // a test exists proving no impersonation is required for some resources
 // as long as the service account has the proper role assignments
 

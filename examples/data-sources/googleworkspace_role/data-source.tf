@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 data "googleworkspace_role" "group-admin" {
   name = "_GROUPS_ADMIN_ROLE"
 }
