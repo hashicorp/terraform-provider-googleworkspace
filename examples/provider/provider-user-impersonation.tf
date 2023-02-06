@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 # Auth method: Domain-wide delegation and user impersonation
 provider "googleworkspace" {
   credentials             = "/Users/mscott/my-project-c633d7053aab.json"

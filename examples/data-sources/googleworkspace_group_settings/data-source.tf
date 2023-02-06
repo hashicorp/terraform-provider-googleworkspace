@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 data "googleworkspace_group_settings" "sales-settings" {
   email = "sales@example.com"
 }

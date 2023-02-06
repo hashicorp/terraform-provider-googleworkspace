@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 data "googleworkspace_privileges" "privileges" {}
 
 # filter using native Terraform syntax
