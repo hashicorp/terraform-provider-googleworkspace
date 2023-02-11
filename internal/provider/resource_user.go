@@ -10,6 +10,7 @@ import (
 	"log"
 	"net/mail"
 	"reflect"
+	"sort"
 	"strconv"
 	"time"
 
@@ -44,6 +45,18 @@ func diffSuppressEmails(k, old, new string, d *schema.ResourceData) bool {
 	}
 
 	return reflect.DeepEqual(subsetEmails, configEmails.([]interface{}))
+}
+
+func diffSuppressAliases(k, old, new string, d *schema.ResourceData) bool {
+	stateAliases, configAliases := d.GetChange("aliases")
+
+	stateList := listOfInterfacestoStrings(stateAliases.([]interface{}))
+	configList := listOfInterfacestoStrings(configAliases.([]interface{}))
+
+	sort.Strings(stateList)
+	sort.Strings(configList)
+
+	return reflect.DeepEqual(stateList, configList)
 }
 
 func diffSuppressCustomSchemas(_, _, _ string, d *schema.ResourceData) bool {
@@ -347,9 +360,10 @@ func resourceUser() *schema.Resource {
 				},
 			},
 			"aliases": {
-				Description: "asps.list of the user's alias email addresses.",
-				Type:        schema.TypeList,
-				Optional:    true,
+				Description:      "asps.list of the user's alias email addresses.",
+				Type:             schema.TypeList,
+				Optional:         true,
+				DiffSuppressFunc: diffSuppressAliases,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
