@@ -142,6 +142,7 @@ func New(version string) func() *schema.Provider {
 				"googleworkspace_group_settings":      resourceGroupSettings(),
 				"googleworkspace_org_unit":            resourceOrgUnit(),
 				"googleworkspace_role":                resourceRole(),
+				"googleworkspace_license_assignment":   resourceLicenseAssignment(),
 				"googleworkspace_role_assignment":     resourceRoleAssignment(),
 				"googleworkspace_schema":              resourceSchema(),
 				"googleworkspace_user":                resourceUser(),
