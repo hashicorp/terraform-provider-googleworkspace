@@ -82,5 +82,5 @@ Optional:
 Import is supported using the following syntax:
 
 ```shell
-terraform import googleworkspace_group_member.manager groups/01abcde23fg4h5i/members/123456789012345678901
+terraform import googleworkspace_group_member.manager groups/01abcde23fg4h5i/members/dwight.schrute@example.com
 ```
