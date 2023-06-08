@@ -79,7 +79,7 @@ jobs:
 
     - name: Get credentials
       id: vault
-      uses: hashicorp/vault-action@v2.4.0
+      uses: hashicorp/vault-action@v2.6.0
       with:
         url: ${{ secrets.VAULT_ADDR }}
         method: approle
