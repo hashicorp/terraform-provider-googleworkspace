@@ -1397,7 +1397,7 @@ func resourceUserUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 	}
 
 	numInserts := 0
-	if d.HasChange("aliases") {
+	if (d.HasChange("aliases") || d.HasChange("primary_email")) {
 		old, new := d.GetChange("aliases")
 		oldAliases := listOfInterfacestoStrings(old.([]interface{}))
 		newAliases := listOfInterfacestoStrings(new.([]interface{}))
