@@ -1,0 +1,13 @@
+schema: 1.1
+
+partition: test
+category: test
+
+summary:
+  owner: test
+  description: |
+    
+
+  visibility: external
+  auth_methods: |
+    
