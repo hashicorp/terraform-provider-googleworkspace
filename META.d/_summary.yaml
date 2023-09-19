@@ -1,0 +1,13 @@
+---
+
+schema: 1.1
+
+partition: tf-ecosystem
+
+summary:
+  owner: team-tf-hybrid-cloud
+  description: |
+    This Google Workspace provider for Terraform allows you to manage domains, users, and groups in your Google Workspace.
+  
+  visibility: external 
+    
