@@ -130,6 +130,7 @@ func flattenUser(user *directory.User, client *apiClient) interface{} {
 	result["org_unit_path"] = user.OrgUnitPath
 	result["recovery_email"] = user.RecoveryEmail
 	result["recovery_phone"] = user.RecoveryPhone
+	result["id"] = user.Id
 
 	return result
 }
