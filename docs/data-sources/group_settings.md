@@ -90,6 +90,7 @@ output "who_can_join_sales" {
 - `who_can_leave_group` (String) Permission to leave the group. Possible values are:
 	- `ALL_MANAGERS_CAN_LEAVE`
 	- `ALL_MEMBERS_CAN_LEAVE`
+	- `ALL_OWNERS_CAN_LEAVE`
 	- `NONE_CAN_LEAVE`
 - `who_can_moderate_content` (String) Specifies who can moderate content. Possible values are: 
 	- `ALL_MEMBERS`
