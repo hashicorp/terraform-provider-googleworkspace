@@ -153,9 +153,58 @@ func resourceGroupMemberCreate(ctx context.Context, d *schema.ResourceData, meta
 
 	// If we receive a 409 that the member already exists, ignore it, we'll import it next
 	if err != nil {
-		return diag.FromErr(err)
-	}
+		gErr, ok := err.(*googleapi.Error)
+		if ok && gErr.Code == 409 {
+			// Member already exists, let's find the existing member
+			var pageToken string
+			for {
+				// List call with pagination
+				call := membersService.List(groupId)
+				if pageToken != "" {
+					call.PageToken(pageToken)
+				}
+				members, err := call.Do()
+				if err != nil {
+					return diag.FromErr(err)
+				}
 
+				for _, existingMember := range members.Members {
+					if existingMember.Email == email {
+						log.Printf("[DEBUG] Found existing Group Member %q with ID %s", email, existingMember.Id)
+
+						// Set the *member variable to the found existingMember so the rest of the code can use it
+						member = existingMember
+						break // Exit the loop since we found the matching member
+					}
+				}
+
+				if member != nil {
+					// Break the outer loop as we have found our member
+					break
+				}
+
+				// If nextPageToken is empty, we have reached the last page
+				if members.NextPageToken == "" {
+					break
+				}
+
+				// Set the pageToken for the next iteration
+				pageToken = members.NextPageToken
+			}
+
+			// Check if member was found, otherwise return an error
+			if member == nil {
+				// No matching member found after searching through all pages
+				return diag.Errorf("error 409 'Member already exists' received, but no matching member found in group '%s'", groupId)
+			}
+
+			// If a matching member was found, we continue with the existing member.
+			// There is no need to call resourceGroupMemberRead, as we will proceed with the consistency check.
+		} else {
+			// For other errors (not 409), return the error
+			return diag.FromErr(err)
+		}
+	} 
 	d.Set("member_id", member.Id)
 	d.SetId(fmt.Sprintf("groups/%s/members/%s", groupId, member.Id))
 
