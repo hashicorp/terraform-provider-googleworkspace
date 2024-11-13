@@ -2,7 +2,11 @@
 # SPDX-License-Identifier: MPL-2.0
 
 archives:
-  - format: zip
+  - files:
+      # Ensure only built binary and license file are archived
+      - src: 'LICENSE'
+        dst: 'LICENSE.txt'
+    format: zip
     name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
 builds:
   - env:
