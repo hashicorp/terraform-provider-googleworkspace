@@ -1,4 +1,8 @@
 ## 0.8.0 (Unreleased)
+
+BUG FIXES:
+* chrome: fixed a bug where when validating a `googleworkspace_chrome_policy` schema value the proto `LABEL_REPEATED` label was not being respected to require an array of the associated type ([#336](https://github.com/hashicorp/terraform-provider-googleworkspace/pull/336))
+
 ## 0.7.0 (June 10, 2022)
 
 FEATURES:
