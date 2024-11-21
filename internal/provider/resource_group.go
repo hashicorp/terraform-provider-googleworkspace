@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -45,9 +46,13 @@ func resourceGroup() *schema.Resource {
 			},
 			"email": {
 				Description: "The group's email address. If your account has multiple domains," +
-					"select the appropriate domain for the email address. The email must be unique.",
+					"select the appropriate domain for the email address. The email must be unique." +
+					"Values of `email` will be converted to lowercase by the API.",
 				Type:     schema.TypeString,
 				Required: true,
+				StateFunc: func(val interface{}) string {
+					return strings.ToLower(val.(string))
+				},
 			},
 			"name": {
 				Description: "The group's display name.",
@@ -108,6 +113,7 @@ func resourceGroupCreate(ctx context.Context, d *schema.ResourceData, meta inter
 	client := meta.(*apiClient)
 
 	email := d.Get("email").(string)
+	email = strings.ToLower(email)
 	log.Printf("[DEBUG] Creating Group %q: %#v", email, email)
 
 	directoryService, diags := client.NewDirectoryService()
@@ -121,7 +127,7 @@ func resourceGroupCreate(ctx context.Context, d *schema.ResourceData, meta inter
 	}
 
 	groupObj := directory.Group{
-		Email:       d.Get("email").(string),
+		Email:       email,
 		Name:        d.Get("name").(string),
 		Description: d.Get("description").(string),
 	}
