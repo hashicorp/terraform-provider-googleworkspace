@@ -106,8 +106,22 @@ func TestAccResourceUser_noPassword(t *testing.T) {
 		ProviderFactories: providerFactories,
 		Steps: []resource.TestStep{
 			{
-				Config:      testAccResourceUser_noPassword(testUserVals),
-				ExpectError: regexp.MustCompile("Password is required"),
+				Config: testAccResourceUser_noPassword(testUserVals),
+			},
+			{
+				ResourceName:            "googleworkspace_user.my-new-user",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"etag", "password", "hash_function"},
+			},
+			{
+				Config: testAccResourceUser_noPassword(testUserVals),
+			},
+			{
+				ResourceName:            "googleworkspace_user.my-new-user",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"etag", "password", "hash_function"},
 			},
 		},
 	})

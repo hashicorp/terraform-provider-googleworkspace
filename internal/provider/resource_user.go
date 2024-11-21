@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math/rand"
 	"net/mail"
 	"reflect"
 	"strconv"
@@ -16,6 +17,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+
+	"github.com/sethvargo/go-password/password"
 
 	directory "google.golang.org/api/admin/directory/v1"
 	"google.golang.org/api/googleapi"
@@ -149,7 +152,7 @@ func resourceUser() *schema.Resource {
 				Description: "Stores the password for the user account. A password can contain any combination of " +
 					"ASCII characters. A minimum of 8 characters is required. The maximum length is 100 characters. " +
 					"As the API does not return the value of password, this field is write-only, and the value stored " +
-					"in the state will be what is provided in the configuration. The field is required on create and will " +
+					"in the state will be what is provided in the configuration. If the field is not set on create a random password will be generated " +
 					"be empty on import.",
 				Type:             schema.TypeString,
 				Optional:         true,
@@ -1006,17 +1009,16 @@ func resourceUser() *schema.Resource {
 
 func resourceUserCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var diags diag.Diagnostics
-
+	var generated_password string
 	// use the meta value to retrieve your client from the provider configure method
 	client := meta.(*apiClient)
-
+	generated_password = ""
 	if d.Get("password").(string) == "" {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Error,
-			Summary:  fmt.Sprintf("Password is required when creating a new user"),
-		})
-
-		return diags
+		// generate password
+		generated_password, _ = password.Generate(rand.Intn(64)+8, 4, 4, false, true)
+		log.Printf("[DEBUG] Auto Generating password for User %q", d.Id())
+	} else {
+		generated_password = d.Get("password").(string)
 	}
 
 	primaryEmail := d.Get("primary_email").(string)
@@ -1034,7 +1036,7 @@ func resourceUserCreate(ctx context.Context, d *schema.ResourceData, meta interf
 
 	userObj := directory.User{
 		PrimaryEmail:               primaryEmail,
-		Password:                   d.Get("password").(string),
+		Password:                   generated_password,
 		HashFunction:               d.Get("hash_function").(string),
 		Suspended:                  d.Get("suspended").(bool),
 		ChangePasswordAtNextLogin:  d.Get("change_password_at_next_login").(bool),
@@ -1243,21 +1245,15 @@ func resourceUserUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 	if d.HasChange("primary_email") {
 		userObj.PrimaryEmail = primaryEmail
 	}
-
-	if d.HasChange("password") {
-		userObj.Password = d.Get("password").(string)
-
-		if userObj.Password == "" {
-			forceSendFields = append(forceSendFields, "Password")
+	if d.Get("password").(string) != "" {
+		if d.HasChange("password") {
+			userObj.Password = d.Get("password").(string)
 		}
 	}
 
 	if d.HasChange("hash_function") {
 		userObj.HashFunction = d.Get("hash_function").(string)
 
-		if userObj.HashFunction == "" {
-			forceSendFields = append(forceSendFields, "HashFunction")
-		}
 	}
 
 	if d.HasChange("org_unit_path") {
