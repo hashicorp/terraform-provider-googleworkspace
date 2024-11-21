@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 
+	iamv1 "cloud.google.com/go/iam/credentials/apiv1"
 	"golang.org/x/oauth2"
 	googleoauth "golang.org/x/oauth2/google"
 
@@ -18,9 +19,9 @@ import (
 	"google.golang.org/api/chromepolicy/v1"
 	"google.golang.org/api/gmail/v1"
 	"google.golang.org/api/groupssettings/v1"
-	"google.golang.org/api/impersonate"
 	"google.golang.org/api/option"
 	"google.golang.org/api/transport"
+	"google.golang.org/genproto/googleapis/iam/credentials/v1"
 )
 
 type apiClient struct {
@@ -62,19 +63,25 @@ func (c *apiClient) loadAndValidate(ctx context.Context) diag.Diagnostics {
 				return diags
 			}
 
-			tokenSource, err := impersonate.CredentialsTokenSource(context.TODO(), impersonate.CredentialsConfig{
-				TargetPrincipal: c.ServiceAccount,
-				Scopes:          c.ClientScopes,
-				Subject:         c.ImpersonatedUserEmail,
-			}, option.WithTokenSource(oauth2.StaticTokenSource(token)))
+			iamClient, err := iamv1.NewIamCredentialsClient(ctx, option.WithTokenSource(oauth2.StaticTokenSource(token)))
 			if err != nil {
 				return diag.FromErr(err)
 			}
 
-			creds := googleoauth.Credentials{
-				TokenSource: tokenSource,
+			impersonatedToken, err := iamClient.GenerateAccessToken(ctx, &credentials.GenerateAccessTokenRequest{
+				Name:  c.ImpersonatedUserEmail,
+				Scope: c.ClientScopes,
+			})
+			if err != nil {
+				return diag.FromErr(err)
 			}
-			diags = c.SetupClient(ctx, &creds)
+
+			diags = c.SetupClient(ctx, &googleoauth.Credentials{
+				TokenSource: oauth2.StaticTokenSource(&oauth2.Token{
+					AccessToken: impersonatedToken.GetAccessToken(),
+					Expiry:      impersonatedToken.ExpireTime.AsTime(),
+				}),
+			})
 			return diags
 		}
 
