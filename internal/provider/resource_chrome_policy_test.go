@@ -120,11 +120,11 @@ func TestAccResourceChromePolicy_multiple(t *testing.T) {
 			return errors.New(diags[0].Summary)
 		}
 
-		policyTargetKey := &chromepolicy.GoogleChromePolicyV1PolicyTargetKey{
+		policyTargetKey := &chromepolicy.GoogleChromePolicyVersionsV1PolicyTargetKey{
 			TargetResource: "orgunits/" + strings.TrimPrefix(rs.Primary.ID, "id:"),
 		}
 
-		resp, err := chromePoliciesService.Resolve(fmt.Sprintf("customers/%s", client.Customer), &chromepolicy.GoogleChromePolicyV1ResolveRequest{
+		resp, err := chromePoliciesService.Resolve(fmt.Sprintf("customers/%s", client.Customer), &chromepolicy.GoogleChromePolicyVersionsV1ResolveRequest{
 			PolicySchemaFilter: "chrome.users.MaxConnectionsPerProxy",
 			PolicyTargetKey:    policyTargetKey,
 		}).Do()
