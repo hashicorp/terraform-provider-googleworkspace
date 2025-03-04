@@ -14,13 +14,13 @@ jobs:
     outputs:
       version: ${{ steps.go-version.outputs.version }}
     steps:
-      - uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # v4.0.0
+      - uses: actions/checkout@85e6279cec87321a52edac9c87bce653a07cf6c2 # v4.0.0
       - id: go-version
         run: echo "::set-output name=version::$(cat ./.go-version)"
   release-notes:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # v4.0.0
+      - uses: actions/checkout@85e6279cec87321a52edac9c87bce653a07cf6c2 # v4.0.0
         with:
           fetch-depth: 0
       - name: Generate Release Notes
