@@ -1,4 +1,9 @@
 ## 0.8.0 (Unreleased)
+
+IMPROVEMENTS:
+
+* provider: interactive users can now provide a project quota for use in API calls ([#465](https://github.com/hashicorp/terraform-provider-googleworkspace/issues/465))
+
 ## 0.7.0 (June 10, 2022)
 
 FEATURES:

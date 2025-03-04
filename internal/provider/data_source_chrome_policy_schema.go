@@ -205,7 +205,7 @@ func dataSourceChromePolicySchemaRead(ctx context.Context, d *schema.ResourceDat
 	return nil
 }
 
-func flattenNotices(ns []*chromepolicy.GoogleChromePolicyV1PolicySchemaNoticeDescription) []interface{} {
+func flattenNotices(ns []*chromepolicy.GoogleChromePolicyVersionsV1PolicySchemaNoticeDescription) []interface{} {
 	result := make([]interface{}, len(ns))
 
 	for i, n := range ns {
@@ -258,7 +258,7 @@ func flattenDefinition(d *chromepolicy.Proto2FileDescriptorProto) []interface{} 
 	return result
 }
 
-func flattenAdditionalTargetKeyNames(as []*chromepolicy.GoogleChromePolicyV1AdditionalTargetKeyName) []interface{} {
+func flattenAdditionalTargetKeyNames(as []*chromepolicy.GoogleChromePolicyVersionsV1AdditionalTargetKeyName) []interface{} {
 	result := make([]interface{}, len(as))
 	for i, a := range as {
 		obj := make(map[string]interface{})
