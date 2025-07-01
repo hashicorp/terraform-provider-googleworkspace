@@ -133,6 +133,8 @@ resource "googleworkspace_user" "dwight" {
 - `org_unit_path` (String) The full path of the parent organization associated with the user. If the parent organization is the top-level, it is represented as a forward slash (/).
 - `organizations` (Block List) A list of organizations the user belongs to. The maximum allowed data size is 10Kb. (see [below for nested schema](#nestedblock--organizations))
 - `password` (String, Sensitive) Stores the password for the user account. A password can contain any combination of ASCII characters. A minimum of 8 characters is required. The maximum length is 100 characters. As the API does not return the value of password, this field is write-only, and the value stored in the state will be what is provided in the configuration. The field is required on create and will be empty on import.
+- `password_wo` (String, Sensitive, WriteOnly) Stores the password for the user account. A password can contain any combination of ASCII characters. A minimum of 8 characters is required. The maximum length is 100 characters. This field is write-only and is used in conjunction with password_wo_version to trigger password updates. It will not be stored in the state.
+- `password_wo_version` (Number) An incrementing integer used to trigger updates to password_wo.
 - `phones` (Block List) A list of the user's phone numbers. The maximum allowed data size is 1Kb. (see [below for nested schema](#nestedblock--phones))
 - `posix_accounts` (Block List) A list of POSIX account information for the user. (see [below for nested schema](#nestedblock--posix_accounts))
 - `recovery_email` (String) Recovery email of the user.

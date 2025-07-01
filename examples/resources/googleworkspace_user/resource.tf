@@ -91,3 +91,75 @@ resource "googleworkspace_user" "dwight" {
 
   recovery_email = "dwightkschrute@example.com"
 }
+
+#Ephemeral value
+
+ephemeral "random_password" "db_password" {
+  length           = 16
+  override_special = "!#$%&*()-_=+[]{}<>:?"
+}
+
+resource "googleworkspace_user" "pam" {
+  primary_email       = "pam.beesly@example.com"
+  password_wo         = md5(ephemeral.random_password.db_password.result)
+  password_wo_version = 1
+  hash_function       = "MD5"
+
+  name {
+    family_name = "Beesly"
+    given_name  = "Pam"
+  }
+
+  emails {
+    address = "pam.beesly.dunder.mifflin@example.com"
+    type    = "work"
+  }
+
+  addresses {
+    country        = "USA"
+    country_code   = "US"
+    locality       = "Scranton"
+    po_box         = "123"
+    postal_code    = "18508"
+    region         = "PA"
+    street_address = "123 Dunder Mifflin Pkwy"
+    type           = "work"
+  }
+
+  organizations {
+    department = "frontdesk"
+    location   = "Scranton"
+    name       = "Dunder Mifflin"
+    primary    = true
+    symbol     = "DUMI"
+    title      = "member"
+    type       = "work"
+  }
+
+  phones {
+    type  = "home"
+    value = "555-123-7890"
+  }
+
+  phones {
+    type    = "work"
+    primary = true
+    value   = "555-123-0987"
+  }
+
+  keywords {
+    type  = "occupation"
+    value = "frontdesk"
+  }
+
+  custom_schemas {
+    schema_name = googleworkspace_schema.birthday.schema_name
+
+    schema_values = {
+      "birthday"         = jsonencode("1970-01-20")
+      "favorite-numbers" = jsonencode([1, 2, 3])
+    }
+  }
+
+  recovery_email = "pbeesly@example.com"
+}
