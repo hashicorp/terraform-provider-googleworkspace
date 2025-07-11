@@ -135,6 +135,7 @@ func resourceGroupSettings() *schema.Resource {
 					"the Google Workspace languages found at Google Workspace Email Settings API Email Language Tags.",
 				Type:     schema.TypeString,
 				Optional: true,
+				Default:  "en_US",
 			},
 			"is_archived": {
 				Description: "Allows the Group contents to be archived. If true, archive messages sent to the group. " +
