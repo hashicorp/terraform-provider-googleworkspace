@@ -8,7 +8,7 @@ import (
 )
 
 // The number of consistent responses we want before we consider the resource consistent
-const numConsistent = 4
+const numConsistent = 2
 
 type consistencyCheck struct {
 	currConsistent int

@@ -34,7 +34,7 @@ func TestConsistencyCheckReachedConsistency(t *testing.T) {
 		t.Errorf("Failed: did not reach consistency (numInserts: %d, currConsistent: %d, etagChanges: %d, timeout: %d)", numInserts, cc.currConsistent, cc.etagChanges, int(cc.timeout.Minutes()))
 	}
 
-	// We've seen all the inserts come through, but we haven't had 4 consistent tags yet
+	// We've seen all the inserts come through, but we haven't had 2 consistent tags yet
 	cc.etagChanges = 3
 	cc.currConsistent = 1
 
@@ -42,8 +42,8 @@ func TestConsistencyCheckReachedConsistency(t *testing.T) {
 		t.Errorf("Failed: reached consistency (numInserts: %d, currConsistent: %d, etagChanges: %d, timeout: %d)", numInserts, cc.currConsistent, cc.etagChanges, int(cc.timeout.Minutes()))
 	}
 
-	// We've seen all the inserts come through, and it's been consistent 4 times
-	cc.currConsistent = 4
+	// We've seen all the inserts come through, and it's been consistent 2 times
+	cc.currConsistent = 2
 
 	if !cc.reachedConsistency(numInserts) {
 		t.Errorf("Failed: did not reach consistency (numInserts: %d, currConsistent: %d, etagChanges: %d, timeout: %d)", numInserts, cc.currConsistent, cc.etagChanges, int(cc.timeout.Minutes()))
