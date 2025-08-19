@@ -75,7 +75,7 @@ The provider can be configured with an `oauth_scopes` field containing a list of
 
 The scopes declared in the provider's configuration need to match, or be a subset of, the scopes granted to the service account. If a provider is configured with scopes the service account isn't granted to use, the provider will receive a `401 Unauthorized` response when it requests an access token.
 
-->It's recommended to include `oath_scopes` in your provider configuration to make the requested scopes explicit and easier to debug issues.
+->It's recommended to include `oauth_scopes` in your provider configuration to make the requested scopes explicit and easier to debug issues.
 
 
 #### Impersonating a Google Workspace User
