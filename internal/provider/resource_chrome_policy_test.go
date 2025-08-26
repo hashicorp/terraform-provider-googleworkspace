@@ -172,6 +172,16 @@ func TestAccResourceChromePolicy_multiple(t *testing.T) {
 					testCheck,
 				),
 			},
+			{
+				Config: testAccResourceChromePolicy_multipleValueTypes(ouName, true, "POLICY_MODE_RECOMMENDED"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("googleworkspace_chrome_policy.test", "policies.#", "1"),
+					resource.TestCheckResourceAttr("googleworkspace_chrome_policy.test", "policies.0.schema_name", "chrome.users.DomainReliabilityAllowed"),
+					resource.TestCheckResourceAttr("googleworkspace_chrome_policy.test", "policies.0.schema_values.domainReliabilityAllowed", "true"),
+					resource.TestCheckResourceAttr("googleworkspace_chrome_policy.test", "policies.0.schema_values.domainReliabilityAllowedSettingGroupPolicyMode", encode("POLICY_MODE_RECOMMENDED")),
+					testCheck,
+				),
+			},
 		},
 	})
 }
@@ -254,6 +264,26 @@ resource "googleworkspace_chrome_policy" "test" {
   }
 }
 `, ouName, enabled, pattern)
+}
+
+func testAccResourceChromePolicy_multipleValueTypes(ouName string, enabled bool, policyMode string) string {
+	return fmt.Sprintf(`
+resource "googleworkspace_org_unit" "test" {
+  name = "%s"
+  parent_org_unit_path = "/"
+}
+
+resource "googleworkspace_chrome_policy" "test" {
+  org_unit_id = googleworkspace_org_unit.test.id
+  policies {
+    schema_name = "chrome.users.DomainReliabilityAllowed"
+    schema_values = {
+	  domainReliabilityAllowed                       = jsonencode(%t)
+      domainReliabilityAllowedSettingGroupPolicyMode = jsonencode("%s")
+    }
+  }
+}
+`, ouName, enabled, policyMode)
 }
 
 func testAccResourceChromePolicy_basic(ouName string, conns int) string {

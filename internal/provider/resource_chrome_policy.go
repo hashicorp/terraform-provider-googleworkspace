@@ -328,10 +328,10 @@ func validateChromePolicies(ctx context.Context, d *schema.ResourceData, client 
 			})
 		}
 
-		schemaFieldMap := map[string][]*chromepolicy.Proto2FieldDescriptorProto{}
+		schemaFieldMap := map[string]*chromepolicy.Proto2FieldDescriptorProto{}
 		for _, schemaField := range schemaDef.Definition.MessageType {
-			for _, schemaNestedField := range schemaField.Field {
-				schemaFieldMap[schemaNestedField.Name] = schemaField.Field
+			for i, schemaNestedField := range schemaField.Field {
+				schemaFieldMap[schemaNestedField.Name] = schemaField.Field[i]
 			}
 		}
 
@@ -351,22 +351,20 @@ func validateChromePolicies(ctx context.Context, d *schema.ResourceData, client 
 				return diag.FromErr(err)
 			}
 
-			for _, schemaField := range schemaFieldMap[polKey] {
+			schemaField := schemaFieldMap[polKey]
+			if schemaField == nil {
+				return append(diags, diag.Diagnostic{
+					Summary:  fmt.Sprintf("field type is not defined for field name (%s)", polKey),
+					Severity: diag.Warning,
+				})
+			}
 
-				if schemaField == nil {
-					return append(diags, diag.Diagnostic{
-						Summary:  fmt.Sprintf("field type is not defined for field name (%s)", polKey),
-						Severity: diag.Warning,
-					})
-				}
-
-				validType := validatePolicyFieldValueType(schemaField.Type, polVal)
-				if !validType {
-					return append(diags, diag.Diagnostic{
-						Summary:  fmt.Sprintf("value provided for %s is of incorrect type (expected type: %s)", schemaField.Name, schemaField.Type),
-						Severity: diag.Error,
-					})
-				}
+			validType := validatePolicyFieldValueType(schemaField.Type, polVal)
+			if !validType {
+				return append(diags, diag.Diagnostic{
+					Summary:  fmt.Sprintf("value provided for %s is of incorrect type (expected type: %s)", schemaField.Name, schemaField.Type),
+					Severity: diag.Error,
+				})
 			}
 		}
 	}
@@ -548,10 +546,10 @@ func flattenChromePolicies(ctx context.Context, policiesObj []*chromepolicy.Goog
 			})
 		}
 
-		schemaFieldMap := map[string][]*chromepolicy.Proto2FieldDescriptorProto{}
+		schemaFieldMap := map[string]*chromepolicy.Proto2FieldDescriptorProto{}
 		for _, schemaField := range schemaDef.Definition.MessageType {
-			for _, schemaNestedField := range schemaField.Field {
-				schemaFieldMap[schemaNestedField.Name] = schemaField.Field
+			for i, schemaNestedField := range schemaField.Field {
+				schemaFieldMap[schemaNestedField.Name] = schemaField.Field[i]
 			}
 		}
 
@@ -571,26 +569,24 @@ func flattenChromePolicies(ctx context.Context, policiesObj []*chromepolicy.Goog
 				})
 			}
 
-			for _, schemaField := range schemaFieldMap[k] {
-
-				if schemaField == nil {
-					return nil, append(diags, diag.Diagnostic{
-						Summary:  fmt.Sprintf("field type is not defined for field name (%s)", k),
-						Severity: diag.Warning,
-					})
-				}
-
-				val, err := convertPolicyFieldValueType(schemaField.Type, v)
-				if err != nil {
-					return nil, diag.FromErr(err)
-				}
-
-				jsonVal, err := json.Marshal(val)
-				if err != nil {
-					return nil, diag.FromErr(err)
-				}
-				schemaValues[k] = string(jsonVal)
+			schemaField := schemaFieldMap[k]
+			if schemaField == nil {
+				return nil, append(diags, diag.Diagnostic{
+					Summary:  fmt.Sprintf("field type is not defined for field name (%s)", k),
+					Severity: diag.Warning,
+				})
 			}
+
+			val, err := convertPolicyFieldValueType(schemaField.Type, v)
+			if err != nil {
+				return nil, diag.FromErr(err)
+			}
+
+			jsonVal, err := json.Marshal(val)
+			if err != nil {
+				return nil, diag.FromErr(err)
+			}
+			schemaValues[k] = string(jsonVal)
 		}
 
 		policies = append(policies, map[string]interface{}{
